@@ -13,6 +13,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { checkPermission } from "@/lib/permissions";
+import { getCarByIdSupabase } from "@/lib/supabaseReads";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -673,10 +674,7 @@ export async function getCarById(carId) {
       user: user,
     };
   } catch (error) {
-    console.error("Error while fetchin car by id " + error.message);
-    return {
-      success: false,
-      message: `Failed to fetch the Car by Id`,
-    };
+    console.warn("[getCarById] Prisma failed, using Supabase:", error.message);
+    return getCarByIdSupabase(carId);
   }
 }

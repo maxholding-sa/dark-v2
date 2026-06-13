@@ -8,7 +8,26 @@ const isProtectedRoute = createRouteMatcher([
   "/reservations(.*)",
 ]);
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+function withCors(response) {
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
+
 export default clerkMiddleware(async (auth, req) => {
+  const isApi = req.nextUrl.pathname.startsWith("/api/");
+
+  if (isApi && req.method === "OPTIONS") {
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
+  }
+
   const { userId } = await auth();
 
   // If userid is not found on a protected page, user will return to sign in page
@@ -17,7 +36,9 @@ export default clerkMiddleware(async (auth, req) => {
     return redirectToSignIn();
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (isApi) return withCors(response);
+  return response;
 });
 
 export const config = {

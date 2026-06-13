@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 
 import { unstable_cache } from "next/cache";
+import { getFeaturedBrandsSupabase } from "@/lib/supabaseReads";
 
 // Get unique car makes from database
 export async function getCarMakes() {
@@ -40,17 +41,22 @@ export async function getCarMakes() {
 // Get all featured brands (public - no auth required)
 export const getFeaturedBrands = unstable_cache(
   async () => {
-    const brands = await db.featuredBrand.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-    });
+    try {
+      const brands = await db.featuredBrand.findMany({
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      });
 
-    return {
-      success: true,
-      data: brands,
-    };
+      return {
+        success: true,
+        data: brands,
+      };
+    } catch (error) {
+      console.warn("[getFeaturedBrands] Prisma failed, using Supabase:", error.message);
+      return getFeaturedBrandsSupabase();
+    }
   },
-  ["home-featured-brands"],
+  ["home-featured-brands-v2"],
   { revalidate: 3600, tags: ["brands"] }
 );
 

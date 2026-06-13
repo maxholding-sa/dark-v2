@@ -1,0 +1,52 @@
+name: max_motors
+description: "ماكس موتورز - تطبيق الجوال (Max Motors mobile app)."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management & routing
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.7
+
+  # Networking
+  dio: ^5.7.0
+
+  # Auth (Clerk - official beta SDK). Pinned to 0.0.9-beta: later 0.x betas
+  # ship without their generated localizations (ClerkSdkLocalizations) and fail
+  # to compile on current Flutter; 0.0.9-beta bundles them.
+  clerk_flutter: 0.0.9-beta
+  clerk_auth: 0.0.9-beta
+
+  # UI / media
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  image_picker: ^1.1.2
+  carousel_slider: ^5.0.0
+  shimmer: ^3.0.0
+
+  # Utilities
+  intl: ^0.20.2
+  shared_preferences: ^2.3.2
+  url_launcher: ^6.3.1
+  share_plus: ^10.0.2
+  supabase_flutter: ^2.12.4
+  uuid: ^4.5.3
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 
 import { unstable_cache } from "next/cache";
+import { getFeaturedModelsSupabase } from "@/lib/supabaseReads";
 import { bodyTypeOptions as predefinedBodyTypes } from "@/lib/data";
 
 // Get unique car body types from database
@@ -44,17 +45,22 @@ export async function getCarBodyTypes() {
 // Get all featured models (public - no auth required)
 export const getFeaturedModels = unstable_cache(
   async () => {
-    const models = await db.featuredModel.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-    });
+    try {
+      const models = await db.featuredModel.findMany({
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      });
 
-    return {
-      success: true,
-      data: models,
-    };
+      return {
+        success: true,
+        data: models,
+      };
+    } catch (error) {
+      console.warn("[getFeaturedModels] Prisma failed, using Supabase:", error.message);
+      return getFeaturedModelsSupabase();
+    }
   },
-  ["home-featured-models"],
+  ["home-featured-models-v2"],
   { revalidate: 3600, tags: ["models"] }
 );
 

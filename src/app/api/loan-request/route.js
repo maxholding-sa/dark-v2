@@ -22,6 +22,9 @@ export async function POST(request) {
       loanAmount,
       downPayment,
       loanTerm,
+      monthlyPayment,
+      interestRate,
+      finalPayment,
       netSalary,
       employerSector,
       employer,
@@ -75,6 +78,9 @@ export async function POST(request) {
         loanAmount: parseFloat(loanAmount),
         downPayment: parseFloat(downPayment),
         loanTerm: parseInt(loanTerm),
+        monthlyPayment: monthlyPayment ? parseFloat(monthlyPayment) : null,
+        interestRate: interestRate ? parseFloat(interestRate) : null,
+        finalPayment: finalPayment ? parseFloat(finalPayment) : null,
 
         // Financial Information
         netSalary: netSalary ? parseFloat(netSalary) : null,

@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "verify-setup": "node verify-setup.js"
+    "verify-setup": "node verify-setup.js",
+    "check:mobile": "node scripts/check-mobile-connection.cjs",
+    "verify:env": "node scripts/verify-env.cjs"
   },
   "dependencies": {
     "@abdulrysr/saudi-riyal-new-symbol-font": "^1.0.8",

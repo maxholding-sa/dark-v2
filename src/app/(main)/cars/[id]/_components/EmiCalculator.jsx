@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation";
 import '@abdulrysr/saudi-riyal-new-symbol-font/style.css';
 import { getBanks } from "@/actions/banks";
 import { formatSaudiRiyalReact } from "@/lib/helper";
+import {
+  calculateIslamicAutoFinance,
+  createBankConfigFromBank,
+  LOAN_CALCULATOR_META,
+} from "@/lib/loan-calculator";
 
-function EmiCalculator({ price, carId }) {
+function EmiCalculator({ price, carId, carBrand }) {
   const router = useRouter();
   const [loanAmount, setLoanAmount] = useState(price || 1000);
   const [downPayment, setDownPayment] = useState(0);
@@ -15,6 +20,11 @@ function EmiCalculator({ price, carId }) {
   const [interestRate, setInterestRate] = useState(5);
   const [loanPolicy, setLoanPolicy] = useState("");
   const [loanTenure, setLoanTenure] = useState(1);
+  const [gender, setGender] = useState("male");
+  const [ageBracket, setAgeBracket] = useState("31 to 35");
+  const [adminFeePercent, setAdminFeePercent] = useState(1);
+  const [balloonPercent, setBalloonPercent] = useState(0);
+  const [rebate, setRebate] = useState(0);
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
   const [banks, setBanks] = useState([]);
@@ -73,26 +83,38 @@ function EmiCalculator({ price, carId }) {
 
   const calculateLoan = (principal, down, rate, years) => {
     const loanPrincipal = principal - down;
-    if (loanPrincipal <= 0) {
+    if (loanPrincipal <= 0 || !selectedBankId) {
       setResults(null);
       return;
     }
 
-    const monthlyRate = rate / 100 / 12;
-    const months = years * 12;
-
-    const emi =
-      (loanPrincipal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
-      (Math.pow(1 + monthlyRate, months) - 1);
-    const totalPayment = emi * months;
-    const totalInterest = totalPayment - loanPrincipal;
+    const selectedBank = banks.find((bank) => bank.id === selectedBankId);
+    const bankConfig = createBankConfigFromBank(selectedBank);
+    const calculation = calculateIslamicAutoFinance(bankConfig, {
+      car_price: principal,
+      down_payment_pct: principal > 0 ? down / principal : 0,
+      term_months: years * 12,
+      profit_rate: rate / 100,
+      admin_fees_pct: adminFeePercent / 100,
+      balloon_payment_pct: balloonPercent / 100,
+      gender,
+      age_bracket: ageBracket,
+      car_brand: carBrand,
+      rebate,
+    });
 
     setResults({
-      emi: emi.toFixed(2),
-      totalInterest: totalInterest.toFixed(2),
-      totalPayment: totalPayment.toFixed(2),
-      loanPrincipal: loanPrincipal.toFixed(2),
-      downPayment: down.toFixed(2),
+      emi: calculation.totals.installment.toFixed(2),
+      totalInterest: calculation.totals.total_profit.toFixed(2),
+      totalPayment: calculation.totals.grand_total.toFixed(2),
+      loanPrincipal: calculation.derived.finance_amount.toFixed(2),
+      downPayment: calculation.derived.down_payment_sar.toFixed(2),
+      monthlyInsurance: calculation.totals.monthly_insurance.toFixed(2),
+      totalMonthlyPayment: calculation.totals.total_monthly_payment.toFixed(2),
+      totalInsurance: calculation.totals.total_insurance.toFixed(2),
+      adminFees: calculation.derived.admin_fees.toFixed(2),
+      apr: (calculation.metrics.apr * 100).toFixed(2),
+      irr: (calculation.metrics.irr * 100).toFixed(2),
     });
   };
 
@@ -123,9 +145,10 @@ function EmiCalculator({ price, carId }) {
     fetchBanks();
   }, []);
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat("en-US").format(num);
-  };
+  useEffect(() => {
+    if (!selectedBankId) return;
+    calculateLoan(loanAmount, downPayment, interestRate, loanTenure);
+  }, [selectedBankId, gender, ageBracket, adminFeePercent, balloonPercent, rebate, carBrand]);
 
   return (
     <div
@@ -275,6 +298,80 @@ function EmiCalculator({ price, carId }) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white-50 dark:bg-white-800 rounded-xl p-4">
+              <h2 className="text-lg font-inter text-white-900 dark:text-white mb-3 text-right">
+                • ملف التأمين
+              </h2>
+              <div className="space-y-3">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full px-4 py-2 rounded-md border border-white-200 bg-black text-white text-right focus:outline-none"
+                >
+                  {LOAN_CALCULATOR_META.genders.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={ageBracket}
+                  onChange={(e) => setAgeBracket(e.target.value)}
+                  className="w-full px-4 py-2 rounded-md border border-white-200 bg-black text-white text-right focus:outline-none"
+                >
+                  {LOAN_CALCULATOR_META.ageBrackets.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-white-50 dark:bg-white-800 rounded-xl p-4">
+              <h2 className="text-lg font-inter text-white-900 dark:text-white mb-3 text-right">
+                • إعدادات التمويل
+              </h2>
+              <div className="space-y-3">
+                <input
+                  type="number"
+                  value={adminFeePercent}
+                  min={0}
+                  max={10}
+                  onChange={(e) =>
+                    setAdminFeePercent(
+                      Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 10)
+                    )
+                  }
+                  placeholder="رسوم إدارية %"
+                  className="w-full px-4 py-2 rounded-md border border-white-200 bg-black text-white text-right focus:outline-none"
+                />
+                <input
+                  type="number"
+                  value={balloonPercent}
+                  min={0}
+                  max={50}
+                  onChange={(e) =>
+                    setBalloonPercent(
+                      Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 50)
+                    )
+                  }
+                  placeholder="دفعة بالون %"
+                  className="w-full px-4 py-2 rounded-md border border-white-200 bg-black text-white text-right focus:outline-none"
+                />
+                <input
+                  type="number"
+                  value={rebate}
+                  min={0}
+                  onChange={(e) => setRebate(Math.max(parseFloat(e.target.value) || 0, 0))}
+                  placeholder="Rebate"
+                  className="w-full px-4 py-2 rounded-md border border-white-200 bg-black text-white text-right focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
           {error && (
             <div className="text-red-500 dark:text-red-400 text-sm mt-3">
               {error}
@@ -293,10 +390,10 @@ function EmiCalculator({ price, carId }) {
               </div>
               <div className="text-center mb-4">
                 <div className="text-sm font-inter text-white-700 dark:text-white-300">
-                  الدفعة الشهرية
+                  الدفعة الشهرية الإجمالية
                 </div>
                 <div className="text-3xl font-bold text-white-900 dark:text-white mt-1">
-                  {formatSaudiRiyalReact(results.emi)}
+                  {formatSaudiRiyalReact(results.totalMonthlyPayment)}
                 </div>
               </div>
 
@@ -330,10 +427,46 @@ function EmiCalculator({ price, carId }) {
 
                 <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
                   <div className="text-sm font-inter text-white-700 dark:text-white-300">
-                    إجمالي الفائدة
+                    إجمالي الربح
                   </div>
                   <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
                     {formatSaudiRiyalReact(results.totalInterest)}
+                  </div>
+                </div>
+
+                <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
+                  <div className="text-sm font-inter text-white-700 dark:text-white-300">
+                    التأمين الشهري
+                  </div>
+                  <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
+                    {formatSaudiRiyalReact(results.monthlyInsurance)}
+                  </div>
+                </div>
+
+                <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
+                  <div className="text-sm font-inter text-white-700 dark:text-white-300">
+                    الرسوم الإدارية
+                  </div>
+                  <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
+                    {formatSaudiRiyalReact(results.adminFees)}
+                  </div>
+                </div>
+
+                <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
+                  <div className="text-sm font-inter text-white-700 dark:text-white-300">
+                    IRR
+                  </div>
+                  <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
+                    %{results.irr}
+                  </div>
+                </div>
+
+                <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
+                  <div className="text-sm font-inter text-white-700 dark:text-white-300">
+                    APR
+                  </div>
+                  <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
+                    %{results.apr}
                   </div>
                 </div>
 

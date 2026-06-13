@@ -15,29 +15,35 @@ async function fileToBase64(file) {
 
 import { unstable_cache } from "next/cache";
 import { carDisplayPriorityOrderBy } from "@/lib/data";
+import { getFeaturedCarsSupabase } from "@/lib/supabaseReads";
 
 export const getFeaturedCars = unstable_cache(
   async (limit = 4) => {
-    const orderBy = [...carDisplayPriorityOrderBy, { createdAt: "desc" }];
+    try {
+      const orderBy = [...carDisplayPriorityOrderBy, { createdAt: "desc" }];
 
-    const cars = await db.car.findMany({
-      where: { status: "AVAILABLE" },
-      take: limit,
-      orderBy,
-    });
+      const cars = await db.car.findMany({
+        where: { status: "AVAILABLE" },
+        take: limit,
+        orderBy,
+      });
 
-    if (!cars.length) {
-      return { success: true, data: [] };
+      if (!cars.length) {
+        return { success: true, data: [] };
+      }
+
+      const serializedCars = cars.map((c) => serializedCarsData(c));
+
+      return {
+        success: true,
+        data: serializedCars,
+      };
+    } catch (error) {
+      console.warn("[getFeaturedCars] Prisma failed, using Supabase:", error.message);
+      return getFeaturedCarsSupabase(limit);
     }
-
-    const serializedCars = cars.map((c) => serializedCarsData(c));
-
-    return {
-      success: true,
-      data: serializedCars,
-    };
   },
-  ["home-featured-cars"],
+  ["home-featured-cars-v2"],
   { revalidate: 3600, tags: ["cars"] }
 );
 

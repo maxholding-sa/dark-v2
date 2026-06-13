@@ -12,6 +12,10 @@ import {
 } from "@/lib/data";
 
 import { unstable_cache } from "next/cache";
+import {
+  getCarFiltersSupabase,
+  getCarsByFiltersSupabase,
+} from "@/lib/supabaseReads";
 
 // creating filter on the basis of cars in db
 export const getCarFilters = unstable_cache(
@@ -85,11 +89,11 @@ export const getCarFilters = unstable_cache(
         },
       };
     } catch (error) {
-      console.error("Error fetching car filters:", error);
-      throw new Error(`Error fetching car filters: ${error.message}`);
+      console.warn("[getCarFilters] Prisma failed, using Supabase:", error.message);
+      return getCarFiltersSupabase();
     }
   },
-  ["car-filters"],
+  ["car-filters-v2"],
   { revalidate: 3600, tags: ["cars"] }
 );
 
@@ -208,9 +212,19 @@ export async function getCarsByFilters({
       };
     }
   } catch (error) {
-    throw new Error(
-      "Error fetchin cars in getCarsByFilters server-action ->" + error.message
-    );
+    console.warn("[getCarsByFilters] Prisma failed, using Supabase:", error.message);
+    return getCarsByFiltersSupabase({
+      search,
+      make,
+      bodyType,
+      fuelType,
+      transmission,
+      minPrice,
+      maxPrice,
+      sortBy,
+      page,
+      limit,
+    });
   }
 }
 
