@@ -231,3 +231,17 @@ export async function getFeaturedModelsSupabase() {
 
   return { success: true, data: data ?? [] };
 }
+
+export async function getHomeReviewsSupabase(limit = 3) {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("Review")
+    .select("*")
+    .order("createdAt", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
+}

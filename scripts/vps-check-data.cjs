@@ -88,9 +88,13 @@ if (urlRef && anonRef && urlRef !== anonRef) {
 
 if (dbProjectRef && urlRef && dbProjectRef !== urlRef) {
   console.log(
-    `⚠️  DATABASE_URL project (${dbProjectRef}) != Supabase URL (${urlRef})`
+    `❌ DATABASE_URL project (${dbProjectRef}) != Supabase URL (${urlRef})`
   );
-  console.log("   Prisma and Supabase fallback may hit different databases.");
+  console.log(
+    "   Prisma will fail. In Supabase → jbpsuxpvazcchafiqnrf → Settings → Database,"
+  );
+  console.log("   copy the pooler URL (port 6543) into DATABASE_URL on the VPS.");
+  failed = true;
 }
 
 async function testSupabase() {

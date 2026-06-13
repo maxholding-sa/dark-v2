@@ -33,3 +33,9 @@ DROP POLICY IF EXISTS "anon_read_featured_models" ON "FeaturedModel";
 CREATE POLICY "anon_read_featured_models" ON "FeaturedModel"
   FOR SELECT TO anon, authenticated
   USING ("isActive" = true);
+
+ALTER TABLE IF EXISTS "Review" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_reviews" ON "Review";
+CREATE POLICY "anon_read_reviews" ON "Review"
+  FOR SELECT TO anon, authenticated
+  USING (true);

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
 import { unstable_cache, revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
+import { getHomeReviewsSupabase } from "@/lib/supabaseReads";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -111,13 +112,18 @@ export async function addReview(formData) {
 // getHomeReviews - fetch limited reviews for homepage with caching
 export const getHomeReviews = unstable_cache(
   async (limit = 3) => {
-    const reviews = await db.review.findMany({
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    });
-    return reviews;
+    try {
+      const reviews = await db.review.findMany({
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      });
+      return reviews;
+    } catch (error) {
+      console.warn("[getHomeReviews] Prisma failed, using Supabase:", error.message);
+      return getHomeReviewsSupabase(limit);
+    }
   },
-  ["home-reviews-list"],
+  ["home-reviews-list-v2"],
   { revalidate: 3600, tags: ["reviews"] }
 );
 

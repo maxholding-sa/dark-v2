@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
-# Pull latest code, build, and reload PM2. Run on the VPS (manually or via GitHub Actions).
+# Pull latest code, build, and reload PM2. Run ON THE VPS (not your Mac).
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$HOME/dark-v2}"
 BRANCH="${DEPLOY_BRANCH:-master}"
 PM2_APP="${PM2_APP:-max-motors}"
+
+if [[ "$(uname -s)" == "Darwin" && "${FORCE_VPS_DEPLOY:-}" != "1" ]]; then
+  echo "ERROR: Run this on the VPS, not your Mac."
+  echo "  ssh root@72.62.30.173 'bash ~/dark-v2/scripts/vps-deploy.sh'"
+  exit 1
+fi
+
+if ! command -v pm2 >/dev/null 2>&1; then
+  echo "==> Installing PM2"
+  npm install -g pm2
+fi
 
 cd "$APP_DIR"
 
