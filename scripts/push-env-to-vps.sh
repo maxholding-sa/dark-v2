@@ -46,6 +46,28 @@ out["NEXT_PUBLIC_SITE_URL"] = f"https://{domain}"
 out["NEXT_PUBLIC_BASE_URL"] = f"https://{domain}"
 out["NODE_ENV"] = "production"
 
+def host_ref(url):
+    try:
+        host = url.split("https://", 1)[1].split(".supabase.co")[0]
+        return host
+    except Exception:
+        return None
+
+def db_ref(url):
+    import re
+    m = re.search(r"postgres(?:\.([a-z0-9]+))?", url or "")
+    if m and m.group(1):
+        return m.group(1)
+    m2 = re.search(r"db\.([a-z0-9]+)\.supabase\.co", url or "")
+    return m2.group(1) if m2 else None
+
+url_ref = host_ref(out.get("NEXT_PUBLIC_SUPABASE_URL", ""))
+db_project = db_ref(out.get("DATABASE_URL", ""))
+if url_ref and db_project and url_ref != db_project:
+    print(f"ERROR: DATABASE_URL uses project {db_project} but Supabase URL uses {url_ref}.")
+    print("Run: bash scripts/set-database-url.sh")
+    sys.exit(1)
+
 Path(dest).write_text("\n".join(f"{k}={out[k]}" for k in order if k in out) + "\n")
 PY
 
