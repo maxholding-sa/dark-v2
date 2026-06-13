@@ -169,8 +169,13 @@ export default async function Home() {
             </LinkWithLoader>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {banks.slice(0, 6).map((bank) => (
-              <BankCard key={bank.id} bank={bank} />
+            {banks.slice(0, 6).map((bank, index) => (
+              <div
+                key={bank.id}
+                className={index >= 4 ? "hidden lg:block" : undefined}
+              >
+                <BankCard bank={bank} />
+              </div>
             ))}
           </div>
         </div>
@@ -186,8 +191,13 @@ export default async function Home() {
             </LinkWithLoader>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {featuredBrands.slice(0, 8).map((brand) => (
-              <FeaturedBrandCard key={brand.id} brand={brand} />
+            {featuredBrands.slice(0, 8).map((brand, index) => (
+              <div
+                key={brand.id}
+                className={index >= 6 ? "hidden md:block lg:hidden" : undefined}
+              >
+                <FeaturedBrandCard brand={brand} />
+              </div>
             ))}
           </div>
         </div>
