@@ -4,12 +4,12 @@ const CarsListingLoading = () => {
   return (
     <>
       <Skeleton className="h-8 w-40 mb-5" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {Array(6)
           .fill(0)
           .map((_, i) => (
             <div key={i} className="rounded-lg border overflow-hidden">
-              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-32 sm:h-40 md:h-48 w-full" />
               <div className="p-4 space-y-3">
                 <Skeleton className="h-5 w-2/3" />
                 <Skeleton className="h-4 w-1/2" />

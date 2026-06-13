@@ -151,7 +151,7 @@ export default async function Home() {
               <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
             </LinkWithLoader>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             {featuredCars.map((car) => (
               <CarCard key={car.id} car={car} isFeatured={true} />
             ))}

@@ -26,7 +26,7 @@ export function SavedCarsList({ initialData }) {
   // console.log(initialData?.data);
   // Display saved cars
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
       {initialData?.data?.map((car) => (
         <CarCard key={car.id} car={{ ...car }} />
       ))}
