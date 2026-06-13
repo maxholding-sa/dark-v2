@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Info, AlertCircle } from "lucide-react";
 import SocialMediaManager from "./SocialMediaManager";
 import StoreInfoManager from "./StoreInfoManager";
@@ -48,22 +49,27 @@ const SiteDataDashboard = () => {
         getHeroSection(),
       ]);
 
-      if (
-        socialResult.success &&
-        storeResult.success &&
-        logosResult.success &&
-        aboutResult.success &&
-        heroResult.success
-      ) {
-        setData({
-          socialMedia: socialResult.data,
-          storeInfo: storeResult.data,
-          logos: logosResult.data,
-          aboutPage: aboutResult.data,
-          heroSection: heroResult.data,
-        });
-      } else {
-        setError("فشل تحميل البيانات");
+      const failedLoads = [];
+      if (!socialResult.success) failedLoads.push(`وسائل التواصل: ${socialResult.error || "خطأ غير معروف"}`);
+      if (!storeResult.success) failedLoads.push(`بيانات المتجر: ${storeResult.error || "خطأ غير معروف"}`);
+      if (!logosResult.success) failedLoads.push(`الشعارات: ${logosResult.error || "خطأ غير معروف"}`);
+      if (!aboutResult.success) failedLoads.push(`صفحة عن المتجر: ${aboutResult.error || "خطأ غير معروف"}`);
+      if (!heroResult.success) failedLoads.push(`قسم البطل: ${heroResult.error || "خطأ غير معروف"}`);
+
+      setData({
+        socialMedia: socialResult.success ? socialResult.data : [],
+        storeInfo: storeResult.success ? storeResult.data : null,
+        logos: logosResult.success ? logosResult.data : [],
+        aboutPage: aboutResult.success ? aboutResult.data : null,
+        heroSection: heroResult.success ? heroResult.data : null,
+      });
+
+      if (failedLoads.length > 0) {
+        setError(
+          failedLoads.length === 5
+            ? "فشل تحميل البيانات"
+            : `تعذر تحميل بعض البيانات: ${failedLoads.join(" | ")}`
+        );
       }
     } catch (err) {
       setError("خطأ في الاتصال: " + err.message);
@@ -94,7 +100,12 @@ const SiteDataDashboard = () => {
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>خطأ</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            <Button variant="outline" size="sm" onClick={loadAllData}>
+              إعادة المحاولة
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 

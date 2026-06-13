@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
-import { db } from "@/lib/prisma";
+import { db, withDbRetry } from "@/lib/prisma";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
@@ -99,14 +99,30 @@ export async function deleteFile(filePath) {
   }
 }
 
+// ==================== SERIALIZATION HELPERS ====================
+
+function serializeDates(value) {
+  if (value == null) return value;
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(serializeDates);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, serializeDates(entry)])
+    );
+  }
+  return value;
+}
+
 // ==================== SOCIAL MEDIA MANAGEMENT ====================
 
 export async function getSocialMediaLinks() {
   try {
-    const socialMedia = await db.socialMedia.findMany({
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    });
-    return { success: true, data: socialMedia };
+    const socialMedia = await withDbRetry(() =>
+      db.socialMedia.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      })
+    );
+    return { success: true, data: serializeDates(socialMedia) };
   } catch (error) {
     console.error("Error fetching social media:", error);
     return { success: false, error: error.message };
@@ -176,17 +192,13 @@ export async function deleteSocialMediaLink(id) {
 
 // ==================== STORE INFO MANAGEMENT ====================
 
-import { unstable_cache } from "next/cache";
+export async function getStoreInfo() {
+  try {
+    let storeInfo = await withDbRetry(() => db.storeInfo.findFirst());
 
-// ==================== STORE INFO MANAGEMENT ====================
-
-export const getStoreInfo = unstable_cache(
-  async () => {
-    try {
-      let storeInfo = await db.storeInfo.findFirst();
-
-      if (!storeInfo) {
-        storeInfo = await db.storeInfo.create({
+    if (!storeInfo) {
+      storeInfo = await withDbRetry(() =>
+        db.storeInfo.create({
           data: {
             name: "maxmotors",
             description: "متخصصون في بيع السيارات",
@@ -196,18 +208,16 @@ export const getStoreInfo = unstable_cache(
             phone: "+966 123 456 789",
             email: "info@maxmotors.sa",
           },
-        });
-      }
-
-      return { success: true, data: storeInfo };
-    } catch (error) {
-      console.error("Error fetching store info:", error);
-      return { success: false, error: error.message };
+        })
+      );
     }
-  },
-  ["store-info"],
-  { revalidate: 3600, tags: ["site-settings"] }
-);
+
+    return { success: true, data: serializeDates(storeInfo) };
+  } catch (error) {
+    console.error("Error fetching store info:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function updateStoreInfo(data) {
   try {
@@ -265,7 +275,8 @@ export async function updateStoreInfo(data) {
     revalidatePath("/admin/site-management/store-info");
     revalidatePath("/admin/site-data");
     revalidatePath("/", "layout");
-    return { success: true, data: storeInfo };
+    revalidateTag("site-settings");
+    return { success: true, data: serializeDates(storeInfo) };
   } catch (error) {
     console.error("Error updating store info:", error);
     return { success: false, error: error.message };
@@ -276,10 +287,12 @@ export async function updateStoreInfo(data) {
 
 export async function getLogos() {
   try {
-    const logos = await db.logo.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return { success: true, data: logos };
+    const logos = await withDbRetry(() =>
+      db.logo.findMany({
+        orderBy: { createdAt: "desc" },
+      })
+    );
+    return { success: true, data: serializeDates(logos) };
   } catch (error) {
     console.error("Error fetching logos:", error);
     return { success: false, error: error.message };
@@ -288,33 +301,33 @@ export async function getLogos() {
 
 export async function getActiveLogo() {
   try {
-    const logo = await db.logo.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" },
-    });
-    return { success: true, data: logo };
+    const logo = await withDbRetry(() =>
+      db.logo.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+      })
+    );
+    return { success: true, data: serializeDates(logo) };
   } catch (error) {
     console.error("Error fetching active logo:", error);
     return { success: false, error: error.message };
   }
 }
 
-export const getLogoByType = unstable_cache(
-  async (type) => {
-    try {
-      const logo = await db.logo.findFirst({
+export async function getLogoByType(type) {
+  try {
+    const logo = await withDbRetry(() =>
+      db.logo.findFirst({
         where: { type, isActive: true },
         orderBy: { createdAt: "desc" },
-      });
-      return { success: true, data: logo };
-    } catch (error) {
-      console.error(`Error fetching ${type} logo:`, error);
-      return { success: false, error: error.message };
-    }
-  },
-  ["site-logos"],
-  { revalidate: 3600, tags: ["site-settings", "logos"] }
-);
+      })
+    );
+    return { success: true, data: serializeDates(logo) };
+  } catch (error) {
+    console.error(`Error fetching ${type} logo:`, error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function createLogo(data) {
   try {
@@ -339,7 +352,9 @@ export async function createLogo(data) {
 
     revalidatePath("/admin/site-management/logo");
     revalidatePath("/", "layout");
-    return { success: true, data: logo };
+    revalidateTag("site-settings");
+    revalidateTag("logos");
+    return { success: true, data: serializeDates(logo) };
   } catch (error) {
     console.error("Error creating logo:", error);
     return { success: false, error: error.message };
@@ -373,7 +388,9 @@ export async function updateLogo(id, data) {
 
     revalidatePath("/admin/site-management/logo");
     revalidatePath("/", "layout");
-    return { success: true, data: updatedLogo };
+    revalidateTag("site-settings");
+    revalidateTag("logos");
+    return { success: true, data: serializeDates(updatedLogo) };
   } catch (error) {
     console.error("Error updating logo:", error);
     return { success: false, error: error.message };
@@ -390,6 +407,8 @@ export async function deleteLogo(id) {
 
     revalidatePath("/admin/site-management/logo");
     revalidatePath("/", "layout");
+    revalidateTag("site-settings");
+    revalidateTag("logos");
     return { success: true };
   } catch (error) {
     console.error("Error deleting logo:", error);
@@ -401,20 +420,21 @@ export async function deleteLogo(id) {
 
 export async function getAboutPage() {
   try {
-    let aboutPage = await db.aboutPage.findFirst();
+    let aboutPage = await withDbRetry(() => db.aboutPage.findFirst());
 
-    // If no about page exists, create a default one
     if (!aboutPage) {
-      aboutPage = await db.aboutPage.create({
-        data: {
-          title: "عن المتجر",
-          content: "<p>محتوى صفحة عن المتجر</p>",
-          isPublished: true,
-        },
-      });
+      aboutPage = await withDbRetry(() =>
+        db.aboutPage.create({
+          data: {
+            title: "عن المتجر",
+            content: "<p>محتوى صفحة عن المتجر</p>",
+            isPublished: true,
+          },
+        })
+      );
     }
 
-    return { success: true, data: aboutPage };
+    return { success: true, data: serializeDates(aboutPage) };
   } catch (error) {
     console.error("Error fetching about page:", error);
     return { success: false, error: error.message };
@@ -463,13 +483,13 @@ export async function updateAboutPage(data) {
 
 // ==================== HERO SECTION MANAGEMENT ====================
 
-export const getHeroSection = unstable_cache(
-  async () => {
-    try {
-      let heroSection = await db.heroSection.findFirst();
+export async function getHeroSection() {
+  try {
+    let heroSection = await withDbRetry(() => db.heroSection.findFirst());
 
-      if (!heroSection) {
-        heroSection = await db.heroSection.create({
+    if (!heroSection) {
+      heroSection = await withDbRetry(() =>
+        db.heroSection.create({
           data: {
             videoUrl: "",
             title: "مرحباً بك",
@@ -479,18 +499,16 @@ export const getHeroSection = unstable_cache(
             loop: true,
             muted: true,
           },
-        });
-      }
-
-      return { success: true, data: heroSection };
-    } catch (error) {
-      console.error("Error fetching hero section:", error);
-      return { success: false, error: error.message };
+        })
+      );
     }
-  },
-  ["hero-section"],
-  { revalidate: 3600, tags: ["site-settings"] }
-);
+
+    return { success: true, data: serializeDates(heroSection) };
+  } catch (error) {
+    console.error("Error fetching hero section:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function updateHeroSection(data) {
   try {
@@ -529,7 +547,8 @@ export async function updateHeroSection(data) {
 
     revalidatePath("/admin/site-data");
     revalidatePath("/");
-    return { success: true, data: heroSection };
+    revalidateTag("site-settings");
+    return { success: true, data: serializeDates(heroSection) };
   } catch (error) {
     console.error("Error updating hero section:", error);
     return { success: false, error: error.message };
@@ -538,49 +557,45 @@ export async function updateHeroSection(data) {
 
 // ==================== WHATSAPP NUMBER ====================
 
-export const getWhatsAppNumber = unstable_cache(
-  async () => {
-    try {
-      const storeInfo = await db.storeInfo.findFirst({
+export async function getWhatsAppNumber() {
+  try {
+    const storeInfo = await withDbRetry(() =>
+      db.storeInfo.findFirst({
         select: { whatsapp: true },
-      });
+      })
+    );
 
-      if (!storeInfo || !storeInfo.whatsapp) {
-        return { success: false, data: null };
-      }
-
-      return { success: true, data: storeInfo.whatsapp };
-    } catch (error) {
-      console.error("Error fetching WhatsApp number:", error);
+    if (!storeInfo || !storeInfo.whatsapp) {
       return { success: false, data: null };
     }
-  },
-  ["whatsapp-number"],
-  { revalidate: 3600, tags: ["site-settings"] }
-);
+
+    return { success: true, data: storeInfo.whatsapp };
+  } catch (error) {
+    console.error("Error fetching WhatsApp number:", error);
+    return { success: false, data: null };
+  }
+}
 
 // ==================== PIXEL & ANALYTICS MANAGEMENT ====================
 
-export const getPixelSettings = unstable_cache(
-  async () => {
-    try {
-      let pixelSettings = await db.pixelSettings.findFirst();
+export async function getPixelSettings() {
+  try {
+    let pixelSettings = await withDbRetry(() => db.pixelSettings.findFirst());
 
-      if (!pixelSettings) {
-        pixelSettings = await db.pixelSettings.create({
+    if (!pixelSettings) {
+      pixelSettings = await withDbRetry(() =>
+        db.pixelSettings.create({
           data: {},
-        });
-      }
-
-      return { success: true, data: pixelSettings };
-    } catch (error) {
-      console.error("Error fetching pixel settings:", error);
-      return { success: false, error: error.message };
+        })
+      );
     }
-  },
-  ["pixel-settings"],
-  { revalidate: 3600, tags: ["site-settings", "pixels"] }
-);
+
+    return { success: true, data: serializeDates(pixelSettings) };
+  } catch (error) {
+    console.error("Error fetching pixel settings:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function updatePixelSettings(data) {
   try {
