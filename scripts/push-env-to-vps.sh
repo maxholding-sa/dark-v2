@@ -55,8 +55,8 @@ def host_ref(url):
 
 def db_ref(url):
     import re
-    m = re.search(r"postgres(?:\.([a-z0-9]+))?", url or "")
-    if m and m.group(1):
+    m = re.search(r"postgres\.([a-z0-9]+):", url or "")
+    if m:
         return m.group(1)
     m2 = re.search(r"db\.([a-z0-9]+)\.supabase\.co", url or "")
     return m2.group(1) if m2 else None

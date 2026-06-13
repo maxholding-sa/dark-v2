@@ -45,10 +45,11 @@ function hostRef(url) {
 }
 
 function dbRef(url) {
-  const m = url?.match(/postgres(?:\.([a-z0-9]+))?@/i);
-  if (m?.[1]) return m[1];
-  const m2 = url?.match(/db\.([a-z0-9]+)\.supabase\.co/i);
-  return m2?.[1] || null;
+  const pooler = url?.match(/postgres\.([a-z0-9]+):/i);
+  if (pooler?.[1]) return pooler[1];
+  const direct = url?.match(/db\.([a-z0-9]+)\.supabase\.co/i);
+  if (direct?.[1]) return direct[1];
+  return null;
 }
 
 let failed = false;
@@ -141,9 +142,21 @@ async function testDatabase() {
     prismaOk = true;
   } catch (e) {
     const msg = e?.message || String(e);
-    console.log("❌ Prisma/DATABASE_URL failed:", msg.split("\n")[0].slice(0, 220));
-    if (msg.includes("Tenant or user not found") || msg.includes("password authentication failed")) {
-      console.log("   Fix DATABASE_URL from Supabase → Settings → Database → Connection string");
+    const firstLine =
+      msg
+        .split("\n")
+        .map((l) => l.trim())
+        .find((l) => l.length > 0) || "unknown error";
+    console.log("❌ Prisma/DATABASE_URL failed:", firstLine.slice(0, 220));
+    if (
+      msg.includes("tenant/user") ||
+      msg.includes("Tenant or user not found") ||
+      msg.includes("password authentication failed")
+    ) {
+      console.log(
+        "   DATABASE_URL points at the wrong Supabase project or password."
+      );
+      console.log("   Run: bash scripts/set-database-url.sh");
     }
     failed = true;
   }

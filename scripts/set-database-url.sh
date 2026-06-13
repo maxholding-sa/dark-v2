@@ -28,11 +28,31 @@ if [[ $# -ge 2 ]]; then
 else
   echo "Supabase project: $SUPABASE_REF"
   echo ""
-  echo "Open: https://supabase.com/dashboard/project/$SUPABASE_REF/settings/database"
-  echo "Copy Transaction pooler (port 6543) and Direct (port 5432) connection strings."
+  echo "1. Open: https://supabase.com/dashboard/project/$SUPABASE_REF/settings/database"
+  echo "2. Click [Connect] or find 'Connection string'"
+  echo "3. Choose URI format"
   echo ""
-  read -r -p "Paste DATABASE_URL (pooler, port 6543): " POOLER_URL
-  read -r -p "Paste DIRECT_URL (direct, port 5432): " DIRECT_URL
+  echo "DATABASE_URL = Transaction pooler, port 6543"
+  echo "  Example shape:"
+  echo "  postgresql://postgres.$SUPABASE_REF:YOUR_PASSWORD@aws-0-....pooler.supabase.com:6543/postgres"
+  echo ""
+  echo "DIRECT_URL = Direct connection, port 5432"
+  echo "  Example shape:"
+  echo "  postgresql://postgres:YOUR_PASSWORD@db.$SUPABASE_REF.supabase.co:5432/postgres"
+  echo ""
+  read -r -p "Paste full DATABASE_URL (starts with postgresql://): " POOLER_URL
+  read -r -p "Paste full DIRECT_URL (starts with postgresql://): " DIRECT_URL
+fi
+
+if [[ "$POOLER_URL" != postgresql://* ]]; then
+  echo "ERROR: DATABASE_URL must be the full URI starting with postgresql://"
+  echo "You pasted: $POOLER_URL"
+  exit 1
+fi
+if [[ "$DIRECT_URL" != postgresql://* ]]; then
+  echo "ERROR: DIRECT_URL must be the full URI starting with postgresql://"
+  echo "You pasted: $DIRECT_URL"
+  exit 1
 fi
 
 if [[ "$POOLER_URL" != *"$SUPABASE_REF"* ]]; then
