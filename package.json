@@ -14,6 +14,7 @@
     "verify-setup": "node verify-setup.js",
     "check:mobile": "node scripts/check-mobile-connection.cjs",
     "verify:env": "node scripts/verify-env.cjs",
+    "check:vps-data": "node scripts/vps-check-data.cjs",
     "deploy:vps": "bash scripts/vps-deploy.sh"
   },
   "dependencies": {

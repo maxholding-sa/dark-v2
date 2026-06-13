@@ -1,9 +1,30 @@
 /** PM2 process config — used on the VPS after deploy. */
+const fs = require("fs");
+const path = require("path");
+
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  return Object.fromEntries(
+    fs
+      .readFileSync(filePath, "utf8")
+      .split("\n")
+      .filter((line) => line && !line.startsWith("#"))
+      .map((line) => {
+        const i = line.indexOf("=");
+        return [line.slice(0, i).trim(), line.slice(i + 1).trim()];
+      })
+      .filter(([key]) => key)
+  );
+}
+
+const appDir = __dirname;
+const fileEnv = loadEnvFile(path.join(appDir, ".env"));
+
 module.exports = {
   apps: [
     {
       name: "max-motors",
-      cwd: __dirname,
+      cwd: appDir,
       script: "npm",
       args: "start",
       instances: 1,
@@ -13,7 +34,9 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        ...fileEnv,
       },
     },
   ],
 };
+

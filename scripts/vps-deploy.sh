@@ -18,6 +18,19 @@ if ! npm ci; then
   npm install
 fi
 
+if [[ ! -f "$APP_DIR/.env" ]]; then
+  echo "ERROR: Missing $APP_DIR/.env"
+  echo "Copy your local .env to the VPS, then run deploy again."
+  exit 1
+fi
+
+echo "==> Checking Supabase / database connectivity"
+if ! node scripts/vps-check-data.cjs; then
+  echo ""
+  echo "Deploy stopped: fix .env on the VPS first (see errors above)."
+  exit 1
+fi
+
 echo "==> Building Next.js app"
 npm run build
 
