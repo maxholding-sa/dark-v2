@@ -12,9 +12,25 @@ if [[ "$(uname -s)" == "Darwin" && "${FORCE_VPS_DEPLOY:-}" != "1" ]]; then
   exit 1
 fi
 
-if ! command -v pm2 >/dev/null 2>&1; then
+# npm global bins (pm2) are often missing from non-interactive SSH PATH
+export PATH="$(npm prefix -g 2>/dev/null)/bin:$PATH"
+
+pm2_cmd() {
+  if command -v pm2 >/dev/null 2>&1; then
+    pm2 "$@"
+    return
+  fi
+  if [[ -x "$(npm prefix -g)/bin/pm2" ]]; then
+    "$(npm prefix -g)/bin/pm2" "$@"
+    return
+  fi
+  npx --yes pm2 "$@"
+}
+
+if ! command -v pm2 >/dev/null 2>&1 && [[ ! -x "$(npm prefix -g)/bin/pm2" ]]; then
   echo "==> Installing PM2"
   npm install -g pm2
+  export PATH="$(npm prefix -g)/bin:$PATH"
 fi
 
 cd "$APP_DIR"
@@ -46,13 +62,13 @@ echo "==> Building Next.js app"
 npm run build
 
 echo "==> Reloading PM2 ($PM2_APP)"
-if pm2 describe "$PM2_APP" >/dev/null 2>&1; then
-  pm2 reload ecosystem.config.cjs --update-env
+if pm2_cmd describe "$PM2_APP" >/dev/null 2>&1; then
+  pm2_cmd reload ecosystem.config.cjs --update-env
 else
-  pm2 start ecosystem.config.cjs
+  pm2_cmd start ecosystem.config.cjs
 fi
 
-pm2 save
+pm2_cmd save
 
 echo "==> Deploy complete"
-pm2 status "$PM2_APP"
+pm2_cmd status "$PM2_APP"
