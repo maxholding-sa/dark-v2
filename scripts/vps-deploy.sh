@@ -13,7 +13,10 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 echo "==> Installing dependencies"
-npm ci
+if ! npm ci; then
+  echo "npm ci failed (lock file drift) — falling back to npm install"
+  npm install
+fi
 
 echo "==> Building Next.js app"
 npm run build
