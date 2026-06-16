@@ -49,11 +49,6 @@ const nextConfig = {
 
   // Custom webpack config (keeps your project working)
   webpack(config, { isServer, dev }) {
-    // Disable persistent cache in development if it's causing ENOENT errors
-    if (dev) {
-      config.cache = false;
-    }
-
     // Prevent webpack/glob from scanning system directories
     config.watchOptions = {
       ignored: ["**/node_modules", "**/.next", "**/.git"],
@@ -85,7 +80,8 @@ const nextConfig = {
   },
 
   experimental: {
-    webpackBuildWorker: true,
+    // Disabled in dev: parallel webpack workers can race and omit vendor-chunks (@clerk.js, etc.)
+    webpackBuildWorker: process.env.NODE_ENV === "production",
     serverActions: {
       bodySizeLimit: '150mb',
       allowedOrigins: ['*'],
@@ -115,6 +111,23 @@ const nextConfig = {
 
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/:path*.mp4",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/:path*-poster.jpg",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
   },
 };
 

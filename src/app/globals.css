@@ -431,3 +431,100 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+@keyframes bot-nudge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-8deg);
+  }
+
+  75% {
+    transform: rotate(8deg);
+  }
+}
+
+.animate-bot-nudge {
+  animation: bot-nudge 2.5s ease-in-out infinite;
+}
+
+/* 3D robot chatbot button v5 — cute chibi glass style */
+.robot-v5-svg {
+  overflow: visible;
+}
+
+.robot-v5-bounce {
+  transform-origin: 36px 42px;
+  animation: robot-v5-bounce 2.6s ease-in-out infinite;
+}
+
+.robot-v5-pupil {
+  animation: robot-v5-look 4s ease-in-out infinite;
+}
+
+.robot-v5-pupil-right {
+  animation-delay: 0.1s;
+}
+
+.robot-v5-heart {
+  animation: robot-v5-heart 1.8s ease-in-out infinite;
+}
+
+.robot-v5-antenna {
+  transform-origin: 36px 10px;
+  animation: robot-v5-antenna 2.2s ease-in-out infinite;
+}
+
+@keyframes robot-v5-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes robot-v5-look {
+  0%,
+  20%,
+  100% {
+    transform: translateX(0);
+  }
+
+  30% {
+    transform: translateX(-1.5px);
+  }
+
+  60% {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes robot-v5-heart {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes robot-v5-antenna {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(12deg);
+  }
+}

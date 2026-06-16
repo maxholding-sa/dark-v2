@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCarById } from "@/actions/cars";
+import { getCarById } from "@/actions/car-details";
 
 export const dynamic = "force-dynamic";
 

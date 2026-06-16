@@ -228,7 +228,7 @@ const HomeSearch = () => {
     <div>
       <form onSubmit={handleTextSubmit} suppressHydrationWarning>
         {/* Desktop Search */}
-        <div className="hidden md:flex relative items-center" ref={searchRef} suppressHydrationWarning>
+        <div className="hidden md:flex relative z-30 items-center overflow-visible" ref={searchRef} suppressHydrationWarning>
           <Input
             value={serachTerm}
             onChange={(e) => setSerachTerm(e.target.value)}
@@ -249,7 +249,7 @@ const HomeSearch = () => {
 
           {/* Desktop Suggestions Dropdown */}
           {showSuggestions && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-gray-200 max-h-80 overflow-y-auto z-50">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-gray-200 max-h-80 overflow-y-auto z-[100]">
               {loadingSuggestions ? (
                 <div className="px-6 py-4 text-center text-gray-500">
                   <LoadingBar fullScreen={false} size="sm" />
@@ -297,7 +297,7 @@ const HomeSearch = () => {
 
         {/* Mobile Search */}
         <div className="md:hidden flex flex-col gap-2 px-4 items-center" suppressHydrationWarning>
-          <div className="relative w-full" ref={searchRef}>
+          <div className="relative z-30 w-full overflow-visible" ref={searchRef}>
             <Input
               value={serachTerm}
               onChange={(e) => setSerachTerm(e.target.value)}
@@ -318,7 +318,7 @@ const HomeSearch = () => {
 
             {/* Mobile Suggestions Dropdown */}
             {showSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-gray-200 max-h-64 overflow-y-auto z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-gray-200 max-h-64 overflow-y-auto z-[100]">
                 {loadingSuggestions ? (
                   <div className="px-4 py-4 text-center text-gray-500">
                     <LoadingBar fullScreen={false} size="sm" />

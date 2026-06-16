@@ -1,4 +1,4 @@
-import { ChevronLeft, Car, Calendar, Shield } from "lucide-react";
+import { ChevronLeft, ChevronDown, Car, Calendar, Shield } from "lucide-react";
 import Image from "next/image";
 import { getFeaturedCars } from "@/actions/home";
 import { getFeaturedBrands } from "@/actions/featured-brands";
@@ -8,7 +8,6 @@ import { getWhatsAppNumber, getHeroSection, getLogoByType } from "@/actions/site
 import { getHomeReviews } from "@/actions/reviews";
 import { db } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { faqItems } from "@/lib/data";
 
 import LinkWithLoader from "@/components/LinkWithLoader";
@@ -21,7 +20,8 @@ import ChatBot from "@/components/ChatBot";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import LetterByLetterText from "@/components/LetterByLetterText";
 import ScrollAnimate from "@/components/ScrollAnimate";
-import VideoPlayer from "@/components/VideoPlayer";
+import SectionBackgroundVideo from "@/components/SectionBackgroundVideo";
+import HeroVideo from "@/components/HeroVideo";
 
 async function homeSafe(promiseFn, fallback) {
   try {
@@ -68,17 +68,38 @@ export default async function Home() {
   const mainLogo = mainLogoRes?.data;
   const reviews = reviewsRes || [];
 
+  const heroVideoSrc = heroSection.videoUrl || "/hero1.mp4";
+  const heroIsLocal = heroVideoSrc.startsWith("/");
+
   return (
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href={heroSection.posterImage || (heroIsLocal ? "/hero1-poster.jpg" : heroVideoSrc)}
+        fetchPriority="high"
+      />
+      {heroIsLocal && (
+        <>
+          <link rel="preload" as="video" href="/hero1-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
+          <link rel="preload" as="video" href={heroVideoSrc} type="video/mp4" media="(min-width: 769px)" />
+        </>
+      )}
+      {!heroIsLocal && (
+        <link rel="preload" as="video" href={heroVideoSrc} type="video/mp4" fetchPriority="high" />
+      )}
+      <link rel="preload" as="image" href="/featured-poster.jpg" />
     <div className="pt-20 flex flex-col bg-black overflow-x-hidden">
       {/* Hero */}
-      <section className="relative pt-32 pb-48 md:pt-24 md:pb-48 lg:pt-32 lg:pb-60">
-        <VideoPlayer
-          src={heroSection.videoUrl || "/hero1.mp4"}
+      <section className="relative min-h-[calc(100svh-5rem)] pt-32 pb-48 md:pt-24 md:pb-48 lg:pt-32 lg:pb-60 overflow-x-hidden">
+        <HeroVideo
+          src={heroVideoSrc}
+          mobileSrc={heroIsLocal ? "/hero1-mobile.mp4" : undefined}
           poster={heroSection.posterImage}
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
-        <div className="absolute bottom-0 left-0 w-full h-48 gradient-fade-to-black z-20 pointer-events-none"></div>
-        <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
+        <div className="absolute bottom-0 left-0 w-full h-48 gradient-fade-to-black z-[5] pointer-events-none"></div>
+        <div className="relative z-20 max-w-4xl mx-auto text-center px-4">
           <div className="mb-24 mt-8">
             {heroSection.title && (
               <h1 className="text-5xl md:text-6xl lg:text-7xl mb-4 text-white font-bold leading-tight animate-fade-in-up">
@@ -91,7 +112,7 @@ export default async function Home() {
               </p>
             )}
           </div>
-          <div className="md:animate-none animate-fade-in-up animation-delay-400">
+          <div className="relative z-30 overflow-visible md:animate-none animate-fade-in-up animation-delay-400">
             <HomeSearch />
           </div>
         </div>
@@ -136,11 +157,11 @@ export default async function Home() {
 
       {/* Featured Cars */}
       <section className="py-20 px-6 md:px-12 relative">
-        <VideoPlayer
+        <SectionBackgroundVideo
           src="/featured.mp4"
           mobileSrc="/featured-mobile.mp4"
+          poster="/featured-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover z-0"
-          playOnScroll={true}
         />
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black to-transparent z-5"></div>
         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black to-transparent z-5"></div>
@@ -174,7 +195,7 @@ export default async function Home() {
                 key={bank.id}
                 className={index >= 4 ? "hidden lg:block" : undefined}
               >
-                <BankCard bank={bank} />
+                <BankCard bank={bank} compact />
               </div>
             ))}
           </div>
@@ -205,10 +226,11 @@ export default async function Home() {
 
       {/* Why choose us */}
       <section className="py-20 px-6 md:px-12 relative min-h-[600px] flex items-center">
-        <VideoPlayer
+        <SectionBackgroundVideo
           src="/sectionBG4.mp4"
+          mobileSrc="/sectionBG4-mobile.mp4"
+          poster="/sectionBG4-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover z-0"
-          playOnScroll={true}
         />
         <div className="absolute inset-0 bg-black/60 z-5"></div>
         <div className="container mx-auto relative z-10">
@@ -255,36 +277,33 @@ export default async function Home() {
         <div className="container mx-auto text-right">
           <h2 className="text-3xl font-bold mb-12">الأسئلة الشائعة</h2>
           <ScrollAnimate>
-            <Accordion type="single" collapsible className="w-full" dir="rtl">
+            <div className="w-full" dir="rtl">
               {faqItems.map((faq, index) => (
-                <AccordionItem key={index} value={`item-${index}`}>
-                  <AccordionTrigger 
-                    id={`faq-trigger-${index}`} 
-                    aria-controls={`faq-content-${index}`}
-                    className="text-lg hover:text-yellow-500 transition-colors"
-                  >
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent 
-                    id={`faq-content-${index}`}
-                    className="text-white/70 text-base"
-                  >
+                <details
+                  key={index}
+                  className="group border-b border-white/10 last:border-b-0"
+                >
+                  <summary className="flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-right text-lg font-medium transition-colors outline-none hover:text-yellow-500 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <span className="flex-1">{faq.question}</span>
+                    <ChevronDown className="text-white/60 pointer-events-none size-4 shrink-0 translate-y-1 transition-transform duration-200 group-open:rotate-180" />
+                  </summary>
+                  <div className="text-white/70 text-base pb-4">
                     {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </details>
               ))}
-            </Accordion>
+            </div>
           </ScrollAnimate>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-40 px-6 relative overflow-hidden">
-        <VideoPlayer
+        <SectionBackgroundVideo
           src="/sectionBG5.mp4"
           mobileSrc="/sectionBG5-mobile.mp4"
+          poster="/sectionBG5-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover z-0"
-          playOnScroll={true}
         />
         <div className="absolute inset-0 bg-black/70 z-5"></div>
         <div className="container mx-auto relative z-10 text-center max-w-2xl">
@@ -303,5 +322,6 @@ export default async function Home() {
       <ChatBot />
       <WhatsAppButton phoneNumber={whatsappNumber} />
     </div>
+    </>
   );
 }

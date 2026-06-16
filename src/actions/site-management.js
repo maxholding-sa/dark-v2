@@ -2,6 +2,13 @@
 
 import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 import { db, withDbRetry } from "@/lib/prisma";
+import {
+  getHeroSectionSupabase,
+  getLogoByTypeSupabase,
+  getWhatsAppNumberSupabase,
+  getPixelSettingsSupabase,
+  getFooterDataSupabase,
+} from "@/lib/supabaseReads";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
@@ -324,8 +331,14 @@ export async function getLogoByType(type) {
     );
     return { success: true, data: serializeDates(logo) };
   } catch (error) {
-    console.error(`Error fetching ${type} logo:`, error);
-    return { success: false, error: error.message };
+    console.warn(`[getLogoByType] Prisma failed, using Supabase:`, error.message);
+    try {
+      const result = await getLogoByTypeSupabase(type);
+      return { ...result, data: serializeDates(result.data) };
+    } catch (fallbackError) {
+      console.error(`Error fetching ${type} logo:`, fallbackError);
+      return { success: false, error: fallbackError.message };
+    }
   }
 }
 
@@ -505,8 +518,14 @@ export async function getHeroSection() {
 
     return { success: true, data: serializeDates(heroSection) };
   } catch (error) {
-    console.error("Error fetching hero section:", error);
-    return { success: false, error: error.message };
+    console.warn("[getHeroSection] Prisma failed, using Supabase:", error.message);
+    try {
+      const result = await getHeroSectionSupabase();
+      return { ...result, data: serializeDates(result.data) };
+    } catch (fallbackError) {
+      console.error("Error fetching hero section:", fallbackError);
+      return { success: false, error: fallbackError.message };
+    }
   }
 }
 
@@ -571,8 +590,13 @@ export async function getWhatsAppNumber() {
 
     return { success: true, data: storeInfo.whatsapp };
   } catch (error) {
-    console.error("Error fetching WhatsApp number:", error);
-    return { success: false, data: null };
+    console.warn("[getWhatsAppNumber] Prisma failed, using Supabase:", error.message);
+    try {
+      return await getWhatsAppNumberSupabase();
+    } catch (fallbackError) {
+      console.error("Error fetching WhatsApp number:", fallbackError);
+      return { success: false, data: null };
+    }
   }
 }
 
@@ -592,8 +616,45 @@ export async function getPixelSettings() {
 
     return { success: true, data: serializeDates(pixelSettings) };
   } catch (error) {
-    console.error("Error fetching pixel settings:", error);
-    return { success: false, error: error.message };
+    console.warn("[getPixelSettings] Prisma failed, using Supabase:", error.message);
+    try {
+      const result = await getPixelSettingsSupabase();
+      return { ...result, data: serializeDates(result.data) };
+    } catch (fallbackError) {
+      console.error("Error fetching pixel settings:", fallbackError);
+      return { success: false, error: fallbackError.message };
+    }
+  }
+}
+
+export async function getFooterData() {
+  try {
+    const { socialLinks, storeInfo } = await withDbRetry(async () => {
+      const [socialLinks, storeInfo] = await Promise.all([
+        db.socialMedia.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
+        db.storeInfo.findFirst(),
+      ]);
+      return { socialLinks, storeInfo };
+    });
+
+    return {
+      success: true,
+      socialLinks: serializeDates(socialLinks),
+      storeInfo: serializeDates(storeInfo),
+    };
+  } catch (error) {
+    console.warn("[getFooterData] Prisma failed, using Supabase:", error.message);
+    try {
+      const data = await getFooterDataSupabase();
+      return {
+        success: true,
+        socialLinks: serializeDates(data.socialLinks),
+        storeInfo: serializeDates(data.storeInfo),
+      };
+    } catch (fallbackError) {
+      console.error("Error fetching footer data:", fallbackError);
+      return { success: false, socialLinks: [], storeInfo: null };
+    }
   }
 }
 

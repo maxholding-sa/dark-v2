@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import LoanRequestForm from './_components/LoanRequestForm';
-import { getCarById } from '@/actions/cars';
+import { getCarById } from '@/actions/car-details';
 
 export default async function LoanRequestPage({ params }) {
   const { id } = await params;

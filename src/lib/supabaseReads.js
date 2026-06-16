@@ -245,3 +245,88 @@ export async function getHomeReviewsSupabase(limit = 3) {
 
   return data ?? [];
 }
+
+export async function getHeroSectionSupabase() {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("HeroSection")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  return { success: true, data: data ?? null };
+}
+
+export async function getLogoByTypeSupabase(type) {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("Logo")
+    .select("*")
+    .eq("type", type)
+    .eq("isActive", true)
+    .order("createdAt", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  return { success: true, data: data ?? null };
+}
+
+export async function getWhatsAppNumberSupabase() {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("StoreInfo")
+    .select("whatsapp")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  if (!data?.whatsapp) {
+    return { success: false, data: null };
+  }
+
+  return { success: true, data: data.whatsapp };
+}
+
+export async function getPixelSettingsSupabase() {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("PixelSettings")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  return { success: true, data: data ?? null };
+}
+
+export async function getFooterDataSupabase() {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const [socialRes, storeRes] = await Promise.all([
+    sb
+      .from("SocialMedia")
+      .select("*")
+      .eq("isActive", true)
+      .order("order", { ascending: true }),
+    sb.from("StoreInfo").select("*").limit(1).maybeSingle(),
+  ]);
+
+  if (socialRes.error) throw new Error(socialRes.error.message);
+  if (storeRes.error) throw new Error(storeRes.error.message);
+
+  return {
+    socialLinks: socialRes.data ?? [],
+    storeInfo: storeRes.data ?? null,
+  };
+}

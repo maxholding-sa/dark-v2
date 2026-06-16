@@ -39,3 +39,33 @@ DROP POLICY IF EXISTS "anon_read_reviews" ON "Review";
 CREATE POLICY "anon_read_reviews" ON "Review"
   FOR SELECT TO anon, authenticated
   USING (true);
+
+ALTER TABLE IF EXISTS "HeroSection" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_hero_section" ON "HeroSection";
+CREATE POLICY "anon_read_hero_section" ON "HeroSection"
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+ALTER TABLE IF EXISTS "Logo" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_logos" ON "Logo";
+CREATE POLICY "anon_read_logos" ON "Logo"
+  FOR SELECT TO anon, authenticated
+  USING ("isActive" = true);
+
+ALTER TABLE IF EXISTS "StoreInfo" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_store_info" ON "StoreInfo";
+CREATE POLICY "anon_read_store_info" ON "StoreInfo"
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+ALTER TABLE IF EXISTS "SocialMedia" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_social_media" ON "SocialMedia";
+CREATE POLICY "anon_read_social_media" ON "SocialMedia"
+  FOR SELECT TO anon, authenticated
+  USING ("isActive" = true);
+
+ALTER TABLE IF EXISTS "PixelSettings" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_pixel_settings" ON "PixelSettings";
+CREATE POLICY "anon_read_pixel_settings" ON "PixelSettings"
+  FOR SELECT TO anon, authenticated
+  USING (true);

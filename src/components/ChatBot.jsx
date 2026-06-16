@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, MessageSquare, ExternalLink, Car } from "lucide-react";
+import { X, Send, ExternalLink, Car } from "lucide-react";
 import { getChatbotResponse } from "@/actions/chatbot";
 import Link from "next/link";
 import Image from "next/image";
@@ -351,15 +351,22 @@ export default function ChatBot({ onOpenChange }) {
             )}
 
             <button
+              type="button"
               onClick={() => {
                 dismissProactiveBubble(false);
                 setIsOpen(true);
               }}
-              className="relative flex shrink-0 items-center gap-2 rounded-full bg-yellow-600 p-3 text-black shadow-2xl transition-all duration-300 hover:scale-110 hover:bg-yellow-800 active:scale-105 touch-manipulation md:p-4"
+              className="relative shrink-0 transition-transform duration-300 hover:scale-110 active:scale-105 touch-manipulation"
               aria-label="فتح الدردشة"
             >
-              <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
-              <span className="hidden font-medium md:inline">مساعد AI</span>
+              <Image
+                src="/ai.png"
+                alt="مساعد AI"
+                width={160}
+                height={160}
+                className="h-20 w-20 md:h-32 md:w-32 lg:h-40 lg:w-40 object-contain drop-shadow-2xl"
+                priority
+              />
             </button>
           </div>
         </div>

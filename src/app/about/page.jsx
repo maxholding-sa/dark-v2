@@ -71,8 +71,8 @@ export default function About() {
             <div className="relative h-[400px] order-1 md:order-2">
               <div className="absolute inset-0 bg-yellow-500/10 rounded-3xl blur-3xl -z-10"></div>
               <Image
-                src="/background1.jpg"
-                alt="رؤيتنا"
+                src="/about-saudi-vision.jpg"
+                alt="أفق الرياض مع برج المملكة - السعودية"
                 fill
                 style={{ objectFit: "cover" }}
                 className="rounded-3xl shadow-2xl border border-white/10"
@@ -89,8 +89,8 @@ export default function About() {
             <div className="relative h-[400px]">
               <div className="absolute inset-0 bg-blue-500/10 rounded-3xl blur-3xl -z-10"></div>
               <Image
-                src="/background2.jpeg"
-                alt="رسالتنا"
+                src="/about-saudi-mission.jpg"
+                alt="الحِجر (مدائن صالح) في العلا - السعودية"
                 fill
                 style={{ objectFit: "cover" }}
                 className="rounded-3xl shadow-2xl border border-white/10"

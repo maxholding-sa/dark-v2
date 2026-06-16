@@ -7,6 +7,32 @@ const prismaClientOptions = {
 };
 
 // Function to handle database URL with connection pooling settings
+const getDbProjectRef = (url = "") => {
+  const pooler = url.match(/postgres\.([a-z0-9]+):/i);
+  if (pooler?.[1]) return pooler[1];
+  const direct = url.match(/db\.([a-z0-9]+)\.supabase\.co/i);
+  if (direct?.[1]) return direct[1];
+  return null;
+};
+
+const getSupabaseProjectRef = () => {
+  const match = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").match(
+    /https:\/\/([a-z0-9]+)\.supabase\.co/i
+  );
+  return match?.[1] || null;
+};
+
+const warnIfDatabaseProjectMismatch = () => {
+  const dbRef = getDbProjectRef(process.env.DATABASE_URL || "");
+  const supabaseRef = getSupabaseProjectRef();
+  if (!dbRef || !supabaseRef || dbRef === supabaseRef) return;
+
+  console.warn(
+    `[prisma] DATABASE_URL project (${dbRef}) does not match NEXT_PUBLIC_SUPABASE_URL (${supabaseRef}). ` +
+      "Update DATABASE_URL in .env.local from Supabase → Settings → Database, then restart the dev server."
+  );
+};
+
 const getDatabaseUrl = () => {
   let url = process.env.DATABASE_URL || "";
 
@@ -39,6 +65,7 @@ const getDatabaseUrl = () => {
 };
 
 const createPrismaClient = () => {
+  warnIfDatabaseProjectMismatch();
   return new PrismaClient({
     ...prismaClientOptions,
     datasources: {

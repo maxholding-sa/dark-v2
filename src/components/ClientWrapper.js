@@ -51,13 +51,6 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, footerD
         };
     }, [pathname]);
 
-    // Initial load: show loader briefly for a premium feel
-    useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1200);
-        return () => clearTimeout(timer);
-    }, []);
-
     return (
         <>
             {!isAuthPage && !isAdminPage && <Header navLogo={navLogo} />}

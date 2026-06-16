@@ -1,5 +1,5 @@
-import { getCarById } from "@/actions/cars";
-import NotFound from "@/app/not-found";
+import { getCarById } from "@/actions/car-details";
+import { notFound } from "next/navigation";
 import CarDetails from "./_components/CarDetails";
 
 export async function generateMetaData({ params }) {
@@ -31,7 +31,7 @@ const CarPage = async ({ params }) => {
 
   // If car not found, show 404
   if (!result.success) {
-    NotFound();
+    notFound();
   }
 
   return (

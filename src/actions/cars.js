@@ -8,12 +8,10 @@ import { serializedCarsData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/superbase";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { checkPermission } from "@/lib/permissions";
-import { getCarByIdSupabase } from "@/lib/supabaseReads";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -36,6 +34,7 @@ export async function processCarImageWithAI(formData) {
       throw new Error("No image file provided");
     }
 
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     // Using gemini-2.5-flash - latest model
@@ -569,112 +568,5 @@ export async function getCarForEdit(carId) {
       success: false,
       error: error.message,
     };
-  }
-}
-
-// get cardetails by id (includes dealership + testdrive info)
-export async function getCarById(carId) {
-  try {
-    const user = await getAuthenticatedUser();
-
-    const car = await db.car.findUnique({
-      where: { id: carId },
-    });
-
-    if (!car)
-      return {
-        success: false,
-        message: "Car not found",
-      };
-
-    // Check if car is wishlisted by user
-    let isWishlisted = false;
-    let userTestDrive = null;
-
-    let existingTestDrive;
-
-    if (user) {
-      const savedCar = await db.UserSavedCar.findUnique({
-        where: {
-          userId_carId: {
-            carId,
-            userId: user.id,
-          },
-        },
-      });
-
-      isWishlisted = !!savedCar;
-
-      // Check if user has already booked a test drive for this car
-      existingTestDrive = await db.TestDriveBooking.findFirst({
-        where: {
-          carId,
-          userId: user.id,
-          status: { in: ["PENDING", "CONFIRMED", "COMPLETED"] },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-    }
-
-    if (existingTestDrive) {
-      userTestDrive = {
-        id: existingTestDrive.id,
-        status: existingTestDrive.status,
-        bookingDate: existingTestDrive.bookingDate.toISOString(),
-      };
-    }
-
-    // Get dealership info for test drive availability
-    const dealership = await db.DealershipInfo.findFirst({
-      include: {
-        workingHours: true,
-      },
-    });
-
-    // Get all existing bookings for this car (pending or confirmed)
-    const existingBookings = await db.TestDriveBooking.findMany({
-      where: {
-        carId,
-        status: { in: ["PENDING", "CONFIRMED"] },
-      },
-      select: {
-        bookingDate: true,
-        startTime: true,
-        endTime: true,
-      },
-    });
-
-    return {
-      success: true,
-      data: {
-        ...serializedCarsData(car, isWishlisted),
-        testDriveInfo: {
-          userTestDrive,
-          dealership: dealership
-            ? {
-              ...dealership,
-              createdAt: dealership.createdAt.toISOString(),
-              updatedAt: dealership.updatedAt.toISOString(),
-              workingHours: dealership.workingHours.map((hour) => ({
-                ...hour,
-                createdAt: hour.createdAt.toISOString(),
-                updatedAt: hour.updatedAt.toISOString(),
-              })),
-            }
-            : null,
-          existingBookings: existingBookings.map((booking) => ({
-            date: booking.bookingDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
-            startTime: booking.startTime,
-            endTime: booking.endTime,
-          })),
-        },
-      },
-      user: user,
-    };
-  } catch (error) {
-    console.warn("[getCarById] Prisma failed, using Supabase:", error.message);
-    return getCarByIdSupabase(carId);
   }
 }

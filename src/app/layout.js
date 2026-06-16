@@ -7,8 +7,7 @@ import { SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 import { headers } from "next/headers";
-import { db, isDbConnectionError, withDbRetry } from "@/lib/prisma";
-import { getLogoByType, getPixelSettings } from "@/actions/site-management";
+import { getLogoByType, getPixelSettings, getFooterData } from "@/actions/site-management";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -71,34 +70,15 @@ export default async function RootLayout({ children }) {
 
   // Fetch all layout data on server in parallel. Logos/pixels use actions that catch DB errors;
   // these raw queries must not crash the whole app when the DB is unreachable (e.g. Supabase paused, network).
-  const [navLogoRes, footerLogoRes, pixelSettingsRes, footerDb] = await Promise.all([
+  const [navLogoRes, footerLogoRes, pixelSettingsRes, footerDbRes] = await Promise.all([
     getLogoByType("navbar"),
     getLogoByType("footer"),
     getPixelSettings(),
-    (async () => {
-      try {
-        return await withDbRetry(async () => {
-          const [socialLinks, storeInfo] = await Promise.all([
-            db.socialMedia.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-            db.storeInfo.findFirst(),
-          ]);
-          return { socialLinks, storeInfo };
-        });
-      } catch (e) {
-        if (process.env.NODE_ENV === "development" && isDbConnectionError(e)) {
-          console.warn(
-            "[layout] Footer DB unreachable — using empty footer data. If this persists, open Supabase Dashboard and ensure the project is not paused."
-          );
-        } else {
-          console.error("[layout] Footer DB (socialMedia / storeInfo) unavailable:", e?.message || e);
-        }
-        return { socialLinks: [], storeInfo: null };
-      }
-    })(),
+    getFooterData(),
   ]);
 
-  const socialLinks = footerDb.socialLinks;
-  const storeInfo = footerDb.storeInfo;
+  const socialLinks = footerDbRes?.socialLinks || [];
+  const storeInfo = footerDbRes?.storeInfo || null;
 
   const pixels = pixelSettingsRes?.data || {};
 

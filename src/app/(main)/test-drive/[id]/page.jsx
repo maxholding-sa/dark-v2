@@ -1,4 +1,4 @@
-import { getCarById } from "@/actions/cars";
+import { getCarById } from "@/actions/car-details";
 import { notFound } from "next/navigation";
 import React from "react";
 import TestDriveForm from "./_components/TestDriveForm";
