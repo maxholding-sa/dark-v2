@@ -104,6 +104,11 @@ export type Logo = $Result.DefaultSelection<Prisma.$LogoPayload>
  */
 export type AboutPage = $Result.DefaultSelection<Prisma.$AboutPagePayload>
 /**
+ * Model AboutFeature
+ * 
+ */
+export type AboutFeature = $Result.DefaultSelection<Prisma.$AboutFeaturePayload>
+/**
  * Model HeroSection
  * 
  */
@@ -493,6 +498,16 @@ export class PrismaClient<
     * ```
     */
   get aboutPage(): Prisma.AboutPageDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.aboutFeature`: Exposes CRUD operations for the **AboutFeature** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AboutFeatures
+    * const aboutFeatures = await prisma.aboutFeature.findMany()
+    * ```
+    */
+  get aboutFeature(): Prisma.AboutFeatureDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.heroSection`: Exposes CRUD operations for the **HeroSection** model.
@@ -982,6 +997,7 @@ export namespace Prisma {
     StoreInfo: 'StoreInfo',
     Logo: 'Logo',
     AboutPage: 'AboutPage',
+    AboutFeature: 'AboutFeature',
     HeroSection: 'HeroSection',
     PixelSettings: 'PixelSettings',
     Mandeb: 'Mandeb'
@@ -1003,7 +1019,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "car" | "dealershipInfo" | "workingHour" | "userSavedCar" | "testDriveBooking" | "chatLog" | "featuredBrand" | "featuredModel" | "bank" | "article" | "review" | "contact" | "loanRequest" | "socialMedia" | "storeInfo" | "logo" | "aboutPage" | "heroSection" | "pixelSettings" | "mandeb"
+      modelProps: "user" | "car" | "dealershipInfo" | "workingHour" | "userSavedCar" | "testDriveBooking" | "chatLog" | "featuredBrand" | "featuredModel" | "bank" | "article" | "review" | "contact" | "loanRequest" | "socialMedia" | "storeInfo" | "logo" | "aboutPage" | "aboutFeature" | "heroSection" | "pixelSettings" | "mandeb"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2339,6 +2355,80 @@ export namespace Prisma {
           }
         }
       }
+      AboutFeature: {
+        payload: Prisma.$AboutFeaturePayload<ExtArgs>
+        fields: Prisma.AboutFeatureFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AboutFeatureFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AboutFeatureFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          findFirst: {
+            args: Prisma.AboutFeatureFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AboutFeatureFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          findMany: {
+            args: Prisma.AboutFeatureFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>[]
+          }
+          create: {
+            args: Prisma.AboutFeatureCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          createMany: {
+            args: Prisma.AboutFeatureCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AboutFeatureCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>[]
+          }
+          delete: {
+            args: Prisma.AboutFeatureDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          update: {
+            args: Prisma.AboutFeatureUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          deleteMany: {
+            args: Prisma.AboutFeatureDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AboutFeatureUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AboutFeatureUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>[]
+          }
+          upsert: {
+            args: Prisma.AboutFeatureUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AboutFeaturePayload>
+          }
+          aggregate: {
+            args: Prisma.AboutFeatureAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAboutFeature>
+          }
+          groupBy: {
+            args: Prisma.AboutFeatureGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AboutFeatureGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AboutFeatureCountArgs<ExtArgs>
+            result: $Utils.Optional<AboutFeatureCountAggregateOutputType> | number
+          }
+        }
+      }
       HeroSection: {
         payload: Prisma.$HeroSectionPayload<ExtArgs>
         fields: Prisma.HeroSectionFieldRefs
@@ -2675,6 +2765,7 @@ export namespace Prisma {
     storeInfo?: StoreInfoOmit
     logo?: LogoOmit
     aboutPage?: AboutPageOmit
+    aboutFeature?: AboutFeatureOmit
     heroSection?: HeroSectionOmit
     pixelSettings?: PixelSettingsOmit
     mandeb?: MandebOmit
@@ -2910,6 +3001,37 @@ export namespace Prisma {
    */
   export type BankCountOutputTypeCountLoanRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LoanRequestWhereInput
+  }
+
+
+  /**
+   * Count Type AboutPageCountOutputType
+   */
+
+  export type AboutPageCountOutputType = {
+    features: number
+  }
+
+  export type AboutPageCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    features?: boolean | AboutPageCountOutputTypeCountFeaturesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AboutPageCountOutputType without action
+   */
+  export type AboutPageCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutPageCountOutputType
+     */
+    select?: AboutPageCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AboutPageCountOutputType without action
+   */
+  export type AboutPageCountOutputTypeCountFeaturesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AboutFeatureWhereInput
   }
 
 
@@ -4142,6 +4264,7 @@ export namespace Prisma {
     transmission: string | null
     bodyType: string | null
     isLuxury: boolean | null
+    insuranceSegment: string | null
     driveType: string | null
     seats: number | null
     description: string | null
@@ -4166,6 +4289,7 @@ export namespace Prisma {
     transmission: string | null
     bodyType: string | null
     isLuxury: boolean | null
+    insuranceSegment: string | null
     driveType: string | null
     seats: number | null
     description: string | null
@@ -4190,6 +4314,7 @@ export namespace Prisma {
     transmission: number
     bodyType: number
     isLuxury: number
+    insuranceSegment: number
     driveType: number
     seats: number
     description: number
@@ -4231,6 +4356,7 @@ export namespace Prisma {
     transmission?: true
     bodyType?: true
     isLuxury?: true
+    insuranceSegment?: true
     driveType?: true
     seats?: true
     description?: true
@@ -4255,6 +4381,7 @@ export namespace Prisma {
     transmission?: true
     bodyType?: true
     isLuxury?: true
+    insuranceSegment?: true
     driveType?: true
     seats?: true
     description?: true
@@ -4279,6 +4406,7 @@ export namespace Prisma {
     transmission?: true
     bodyType?: true
     isLuxury?: true
+    insuranceSegment?: true
     driveType?: true
     seats?: true
     description?: true
@@ -4391,6 +4519,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury: boolean
+    insuranceSegment: string | null
     driveType: string | null
     seats: number | null
     description: string
@@ -4435,6 +4564,7 @@ export namespace Prisma {
     transmission?: boolean
     bodyType?: boolean
     isLuxury?: boolean
+    insuranceSegment?: boolean
     driveType?: boolean
     seats?: boolean
     description?: boolean
@@ -4464,6 +4594,7 @@ export namespace Prisma {
     transmission?: boolean
     bodyType?: boolean
     isLuxury?: boolean
+    insuranceSegment?: boolean
     driveType?: boolean
     seats?: boolean
     description?: boolean
@@ -4489,6 +4620,7 @@ export namespace Prisma {
     transmission?: boolean
     bodyType?: boolean
     isLuxury?: boolean
+    insuranceSegment?: boolean
     driveType?: boolean
     seats?: boolean
     description?: boolean
@@ -4514,6 +4646,7 @@ export namespace Prisma {
     transmission?: boolean
     bodyType?: boolean
     isLuxury?: boolean
+    insuranceSegment?: boolean
     driveType?: boolean
     seats?: boolean
     description?: boolean
@@ -4527,7 +4660,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type CarOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "make" | "model" | "year" | "price" | "mileage" | "color" | "fuelType" | "transmission" | "bodyType" | "isLuxury" | "driveType" | "seats" | "description" | "category" | "videoUrl" | "status" | "featured" | "testDriveAvailable" | "images" | "createdAt" | "updatedAt", ExtArgs["result"]["car"]>
+  export type CarOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "make" | "model" | "year" | "price" | "mileage" | "color" | "fuelType" | "transmission" | "bodyType" | "isLuxury" | "insuranceSegment" | "driveType" | "seats" | "description" | "category" | "videoUrl" | "status" | "featured" | "testDriveAvailable" | "images" | "createdAt" | "updatedAt", ExtArgs["result"]["car"]>
   export type CarInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     testDriveBookings?: boolean | Car$testDriveBookingsArgs<ExtArgs>
     savedBy?: boolean | Car$savedByArgs<ExtArgs>
@@ -4556,6 +4689,7 @@ export namespace Prisma {
       transmission: string
       bodyType: string
       isLuxury: boolean
+      insuranceSegment: string | null
       driveType: string | null
       seats: number | null
       description: string
@@ -5004,6 +5138,7 @@ export namespace Prisma {
     readonly transmission: FieldRef<"Car", 'String'>
     readonly bodyType: FieldRef<"Car", 'String'>
     readonly isLuxury: FieldRef<"Car", 'Boolean'>
+    readonly insuranceSegment: FieldRef<"Car", 'String'>
     readonly driveType: FieldRef<"Car", 'String'>
     readonly seats: FieldRef<"Car", 'Int'>
     readonly description: FieldRef<"Car", 'String'>
@@ -13127,10 +13262,24 @@ export namespace Prisma {
 
   export type BankAvgAggregateOutputType = {
     interestRate: Decimal | null
+    adminFeesCap: Decimal | null
+    defaultAdminFeesPct: Decimal | null
+    minInsurancePremium: Decimal | null
+    assetDepreciationRate: Decimal | null
+    cor: Decimal | null
+    opex: Decimal | null
+    irrTarget: Decimal | null
   }
 
   export type BankSumAggregateOutputType = {
     interestRate: Decimal | null
+    adminFeesCap: Decimal | null
+    defaultAdminFeesPct: Decimal | null
+    minInsurancePremium: Decimal | null
+    assetDepreciationRate: Decimal | null
+    cor: Decimal | null
+    opex: Decimal | null
+    irrTarget: Decimal | null
   }
 
   export type BankMinAggregateOutputType = {
@@ -13139,6 +13288,13 @@ export namespace Prisma {
     logoImage: string | null
     interestRate: Decimal | null
     loanPolicy: string | null
+    adminFeesCap: Decimal | null
+    defaultAdminFeesPct: Decimal | null
+    minInsurancePremium: Decimal | null
+    assetDepreciationRate: Decimal | null
+    cor: Decimal | null
+    opex: Decimal | null
+    irrTarget: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13149,6 +13305,13 @@ export namespace Prisma {
     logoImage: string | null
     interestRate: Decimal | null
     loanPolicy: string | null
+    adminFeesCap: Decimal | null
+    defaultAdminFeesPct: Decimal | null
+    minInsurancePremium: Decimal | null
+    assetDepreciationRate: Decimal | null
+    cor: Decimal | null
+    opex: Decimal | null
+    irrTarget: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13159,6 +13322,16 @@ export namespace Prisma {
     logoImage: number
     interestRate: number
     loanPolicy: number
+    adminFeesCap: number
+    defaultAdminFeesPct: number
+    minInsurancePremium: number
+    assetDepreciationRate: number
+    ftpAnchors: number
+    cor: number
+    opex: number
+    irrTarget: number
+    brandSegmentMap: number
+    insuranceTable: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -13167,10 +13340,24 @@ export namespace Prisma {
 
   export type BankAvgAggregateInputType = {
     interestRate?: true
+    adminFeesCap?: true
+    defaultAdminFeesPct?: true
+    minInsurancePremium?: true
+    assetDepreciationRate?: true
+    cor?: true
+    opex?: true
+    irrTarget?: true
   }
 
   export type BankSumAggregateInputType = {
     interestRate?: true
+    adminFeesCap?: true
+    defaultAdminFeesPct?: true
+    minInsurancePremium?: true
+    assetDepreciationRate?: true
+    cor?: true
+    opex?: true
+    irrTarget?: true
   }
 
   export type BankMinAggregateInputType = {
@@ -13179,6 +13366,13 @@ export namespace Prisma {
     logoImage?: true
     interestRate?: true
     loanPolicy?: true
+    adminFeesCap?: true
+    defaultAdminFeesPct?: true
+    minInsurancePremium?: true
+    assetDepreciationRate?: true
+    cor?: true
+    opex?: true
+    irrTarget?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13189,6 +13383,13 @@ export namespace Prisma {
     logoImage?: true
     interestRate?: true
     loanPolicy?: true
+    adminFeesCap?: true
+    defaultAdminFeesPct?: true
+    minInsurancePremium?: true
+    assetDepreciationRate?: true
+    cor?: true
+    opex?: true
+    irrTarget?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13199,6 +13400,16 @@ export namespace Prisma {
     logoImage?: true
     interestRate?: true
     loanPolicy?: true
+    adminFeesCap?: true
+    defaultAdminFeesPct?: true
+    minInsurancePremium?: true
+    assetDepreciationRate?: true
+    ftpAnchors?: true
+    cor?: true
+    opex?: true
+    irrTarget?: true
+    brandSegmentMap?: true
+    insuranceTable?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -13296,6 +13507,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal
     loanPolicy: string | null
+    adminFeesCap: Decimal | null
+    defaultAdminFeesPct: Decimal | null
+    minInsurancePremium: Decimal | null
+    assetDepreciationRate: Decimal | null
+    ftpAnchors: JsonValue | null
+    cor: Decimal | null
+    opex: Decimal | null
+    irrTarget: Decimal | null
+    brandSegmentMap: JsonValue | null
+    insuranceTable: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: BankCountAggregateOutputType | null
@@ -13325,6 +13546,16 @@ export namespace Prisma {
     logoImage?: boolean
     interestRate?: boolean
     loanPolicy?: boolean
+    adminFeesCap?: boolean
+    defaultAdminFeesPct?: boolean
+    minInsurancePremium?: boolean
+    assetDepreciationRate?: boolean
+    ftpAnchors?: boolean
+    cor?: boolean
+    opex?: boolean
+    irrTarget?: boolean
+    brandSegmentMap?: boolean
+    insuranceTable?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     loanRequests?: boolean | Bank$loanRequestsArgs<ExtArgs>
@@ -13337,6 +13568,16 @@ export namespace Prisma {
     logoImage?: boolean
     interestRate?: boolean
     loanPolicy?: boolean
+    adminFeesCap?: boolean
+    defaultAdminFeesPct?: boolean
+    minInsurancePremium?: boolean
+    assetDepreciationRate?: boolean
+    ftpAnchors?: boolean
+    cor?: boolean
+    opex?: boolean
+    irrTarget?: boolean
+    brandSegmentMap?: boolean
+    insuranceTable?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["bank"]>
@@ -13347,6 +13588,16 @@ export namespace Prisma {
     logoImage?: boolean
     interestRate?: boolean
     loanPolicy?: boolean
+    adminFeesCap?: boolean
+    defaultAdminFeesPct?: boolean
+    minInsurancePremium?: boolean
+    assetDepreciationRate?: boolean
+    ftpAnchors?: boolean
+    cor?: boolean
+    opex?: boolean
+    irrTarget?: boolean
+    brandSegmentMap?: boolean
+    insuranceTable?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["bank"]>
@@ -13357,11 +13608,21 @@ export namespace Prisma {
     logoImage?: boolean
     interestRate?: boolean
     loanPolicy?: boolean
+    adminFeesCap?: boolean
+    defaultAdminFeesPct?: boolean
+    minInsurancePremium?: boolean
+    assetDepreciationRate?: boolean
+    ftpAnchors?: boolean
+    cor?: boolean
+    opex?: boolean
+    irrTarget?: boolean
+    brandSegmentMap?: boolean
+    insuranceTable?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type BankOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logoImage" | "interestRate" | "loanPolicy" | "createdAt" | "updatedAt", ExtArgs["result"]["bank"]>
+  export type BankOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logoImage" | "interestRate" | "loanPolicy" | "adminFeesCap" | "defaultAdminFeesPct" | "minInsurancePremium" | "assetDepreciationRate" | "ftpAnchors" | "cor" | "opex" | "irrTarget" | "brandSegmentMap" | "insuranceTable" | "createdAt" | "updatedAt", ExtArgs["result"]["bank"]>
   export type BankInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     loanRequests?: boolean | Bank$loanRequestsArgs<ExtArgs>
     _count?: boolean | BankCountOutputTypeDefaultArgs<ExtArgs>
@@ -13380,6 +13641,16 @@ export namespace Prisma {
       logoImage: string
       interestRate: Prisma.Decimal
       loanPolicy: string | null
+      adminFeesCap: Prisma.Decimal | null
+      defaultAdminFeesPct: Prisma.Decimal | null
+      minInsurancePremium: Prisma.Decimal | null
+      assetDepreciationRate: Prisma.Decimal | null
+      ftpAnchors: Prisma.JsonValue | null
+      cor: Prisma.Decimal | null
+      opex: Prisma.Decimal | null
+      irrTarget: Prisma.Decimal | null
+      brandSegmentMap: Prisma.JsonValue | null
+      insuranceTable: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["bank"]>
@@ -13811,6 +14082,16 @@ export namespace Prisma {
     readonly logoImage: FieldRef<"Bank", 'String'>
     readonly interestRate: FieldRef<"Bank", 'Decimal'>
     readonly loanPolicy: FieldRef<"Bank", 'String'>
+    readonly adminFeesCap: FieldRef<"Bank", 'Decimal'>
+    readonly defaultAdminFeesPct: FieldRef<"Bank", 'Decimal'>
+    readonly minInsurancePremium: FieldRef<"Bank", 'Decimal'>
+    readonly assetDepreciationRate: FieldRef<"Bank", 'Decimal'>
+    readonly ftpAnchors: FieldRef<"Bank", 'Json'>
+    readonly cor: FieldRef<"Bank", 'Decimal'>
+    readonly opex: FieldRef<"Bank", 'Decimal'>
+    readonly irrTarget: FieldRef<"Bank", 'Decimal'>
+    readonly brandSegmentMap: FieldRef<"Bank", 'Json'>
+    readonly insuranceTable: FieldRef<"Bank", 'Json'>
     readonly createdAt: FieldRef<"Bank", 'DateTime'>
     readonly updatedAt: FieldRef<"Bank", 'DateTime'>
   }
@@ -17548,9 +17829,19 @@ export namespace Prisma {
     loanAmount: Decimal | null
     downPayment: Decimal | null
     loanTerm: number | null
+    termMonths: number | null
+    downPaymentPct: Decimal | null
     monthlyPayment: Decimal | null
+    baseInstallment: Decimal | null
+    monthlyInsurance: Decimal | null
     interestRate: Decimal | null
     finalPayment: Decimal | null
+    balloonPayment: Decimal | null
+    balloonPaymentPct: Decimal | null
+    adminFees: Decimal | null
+    totalInsurance: Decimal | null
+    totalProfit: Decimal | null
+    totalPayment: Decimal | null
     netSalary: Decimal | null
     totalMonthlyObligations: Decimal | null
   }
@@ -17560,9 +17851,19 @@ export namespace Prisma {
     loanAmount: Decimal | null
     downPayment: Decimal | null
     loanTerm: number | null
+    termMonths: number | null
+    downPaymentPct: Decimal | null
     monthlyPayment: Decimal | null
+    baseInstallment: Decimal | null
+    monthlyInsurance: Decimal | null
     interestRate: Decimal | null
     finalPayment: Decimal | null
+    balloonPayment: Decimal | null
+    balloonPaymentPct: Decimal | null
+    adminFees: Decimal | null
+    totalInsurance: Decimal | null
+    totalProfit: Decimal | null
+    totalPayment: Decimal | null
     netSalary: Decimal | null
     totalMonthlyObligations: Decimal | null
   }
@@ -17587,9 +17888,20 @@ export namespace Prisma {
     loanAmount: Decimal | null
     downPayment: Decimal | null
     loanTerm: number | null
+    termMonths: number | null
+    downPaymentPct: Decimal | null
     monthlyPayment: Decimal | null
+    baseInstallment: Decimal | null
+    monthlyInsurance: Decimal | null
     interestRate: Decimal | null
     finalPayment: Decimal | null
+    balloonPayment: Decimal | null
+    balloonPaymentPct: Decimal | null
+    adminFees: Decimal | null
+    totalInsurance: Decimal | null
+    totalProfit: Decimal | null
+    totalPayment: Decimal | null
+    insuranceSegment: string | null
     netSalary: Decimal | null
     employerSector: string | null
     employer: string | null
@@ -17623,9 +17935,20 @@ export namespace Prisma {
     loanAmount: Decimal | null
     downPayment: Decimal | null
     loanTerm: number | null
+    termMonths: number | null
+    downPaymentPct: Decimal | null
     monthlyPayment: Decimal | null
+    baseInstallment: Decimal | null
+    monthlyInsurance: Decimal | null
     interestRate: Decimal | null
     finalPayment: Decimal | null
+    balloonPayment: Decimal | null
+    balloonPaymentPct: Decimal | null
+    adminFees: Decimal | null
+    totalInsurance: Decimal | null
+    totalProfit: Decimal | null
+    totalPayment: Decimal | null
+    insuranceSegment: string | null
     netSalary: Decimal | null
     employerSector: string | null
     employer: string | null
@@ -17659,9 +17982,21 @@ export namespace Prisma {
     loanAmount: number
     downPayment: number
     loanTerm: number
+    termMonths: number
+    downPaymentPct: number
     monthlyPayment: number
+    baseInstallment: number
+    monthlyInsurance: number
     interestRate: number
     finalPayment: number
+    balloonPayment: number
+    balloonPaymentPct: number
+    adminFees: number
+    totalInsurance: number
+    totalProfit: number
+    totalPayment: number
+    insuranceSegment: number
+    offerSnapshot: number
     netSalary: number
     employerSector: number
     employer: number
@@ -17682,9 +18017,19 @@ export namespace Prisma {
     loanAmount?: true
     downPayment?: true
     loanTerm?: true
+    termMonths?: true
+    downPaymentPct?: true
     monthlyPayment?: true
+    baseInstallment?: true
+    monthlyInsurance?: true
     interestRate?: true
     finalPayment?: true
+    balloonPayment?: true
+    balloonPaymentPct?: true
+    adminFees?: true
+    totalInsurance?: true
+    totalProfit?: true
+    totalPayment?: true
     netSalary?: true
     totalMonthlyObligations?: true
   }
@@ -17694,9 +18039,19 @@ export namespace Prisma {
     loanAmount?: true
     downPayment?: true
     loanTerm?: true
+    termMonths?: true
+    downPaymentPct?: true
     monthlyPayment?: true
+    baseInstallment?: true
+    monthlyInsurance?: true
     interestRate?: true
     finalPayment?: true
+    balloonPayment?: true
+    balloonPaymentPct?: true
+    adminFees?: true
+    totalInsurance?: true
+    totalProfit?: true
+    totalPayment?: true
     netSalary?: true
     totalMonthlyObligations?: true
   }
@@ -17721,9 +18076,20 @@ export namespace Prisma {
     loanAmount?: true
     downPayment?: true
     loanTerm?: true
+    termMonths?: true
+    downPaymentPct?: true
     monthlyPayment?: true
+    baseInstallment?: true
+    monthlyInsurance?: true
     interestRate?: true
     finalPayment?: true
+    balloonPayment?: true
+    balloonPaymentPct?: true
+    adminFees?: true
+    totalInsurance?: true
+    totalProfit?: true
+    totalPayment?: true
+    insuranceSegment?: true
     netSalary?: true
     employerSector?: true
     employer?: true
@@ -17757,9 +18123,20 @@ export namespace Prisma {
     loanAmount?: true
     downPayment?: true
     loanTerm?: true
+    termMonths?: true
+    downPaymentPct?: true
     monthlyPayment?: true
+    baseInstallment?: true
+    monthlyInsurance?: true
     interestRate?: true
     finalPayment?: true
+    balloonPayment?: true
+    balloonPaymentPct?: true
+    adminFees?: true
+    totalInsurance?: true
+    totalProfit?: true
+    totalPayment?: true
+    insuranceSegment?: true
     netSalary?: true
     employerSector?: true
     employer?: true
@@ -17793,9 +18170,21 @@ export namespace Prisma {
     loanAmount?: true
     downPayment?: true
     loanTerm?: true
+    termMonths?: true
+    downPaymentPct?: true
     monthlyPayment?: true
+    baseInstallment?: true
+    monthlyInsurance?: true
     interestRate?: true
     finalPayment?: true
+    balloonPayment?: true
+    balloonPaymentPct?: true
+    adminFees?: true
+    totalInsurance?: true
+    totalProfit?: true
+    totalPayment?: true
+    insuranceSegment?: true
+    offerSnapshot?: true
     netSalary?: true
     employerSector?: true
     employer?: true
@@ -17916,9 +18305,21 @@ export namespace Prisma {
     loanAmount: Decimal
     downPayment: Decimal
     loanTerm: number
+    termMonths: number | null
+    downPaymentPct: Decimal | null
     monthlyPayment: Decimal | null
+    baseInstallment: Decimal | null
+    monthlyInsurance: Decimal | null
     interestRate: Decimal | null
     finalPayment: Decimal | null
+    balloonPayment: Decimal | null
+    balloonPaymentPct: Decimal | null
+    adminFees: Decimal | null
+    totalInsurance: Decimal | null
+    totalProfit: Decimal | null
+    totalPayment: Decimal | null
+    insuranceSegment: string | null
+    offerSnapshot: JsonValue | null
     netSalary: Decimal | null
     employerSector: string | null
     employer: string | null
@@ -17971,9 +18372,21 @@ export namespace Prisma {
     loanAmount?: boolean
     downPayment?: boolean
     loanTerm?: boolean
+    termMonths?: boolean
+    downPaymentPct?: boolean
     monthlyPayment?: boolean
+    baseInstallment?: boolean
+    monthlyInsurance?: boolean
     interestRate?: boolean
     finalPayment?: boolean
+    balloonPayment?: boolean
+    balloonPaymentPct?: boolean
+    adminFees?: boolean
+    totalInsurance?: boolean
+    totalProfit?: boolean
+    totalPayment?: boolean
+    insuranceSegment?: boolean
+    offerSnapshot?: boolean
     netSalary?: boolean
     employerSector?: boolean
     employer?: boolean
@@ -18009,9 +18422,21 @@ export namespace Prisma {
     loanAmount?: boolean
     downPayment?: boolean
     loanTerm?: boolean
+    termMonths?: boolean
+    downPaymentPct?: boolean
     monthlyPayment?: boolean
+    baseInstallment?: boolean
+    monthlyInsurance?: boolean
     interestRate?: boolean
     finalPayment?: boolean
+    balloonPayment?: boolean
+    balloonPaymentPct?: boolean
+    adminFees?: boolean
+    totalInsurance?: boolean
+    totalProfit?: boolean
+    totalPayment?: boolean
+    insuranceSegment?: boolean
+    offerSnapshot?: boolean
     netSalary?: boolean
     employerSector?: boolean
     employer?: boolean
@@ -18047,9 +18472,21 @@ export namespace Prisma {
     loanAmount?: boolean
     downPayment?: boolean
     loanTerm?: boolean
+    termMonths?: boolean
+    downPaymentPct?: boolean
     monthlyPayment?: boolean
+    baseInstallment?: boolean
+    monthlyInsurance?: boolean
     interestRate?: boolean
     finalPayment?: boolean
+    balloonPayment?: boolean
+    balloonPaymentPct?: boolean
+    adminFees?: boolean
+    totalInsurance?: boolean
+    totalProfit?: boolean
+    totalPayment?: boolean
+    insuranceSegment?: boolean
+    offerSnapshot?: boolean
     netSalary?: boolean
     employerSector?: boolean
     employer?: boolean
@@ -18085,9 +18522,21 @@ export namespace Prisma {
     loanAmount?: boolean
     downPayment?: boolean
     loanTerm?: boolean
+    termMonths?: boolean
+    downPaymentPct?: boolean
     monthlyPayment?: boolean
+    baseInstallment?: boolean
+    monthlyInsurance?: boolean
     interestRate?: boolean
     finalPayment?: boolean
+    balloonPayment?: boolean
+    balloonPaymentPct?: boolean
+    adminFees?: boolean
+    totalInsurance?: boolean
+    totalProfit?: boolean
+    totalPayment?: boolean
+    insuranceSegment?: boolean
+    offerSnapshot?: boolean
     netSalary?: boolean
     employerSector?: boolean
     employer?: boolean
@@ -18101,7 +18550,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type LoanRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "carId" | "fullName" | "email" | "mobileNumber" | "city" | "time" | "idNumber" | "idImage" | "carMake" | "carModel" | "carCategory" | "carYear" | "birthMonth" | "birthYear" | "gender" | "loanAmount" | "downPayment" | "loanTerm" | "monthlyPayment" | "interestRate" | "finalPayment" | "netSalary" | "employerSector" | "employer" | "salaryTransferBankId" | "hasRealEstateFinance" | "hasCreditDefault" | "totalMonthlyObligations" | "additionalInfo" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["loanRequest"]>
+  export type LoanRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "carId" | "fullName" | "email" | "mobileNumber" | "city" | "time" | "idNumber" | "idImage" | "carMake" | "carModel" | "carCategory" | "carYear" | "birthMonth" | "birthYear" | "gender" | "loanAmount" | "downPayment" | "loanTerm" | "termMonths" | "downPaymentPct" | "monthlyPayment" | "baseInstallment" | "monthlyInsurance" | "interestRate" | "finalPayment" | "balloonPayment" | "balloonPaymentPct" | "adminFees" | "totalInsurance" | "totalProfit" | "totalPayment" | "insuranceSegment" | "offerSnapshot" | "netSalary" | "employerSector" | "employer" | "salaryTransferBankId" | "hasRealEstateFinance" | "hasCreditDefault" | "totalMonthlyObligations" | "additionalInfo" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["loanRequest"]>
   export type LoanRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     car?: boolean | CarDefaultArgs<ExtArgs>
     salaryTransferBank?: boolean | LoanRequest$salaryTransferBankArgs<ExtArgs>
@@ -18141,9 +18590,21 @@ export namespace Prisma {
       loanAmount: Prisma.Decimal
       downPayment: Prisma.Decimal
       loanTerm: number
+      termMonths: number | null
+      downPaymentPct: Prisma.Decimal | null
       monthlyPayment: Prisma.Decimal | null
+      baseInstallment: Prisma.Decimal | null
+      monthlyInsurance: Prisma.Decimal | null
       interestRate: Prisma.Decimal | null
       finalPayment: Prisma.Decimal | null
+      balloonPayment: Prisma.Decimal | null
+      balloonPaymentPct: Prisma.Decimal | null
+      adminFees: Prisma.Decimal | null
+      totalInsurance: Prisma.Decimal | null
+      totalProfit: Prisma.Decimal | null
+      totalPayment: Prisma.Decimal | null
+      insuranceSegment: string | null
+      offerSnapshot: Prisma.JsonValue | null
       netSalary: Prisma.Decimal | null
       employerSector: string | null
       employer: string | null
@@ -18599,9 +19060,21 @@ export namespace Prisma {
     readonly loanAmount: FieldRef<"LoanRequest", 'Decimal'>
     readonly downPayment: FieldRef<"LoanRequest", 'Decimal'>
     readonly loanTerm: FieldRef<"LoanRequest", 'Int'>
+    readonly termMonths: FieldRef<"LoanRequest", 'Int'>
+    readonly downPaymentPct: FieldRef<"LoanRequest", 'Decimal'>
     readonly monthlyPayment: FieldRef<"LoanRequest", 'Decimal'>
+    readonly baseInstallment: FieldRef<"LoanRequest", 'Decimal'>
+    readonly monthlyInsurance: FieldRef<"LoanRequest", 'Decimal'>
     readonly interestRate: FieldRef<"LoanRequest", 'Decimal'>
     readonly finalPayment: FieldRef<"LoanRequest", 'Decimal'>
+    readonly balloonPayment: FieldRef<"LoanRequest", 'Decimal'>
+    readonly balloonPaymentPct: FieldRef<"LoanRequest", 'Decimal'>
+    readonly adminFees: FieldRef<"LoanRequest", 'Decimal'>
+    readonly totalInsurance: FieldRef<"LoanRequest", 'Decimal'>
+    readonly totalProfit: FieldRef<"LoanRequest", 'Decimal'>
+    readonly totalPayment: FieldRef<"LoanRequest", 'Decimal'>
+    readonly insuranceSegment: FieldRef<"LoanRequest", 'String'>
+    readonly offerSnapshot: FieldRef<"LoanRequest", 'Json'>
     readonly netSalary: FieldRef<"LoanRequest", 'Decimal'>
     readonly employerSector: FieldRef<"LoanRequest", 'String'>
     readonly employer: FieldRef<"LoanRequest", 'String'>
@@ -22247,8 +22720,20 @@ export namespace Prisma {
   export type AboutPageMinAggregateOutputType = {
     id: string | null
     title: string | null
-    content: string | null
-    heroImage: string | null
+    introText: string | null
+    visionTitle: string | null
+    visionParagraph1: string | null
+    visionParagraph2: string | null
+    visionImage: string | null
+    visionImageAlt: string | null
+    missionTitle: string | null
+    missionParagraph1: string | null
+    missionParagraph2: string | null
+    missionImage: string | null
+    missionImageAlt: string | null
+    whyUsTitle: string | null
+    ctaTitle: string | null
+    ctaText: string | null
     isPublished: boolean | null
     metaDescription: string | null
     metaKeywords: string | null
@@ -22259,8 +22744,20 @@ export namespace Prisma {
   export type AboutPageMaxAggregateOutputType = {
     id: string | null
     title: string | null
-    content: string | null
-    heroImage: string | null
+    introText: string | null
+    visionTitle: string | null
+    visionParagraph1: string | null
+    visionParagraph2: string | null
+    visionImage: string | null
+    visionImageAlt: string | null
+    missionTitle: string | null
+    missionParagraph1: string | null
+    missionParagraph2: string | null
+    missionImage: string | null
+    missionImageAlt: string | null
+    whyUsTitle: string | null
+    ctaTitle: string | null
+    ctaText: string | null
     isPublished: boolean | null
     metaDescription: string | null
     metaKeywords: string | null
@@ -22271,8 +22768,20 @@ export namespace Prisma {
   export type AboutPageCountAggregateOutputType = {
     id: number
     title: number
-    content: number
-    heroImage: number
+    introText: number
+    visionTitle: number
+    visionParagraph1: number
+    visionParagraph2: number
+    visionImage: number
+    visionImageAlt: number
+    missionTitle: number
+    missionParagraph1: number
+    missionParagraph2: number
+    missionImage: number
+    missionImageAlt: number
+    whyUsTitle: number
+    ctaTitle: number
+    ctaText: number
     isPublished: number
     metaDescription: number
     metaKeywords: number
@@ -22285,8 +22794,20 @@ export namespace Prisma {
   export type AboutPageMinAggregateInputType = {
     id?: true
     title?: true
-    content?: true
-    heroImage?: true
+    introText?: true
+    visionTitle?: true
+    visionParagraph1?: true
+    visionParagraph2?: true
+    visionImage?: true
+    visionImageAlt?: true
+    missionTitle?: true
+    missionParagraph1?: true
+    missionParagraph2?: true
+    missionImage?: true
+    missionImageAlt?: true
+    whyUsTitle?: true
+    ctaTitle?: true
+    ctaText?: true
     isPublished?: true
     metaDescription?: true
     metaKeywords?: true
@@ -22297,8 +22818,20 @@ export namespace Prisma {
   export type AboutPageMaxAggregateInputType = {
     id?: true
     title?: true
-    content?: true
-    heroImage?: true
+    introText?: true
+    visionTitle?: true
+    visionParagraph1?: true
+    visionParagraph2?: true
+    visionImage?: true
+    visionImageAlt?: true
+    missionTitle?: true
+    missionParagraph1?: true
+    missionParagraph2?: true
+    missionImage?: true
+    missionImageAlt?: true
+    whyUsTitle?: true
+    ctaTitle?: true
+    ctaText?: true
     isPublished?: true
     metaDescription?: true
     metaKeywords?: true
@@ -22309,8 +22842,20 @@ export namespace Prisma {
   export type AboutPageCountAggregateInputType = {
     id?: true
     title?: true
-    content?: true
-    heroImage?: true
+    introText?: true
+    visionTitle?: true
+    visionParagraph1?: true
+    visionParagraph2?: true
+    visionImage?: true
+    visionImageAlt?: true
+    missionTitle?: true
+    missionParagraph1?: true
+    missionParagraph2?: true
+    missionImage?: true
+    missionImageAlt?: true
+    whyUsTitle?: true
+    ctaTitle?: true
+    ctaText?: true
     isPublished?: true
     metaDescription?: true
     metaKeywords?: true
@@ -22394,8 +22939,20 @@ export namespace Prisma {
   export type AboutPageGroupByOutputType = {
     id: string
     title: string
-    content: string
-    heroImage: string | null
+    introText: string
+    visionTitle: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage: string | null
+    visionImageAlt: string | null
+    missionTitle: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage: string | null
+    missionImageAlt: string | null
+    whyUsTitle: string
+    ctaTitle: string
+    ctaText: string
     isPublished: boolean
     metaDescription: string | null
     metaKeywords: string | null
@@ -22423,20 +22980,46 @@ export namespace Prisma {
   export type AboutPageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
-    content?: boolean
-    heroImage?: boolean
+    introText?: boolean
+    visionTitle?: boolean
+    visionParagraph1?: boolean
+    visionParagraph2?: boolean
+    visionImage?: boolean
+    visionImageAlt?: boolean
+    missionTitle?: boolean
+    missionParagraph1?: boolean
+    missionParagraph2?: boolean
+    missionImage?: boolean
+    missionImageAlt?: boolean
+    whyUsTitle?: boolean
+    ctaTitle?: boolean
+    ctaText?: boolean
     isPublished?: boolean
     metaDescription?: boolean
     metaKeywords?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    features?: boolean | AboutPage$featuresArgs<ExtArgs>
+    _count?: boolean | AboutPageCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aboutPage"]>
 
   export type AboutPageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
-    content?: boolean
-    heroImage?: boolean
+    introText?: boolean
+    visionTitle?: boolean
+    visionParagraph1?: boolean
+    visionParagraph2?: boolean
+    visionImage?: boolean
+    visionImageAlt?: boolean
+    missionTitle?: boolean
+    missionParagraph1?: boolean
+    missionParagraph2?: boolean
+    missionImage?: boolean
+    missionImageAlt?: boolean
+    whyUsTitle?: boolean
+    ctaTitle?: boolean
+    ctaText?: boolean
     isPublished?: boolean
     metaDescription?: boolean
     metaKeywords?: boolean
@@ -22447,8 +23030,20 @@ export namespace Prisma {
   export type AboutPageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
-    content?: boolean
-    heroImage?: boolean
+    introText?: boolean
+    visionTitle?: boolean
+    visionParagraph1?: boolean
+    visionParagraph2?: boolean
+    visionImage?: boolean
+    visionImageAlt?: boolean
+    missionTitle?: boolean
+    missionParagraph1?: boolean
+    missionParagraph2?: boolean
+    missionImage?: boolean
+    missionImageAlt?: boolean
+    whyUsTitle?: boolean
+    ctaTitle?: boolean
+    ctaText?: boolean
     isPublished?: boolean
     metaDescription?: boolean
     metaKeywords?: boolean
@@ -22459,8 +23054,20 @@ export namespace Prisma {
   export type AboutPageSelectScalar = {
     id?: boolean
     title?: boolean
-    content?: boolean
-    heroImage?: boolean
+    introText?: boolean
+    visionTitle?: boolean
+    visionParagraph1?: boolean
+    visionParagraph2?: boolean
+    visionImage?: boolean
+    visionImageAlt?: boolean
+    missionTitle?: boolean
+    missionParagraph1?: boolean
+    missionParagraph2?: boolean
+    missionImage?: boolean
+    missionImageAlt?: boolean
+    whyUsTitle?: boolean
+    ctaTitle?: boolean
+    ctaText?: boolean
     isPublished?: boolean
     metaDescription?: boolean
     metaKeywords?: boolean
@@ -22468,16 +23075,36 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type AboutPageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "content" | "heroImage" | "isPublished" | "metaDescription" | "metaKeywords" | "createdAt" | "updatedAt", ExtArgs["result"]["aboutPage"]>
+  export type AboutPageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "introText" | "visionTitle" | "visionParagraph1" | "visionParagraph2" | "visionImage" | "visionImageAlt" | "missionTitle" | "missionParagraph1" | "missionParagraph2" | "missionImage" | "missionImageAlt" | "whyUsTitle" | "ctaTitle" | "ctaText" | "isPublished" | "metaDescription" | "metaKeywords" | "createdAt" | "updatedAt", ExtArgs["result"]["aboutPage"]>
+  export type AboutPageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    features?: boolean | AboutPage$featuresArgs<ExtArgs>
+    _count?: boolean | AboutPageCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AboutPageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type AboutPageIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $AboutPagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "AboutPage"
-    objects: {}
+    objects: {
+      features: Prisma.$AboutFeaturePayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       title: string
-      content: string
-      heroImage: string | null
+      introText: string
+      visionTitle: string
+      visionParagraph1: string
+      visionParagraph2: string
+      visionImage: string | null
+      visionImageAlt: string | null
+      missionTitle: string
+      missionParagraph1: string
+      missionParagraph2: string
+      missionImage: string | null
+      missionImageAlt: string | null
+      whyUsTitle: string
+      ctaTitle: string
+      ctaText: string
       isPublished: boolean
       metaDescription: string | null
       metaKeywords: string | null
@@ -22877,6 +23504,7 @@ export namespace Prisma {
    */
   export interface Prisma__AboutPageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    features<T extends AboutPage$featuresArgs<ExtArgs> = {}>(args?: Subset<T, AboutPage$featuresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -22908,8 +23536,20 @@ export namespace Prisma {
   interface AboutPageFieldRefs {
     readonly id: FieldRef<"AboutPage", 'String'>
     readonly title: FieldRef<"AboutPage", 'String'>
-    readonly content: FieldRef<"AboutPage", 'String'>
-    readonly heroImage: FieldRef<"AboutPage", 'String'>
+    readonly introText: FieldRef<"AboutPage", 'String'>
+    readonly visionTitle: FieldRef<"AboutPage", 'String'>
+    readonly visionParagraph1: FieldRef<"AboutPage", 'String'>
+    readonly visionParagraph2: FieldRef<"AboutPage", 'String'>
+    readonly visionImage: FieldRef<"AboutPage", 'String'>
+    readonly visionImageAlt: FieldRef<"AboutPage", 'String'>
+    readonly missionTitle: FieldRef<"AboutPage", 'String'>
+    readonly missionParagraph1: FieldRef<"AboutPage", 'String'>
+    readonly missionParagraph2: FieldRef<"AboutPage", 'String'>
+    readonly missionImage: FieldRef<"AboutPage", 'String'>
+    readonly missionImageAlt: FieldRef<"AboutPage", 'String'>
+    readonly whyUsTitle: FieldRef<"AboutPage", 'String'>
+    readonly ctaTitle: FieldRef<"AboutPage", 'String'>
+    readonly ctaText: FieldRef<"AboutPage", 'String'>
     readonly isPublished: FieldRef<"AboutPage", 'Boolean'>
     readonly metaDescription: FieldRef<"AboutPage", 'String'>
     readonly metaKeywords: FieldRef<"AboutPage", 'String'>
@@ -22932,6 +23572,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * Filter, which AboutPage to fetch.
      */
     where: AboutPageWhereUniqueInput
@@ -22950,6 +23594,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * Filter, which AboutPage to fetch.
      */
     where: AboutPageWhereUniqueInput
@@ -22967,6 +23615,10 @@ export namespace Prisma {
      * Omit specific fields from the AboutPage
      */
     omit?: AboutPageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
     /**
      * Filter, which AboutPage to fetch.
      */
@@ -23016,6 +23668,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * Filter, which AboutPage to fetch.
      */
     where?: AboutPageWhereInput
@@ -23064,6 +23720,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * Filter, which AboutPages to fetch.
      */
     where?: AboutPageWhereInput
@@ -23106,6 +23766,10 @@ export namespace Prisma {
      * Omit specific fields from the AboutPage
      */
     omit?: AboutPageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
     /**
      * The data needed to create a AboutPage.
      */
@@ -23154,6 +23818,10 @@ export namespace Prisma {
      * Omit specific fields from the AboutPage
      */
     omit?: AboutPageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
     /**
      * The data needed to update a AboutPage.
      */
@@ -23221,6 +23889,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * The filter to search for the AboutPage to update in case it exists.
      */
     where: AboutPageWhereUniqueInput
@@ -23247,6 +23919,10 @@ export namespace Prisma {
      */
     omit?: AboutPageOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+    /**
      * Filter which AboutPage to delete.
      */
     where: AboutPageWhereUniqueInput
@@ -23267,6 +23943,30 @@ export namespace Prisma {
   }
 
   /**
+   * AboutPage.features
+   */
+  export type AboutPage$featuresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    where?: AboutFeatureWhereInput
+    orderBy?: AboutFeatureOrderByWithRelationInput | AboutFeatureOrderByWithRelationInput[]
+    cursor?: AboutFeatureWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AboutFeatureScalarFieldEnum | AboutFeatureScalarFieldEnum[]
+  }
+
+  /**
    * AboutPage without action
    */
   export type AboutPageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -23278,6 +23978,1154 @@ export namespace Prisma {
      * Omit specific fields from the AboutPage
      */
     omit?: AboutPageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutPageInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AboutFeature
+   */
+
+  export type AggregateAboutFeature = {
+    _count: AboutFeatureCountAggregateOutputType | null
+    _avg: AboutFeatureAvgAggregateOutputType | null
+    _sum: AboutFeatureSumAggregateOutputType | null
+    _min: AboutFeatureMinAggregateOutputType | null
+    _max: AboutFeatureMaxAggregateOutputType | null
+  }
+
+  export type AboutFeatureAvgAggregateOutputType = {
+    order: number | null
+  }
+
+  export type AboutFeatureSumAggregateOutputType = {
+    order: number | null
+  }
+
+  export type AboutFeatureMinAggregateOutputType = {
+    id: string | null
+    aboutPageId: string | null
+    title: string | null
+    description: string | null
+    icon: string | null
+    order: number | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AboutFeatureMaxAggregateOutputType = {
+    id: string | null
+    aboutPageId: string | null
+    title: string | null
+    description: string | null
+    icon: string | null
+    order: number | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AboutFeatureCountAggregateOutputType = {
+    id: number
+    aboutPageId: number
+    title: number
+    description: number
+    icon: number
+    order: number
+    isActive: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AboutFeatureAvgAggregateInputType = {
+    order?: true
+  }
+
+  export type AboutFeatureSumAggregateInputType = {
+    order?: true
+  }
+
+  export type AboutFeatureMinAggregateInputType = {
+    id?: true
+    aboutPageId?: true
+    title?: true
+    description?: true
+    icon?: true
+    order?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AboutFeatureMaxAggregateInputType = {
+    id?: true
+    aboutPageId?: true
+    title?: true
+    description?: true
+    icon?: true
+    order?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AboutFeatureCountAggregateInputType = {
+    id?: true
+    aboutPageId?: true
+    title?: true
+    description?: true
+    icon?: true
+    order?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AboutFeatureAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AboutFeature to aggregate.
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AboutFeatures to fetch.
+     */
+    orderBy?: AboutFeatureOrderByWithRelationInput | AboutFeatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AboutFeatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AboutFeatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AboutFeatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AboutFeatures
+    **/
+    _count?: true | AboutFeatureCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AboutFeatureAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AboutFeatureSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AboutFeatureMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AboutFeatureMaxAggregateInputType
+  }
+
+  export type GetAboutFeatureAggregateType<T extends AboutFeatureAggregateArgs> = {
+        [P in keyof T & keyof AggregateAboutFeature]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAboutFeature[P]>
+      : GetScalarType<T[P], AggregateAboutFeature[P]>
+  }
+
+
+
+
+  export type AboutFeatureGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AboutFeatureWhereInput
+    orderBy?: AboutFeatureOrderByWithAggregationInput | AboutFeatureOrderByWithAggregationInput[]
+    by: AboutFeatureScalarFieldEnum[] | AboutFeatureScalarFieldEnum
+    having?: AboutFeatureScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AboutFeatureCountAggregateInputType | true
+    _avg?: AboutFeatureAvgAggregateInputType
+    _sum?: AboutFeatureSumAggregateInputType
+    _min?: AboutFeatureMinAggregateInputType
+    _max?: AboutFeatureMaxAggregateInputType
+  }
+
+  export type AboutFeatureGroupByOutputType = {
+    id: string
+    aboutPageId: string
+    title: string
+    description: string
+    icon: string
+    order: number
+    isActive: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: AboutFeatureCountAggregateOutputType | null
+    _avg: AboutFeatureAvgAggregateOutputType | null
+    _sum: AboutFeatureSumAggregateOutputType | null
+    _min: AboutFeatureMinAggregateOutputType | null
+    _max: AboutFeatureMaxAggregateOutputType | null
+  }
+
+  type GetAboutFeatureGroupByPayload<T extends AboutFeatureGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AboutFeatureGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AboutFeatureGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AboutFeatureGroupByOutputType[P]>
+            : GetScalarType<T[P], AboutFeatureGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AboutFeatureSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    aboutPageId?: boolean
+    title?: boolean
+    description?: boolean
+    icon?: boolean
+    order?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aboutFeature"]>
+
+  export type AboutFeatureSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    aboutPageId?: boolean
+    title?: boolean
+    description?: boolean
+    icon?: boolean
+    order?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aboutFeature"]>
+
+  export type AboutFeatureSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    aboutPageId?: boolean
+    title?: boolean
+    description?: boolean
+    icon?: boolean
+    order?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aboutFeature"]>
+
+  export type AboutFeatureSelectScalar = {
+    id?: boolean
+    aboutPageId?: boolean
+    title?: boolean
+    description?: boolean
+    icon?: boolean
+    order?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AboutFeatureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "aboutPageId" | "title" | "description" | "icon" | "order" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["aboutFeature"]>
+  export type AboutFeatureInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }
+  export type AboutFeatureIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }
+  export type AboutFeatureIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    aboutPage?: boolean | AboutPageDefaultArgs<ExtArgs>
+  }
+
+  export type $AboutFeaturePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AboutFeature"
+    objects: {
+      aboutPage: Prisma.$AboutPagePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      aboutPageId: string
+      title: string
+      description: string
+      icon: string
+      order: number
+      isActive: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aboutFeature"]>
+    composites: {}
+  }
+
+  type AboutFeatureGetPayload<S extends boolean | null | undefined | AboutFeatureDefaultArgs> = $Result.GetResult<Prisma.$AboutFeaturePayload, S>
+
+  type AboutFeatureCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AboutFeatureFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AboutFeatureCountAggregateInputType | true
+    }
+
+  export interface AboutFeatureDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AboutFeature'], meta: { name: 'AboutFeature' } }
+    /**
+     * Find zero or one AboutFeature that matches the filter.
+     * @param {AboutFeatureFindUniqueArgs} args - Arguments to find a AboutFeature
+     * @example
+     * // Get one AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AboutFeatureFindUniqueArgs>(args: SelectSubset<T, AboutFeatureFindUniqueArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AboutFeature that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AboutFeatureFindUniqueOrThrowArgs} args - Arguments to find a AboutFeature
+     * @example
+     * // Get one AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AboutFeatureFindUniqueOrThrowArgs>(args: SelectSubset<T, AboutFeatureFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AboutFeature that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureFindFirstArgs} args - Arguments to find a AboutFeature
+     * @example
+     * // Get one AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AboutFeatureFindFirstArgs>(args?: SelectSubset<T, AboutFeatureFindFirstArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AboutFeature that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureFindFirstOrThrowArgs} args - Arguments to find a AboutFeature
+     * @example
+     * // Get one AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AboutFeatureFindFirstOrThrowArgs>(args?: SelectSubset<T, AboutFeatureFindFirstOrThrowArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AboutFeatures that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AboutFeatures
+     * const aboutFeatures = await prisma.aboutFeature.findMany()
+     * 
+     * // Get first 10 AboutFeatures
+     * const aboutFeatures = await prisma.aboutFeature.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aboutFeatureWithIdOnly = await prisma.aboutFeature.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AboutFeatureFindManyArgs>(args?: SelectSubset<T, AboutFeatureFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AboutFeature.
+     * @param {AboutFeatureCreateArgs} args - Arguments to create a AboutFeature.
+     * @example
+     * // Create one AboutFeature
+     * const AboutFeature = await prisma.aboutFeature.create({
+     *   data: {
+     *     // ... data to create a AboutFeature
+     *   }
+     * })
+     * 
+     */
+    create<T extends AboutFeatureCreateArgs>(args: SelectSubset<T, AboutFeatureCreateArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AboutFeatures.
+     * @param {AboutFeatureCreateManyArgs} args - Arguments to create many AboutFeatures.
+     * @example
+     * // Create many AboutFeatures
+     * const aboutFeature = await prisma.aboutFeature.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AboutFeatureCreateManyArgs>(args?: SelectSubset<T, AboutFeatureCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AboutFeatures and returns the data saved in the database.
+     * @param {AboutFeatureCreateManyAndReturnArgs} args - Arguments to create many AboutFeatures.
+     * @example
+     * // Create many AboutFeatures
+     * const aboutFeature = await prisma.aboutFeature.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AboutFeatures and only return the `id`
+     * const aboutFeatureWithIdOnly = await prisma.aboutFeature.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AboutFeatureCreateManyAndReturnArgs>(args?: SelectSubset<T, AboutFeatureCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AboutFeature.
+     * @param {AboutFeatureDeleteArgs} args - Arguments to delete one AboutFeature.
+     * @example
+     * // Delete one AboutFeature
+     * const AboutFeature = await prisma.aboutFeature.delete({
+     *   where: {
+     *     // ... filter to delete one AboutFeature
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AboutFeatureDeleteArgs>(args: SelectSubset<T, AboutFeatureDeleteArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AboutFeature.
+     * @param {AboutFeatureUpdateArgs} args - Arguments to update one AboutFeature.
+     * @example
+     * // Update one AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AboutFeatureUpdateArgs>(args: SelectSubset<T, AboutFeatureUpdateArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AboutFeatures.
+     * @param {AboutFeatureDeleteManyArgs} args - Arguments to filter AboutFeatures to delete.
+     * @example
+     * // Delete a few AboutFeatures
+     * const { count } = await prisma.aboutFeature.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AboutFeatureDeleteManyArgs>(args?: SelectSubset<T, AboutFeatureDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AboutFeatures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AboutFeatures
+     * const aboutFeature = await prisma.aboutFeature.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AboutFeatureUpdateManyArgs>(args: SelectSubset<T, AboutFeatureUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AboutFeatures and returns the data updated in the database.
+     * @param {AboutFeatureUpdateManyAndReturnArgs} args - Arguments to update many AboutFeatures.
+     * @example
+     * // Update many AboutFeatures
+     * const aboutFeature = await prisma.aboutFeature.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AboutFeatures and only return the `id`
+     * const aboutFeatureWithIdOnly = await prisma.aboutFeature.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AboutFeatureUpdateManyAndReturnArgs>(args: SelectSubset<T, AboutFeatureUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AboutFeature.
+     * @param {AboutFeatureUpsertArgs} args - Arguments to update or create a AboutFeature.
+     * @example
+     * // Update or create a AboutFeature
+     * const aboutFeature = await prisma.aboutFeature.upsert({
+     *   create: {
+     *     // ... data to create a AboutFeature
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AboutFeature we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AboutFeatureUpsertArgs>(args: SelectSubset<T, AboutFeatureUpsertArgs<ExtArgs>>): Prisma__AboutFeatureClient<$Result.GetResult<Prisma.$AboutFeaturePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AboutFeatures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureCountArgs} args - Arguments to filter AboutFeatures to count.
+     * @example
+     * // Count the number of AboutFeatures
+     * const count = await prisma.aboutFeature.count({
+     *   where: {
+     *     // ... the filter for the AboutFeatures we want to count
+     *   }
+     * })
+    **/
+    count<T extends AboutFeatureCountArgs>(
+      args?: Subset<T, AboutFeatureCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AboutFeatureCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AboutFeature.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AboutFeatureAggregateArgs>(args: Subset<T, AboutFeatureAggregateArgs>): Prisma.PrismaPromise<GetAboutFeatureAggregateType<T>>
+
+    /**
+     * Group by AboutFeature.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AboutFeatureGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AboutFeatureGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AboutFeatureGroupByArgs['orderBy'] }
+        : { orderBy?: AboutFeatureGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AboutFeatureGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAboutFeatureGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AboutFeature model
+   */
+  readonly fields: AboutFeatureFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AboutFeature.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AboutFeatureClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    aboutPage<T extends AboutPageDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AboutPageDefaultArgs<ExtArgs>>): Prisma__AboutPageClient<$Result.GetResult<Prisma.$AboutPagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AboutFeature model
+   */
+  interface AboutFeatureFieldRefs {
+    readonly id: FieldRef<"AboutFeature", 'String'>
+    readonly aboutPageId: FieldRef<"AboutFeature", 'String'>
+    readonly title: FieldRef<"AboutFeature", 'String'>
+    readonly description: FieldRef<"AboutFeature", 'String'>
+    readonly icon: FieldRef<"AboutFeature", 'String'>
+    readonly order: FieldRef<"AboutFeature", 'Int'>
+    readonly isActive: FieldRef<"AboutFeature", 'Boolean'>
+    readonly createdAt: FieldRef<"AboutFeature", 'DateTime'>
+    readonly updatedAt: FieldRef<"AboutFeature", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AboutFeature findUnique
+   */
+  export type AboutFeatureFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter, which AboutFeature to fetch.
+     */
+    where: AboutFeatureWhereUniqueInput
+  }
+
+  /**
+   * AboutFeature findUniqueOrThrow
+   */
+  export type AboutFeatureFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter, which AboutFeature to fetch.
+     */
+    where: AboutFeatureWhereUniqueInput
+  }
+
+  /**
+   * AboutFeature findFirst
+   */
+  export type AboutFeatureFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter, which AboutFeature to fetch.
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AboutFeatures to fetch.
+     */
+    orderBy?: AboutFeatureOrderByWithRelationInput | AboutFeatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AboutFeatures.
+     */
+    cursor?: AboutFeatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AboutFeatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AboutFeatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AboutFeatures.
+     */
+    distinct?: AboutFeatureScalarFieldEnum | AboutFeatureScalarFieldEnum[]
+  }
+
+  /**
+   * AboutFeature findFirstOrThrow
+   */
+  export type AboutFeatureFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter, which AboutFeature to fetch.
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AboutFeatures to fetch.
+     */
+    orderBy?: AboutFeatureOrderByWithRelationInput | AboutFeatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AboutFeatures.
+     */
+    cursor?: AboutFeatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AboutFeatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AboutFeatures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AboutFeatures.
+     */
+    distinct?: AboutFeatureScalarFieldEnum | AboutFeatureScalarFieldEnum[]
+  }
+
+  /**
+   * AboutFeature findMany
+   */
+  export type AboutFeatureFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter, which AboutFeatures to fetch.
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AboutFeatures to fetch.
+     */
+    orderBy?: AboutFeatureOrderByWithRelationInput | AboutFeatureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AboutFeatures.
+     */
+    cursor?: AboutFeatureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AboutFeatures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AboutFeatures.
+     */
+    skip?: number
+    distinct?: AboutFeatureScalarFieldEnum | AboutFeatureScalarFieldEnum[]
+  }
+
+  /**
+   * AboutFeature create
+   */
+  export type AboutFeatureCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AboutFeature.
+     */
+    data: XOR<AboutFeatureCreateInput, AboutFeatureUncheckedCreateInput>
+  }
+
+  /**
+   * AboutFeature createMany
+   */
+  export type AboutFeatureCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AboutFeatures.
+     */
+    data: AboutFeatureCreateManyInput | AboutFeatureCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AboutFeature createManyAndReturn
+   */
+  export type AboutFeatureCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * The data used to create many AboutFeatures.
+     */
+    data: AboutFeatureCreateManyInput | AboutFeatureCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AboutFeature update
+   */
+  export type AboutFeatureUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AboutFeature.
+     */
+    data: XOR<AboutFeatureUpdateInput, AboutFeatureUncheckedUpdateInput>
+    /**
+     * Choose, which AboutFeature to update.
+     */
+    where: AboutFeatureWhereUniqueInput
+  }
+
+  /**
+   * AboutFeature updateMany
+   */
+  export type AboutFeatureUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AboutFeatures.
+     */
+    data: XOR<AboutFeatureUpdateManyMutationInput, AboutFeatureUncheckedUpdateManyInput>
+    /**
+     * Filter which AboutFeatures to update
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * Limit how many AboutFeatures to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AboutFeature updateManyAndReturn
+   */
+  export type AboutFeatureUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * The data used to update AboutFeatures.
+     */
+    data: XOR<AboutFeatureUpdateManyMutationInput, AboutFeatureUncheckedUpdateManyInput>
+    /**
+     * Filter which AboutFeatures to update
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * Limit how many AboutFeatures to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AboutFeature upsert
+   */
+  export type AboutFeatureUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AboutFeature to update in case it exists.
+     */
+    where: AboutFeatureWhereUniqueInput
+    /**
+     * In case the AboutFeature found by the `where` argument doesn't exist, create a new AboutFeature with this data.
+     */
+    create: XOR<AboutFeatureCreateInput, AboutFeatureUncheckedCreateInput>
+    /**
+     * In case the AboutFeature was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AboutFeatureUpdateInput, AboutFeatureUncheckedUpdateInput>
+  }
+
+  /**
+   * AboutFeature delete
+   */
+  export type AboutFeatureDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
+    /**
+     * Filter which AboutFeature to delete.
+     */
+    where: AboutFeatureWhereUniqueInput
+  }
+
+  /**
+   * AboutFeature deleteMany
+   */
+  export type AboutFeatureDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AboutFeatures to delete
+     */
+    where?: AboutFeatureWhereInput
+    /**
+     * Limit how many AboutFeatures to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AboutFeature without action
+   */
+  export type AboutFeatureDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AboutFeature
+     */
+    select?: AboutFeatureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AboutFeature
+     */
+    omit?: AboutFeatureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AboutFeatureInclude<ExtArgs> | null
   }
 
 
@@ -26438,6 +28286,7 @@ export namespace Prisma {
     transmission: 'transmission',
     bodyType: 'bodyType',
     isLuxury: 'isLuxury',
+    insuranceSegment: 'insuranceSegment',
     driveType: 'driveType',
     seats: 'seats',
     description: 'description',
@@ -26558,6 +28407,16 @@ export namespace Prisma {
     logoImage: 'logoImage',
     interestRate: 'interestRate',
     loanPolicy: 'loanPolicy',
+    adminFeesCap: 'adminFeesCap',
+    defaultAdminFeesPct: 'defaultAdminFeesPct',
+    minInsurancePremium: 'minInsurancePremium',
+    assetDepreciationRate: 'assetDepreciationRate',
+    ftpAnchors: 'ftpAnchors',
+    cor: 'cor',
+    opex: 'opex',
+    irrTarget: 'irrTarget',
+    brandSegmentMap: 'brandSegmentMap',
+    insuranceTable: 'insuranceTable',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -26633,9 +28492,21 @@ export namespace Prisma {
     loanAmount: 'loanAmount',
     downPayment: 'downPayment',
     loanTerm: 'loanTerm',
+    termMonths: 'termMonths',
+    downPaymentPct: 'downPaymentPct',
     monthlyPayment: 'monthlyPayment',
+    baseInstallment: 'baseInstallment',
+    monthlyInsurance: 'monthlyInsurance',
     interestRate: 'interestRate',
     finalPayment: 'finalPayment',
+    balloonPayment: 'balloonPayment',
+    balloonPaymentPct: 'balloonPaymentPct',
+    adminFees: 'adminFees',
+    totalInsurance: 'totalInsurance',
+    totalProfit: 'totalProfit',
+    totalPayment: 'totalPayment',
+    insuranceSegment: 'insuranceSegment',
+    offerSnapshot: 'offerSnapshot',
     netSalary: 'netSalary',
     employerSector: 'employerSector',
     employer: 'employer',
@@ -26701,8 +28572,20 @@ export namespace Prisma {
   export const AboutPageScalarFieldEnum: {
     id: 'id',
     title: 'title',
-    content: 'content',
-    heroImage: 'heroImage',
+    introText: 'introText',
+    visionTitle: 'visionTitle',
+    visionParagraph1: 'visionParagraph1',
+    visionParagraph2: 'visionParagraph2',
+    visionImage: 'visionImage',
+    visionImageAlt: 'visionImageAlt',
+    missionTitle: 'missionTitle',
+    missionParagraph1: 'missionParagraph1',
+    missionParagraph2: 'missionParagraph2',
+    missionImage: 'missionImage',
+    missionImageAlt: 'missionImageAlt',
+    whyUsTitle: 'whyUsTitle',
+    ctaTitle: 'ctaTitle',
+    ctaText: 'ctaText',
     isPublished: 'isPublished',
     metaDescription: 'metaDescription',
     metaKeywords: 'metaKeywords',
@@ -26711,6 +28594,21 @@ export namespace Prisma {
   };
 
   export type AboutPageScalarFieldEnum = (typeof AboutPageScalarFieldEnum)[keyof typeof AboutPageScalarFieldEnum]
+
+
+  export const AboutFeatureScalarFieldEnum: {
+    id: 'id',
+    aboutPageId: 'aboutPageId',
+    title: 'title',
+    description: 'description',
+    icon: 'icon',
+    order: 'order',
+    isActive: 'isActive',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AboutFeatureScalarFieldEnum = (typeof AboutFeatureScalarFieldEnum)[keyof typeof AboutFeatureScalarFieldEnum]
 
 
   export const HeroSectionScalarFieldEnum: {
@@ -27067,6 +28965,7 @@ export namespace Prisma {
     transmission?: StringFilter<"Car"> | string
     bodyType?: StringFilter<"Car"> | string
     isLuxury?: BoolFilter<"Car"> | boolean
+    insuranceSegment?: StringNullableFilter<"Car"> | string | null
     driveType?: StringNullableFilter<"Car"> | string | null
     seats?: IntNullableFilter<"Car"> | number | null
     description?: StringFilter<"Car"> | string
@@ -27095,6 +28994,7 @@ export namespace Prisma {
     transmission?: SortOrder
     bodyType?: SortOrder
     isLuxury?: SortOrder
+    insuranceSegment?: SortOrderInput | SortOrder
     driveType?: SortOrderInput | SortOrder
     seats?: SortOrderInput | SortOrder
     description?: SortOrder
@@ -27126,6 +29026,7 @@ export namespace Prisma {
     transmission?: StringFilter<"Car"> | string
     bodyType?: StringFilter<"Car"> | string
     isLuxury?: BoolFilter<"Car"> | boolean
+    insuranceSegment?: StringNullableFilter<"Car"> | string | null
     driveType?: StringNullableFilter<"Car"> | string | null
     seats?: IntNullableFilter<"Car"> | number | null
     description?: StringFilter<"Car"> | string
@@ -27154,6 +29055,7 @@ export namespace Prisma {
     transmission?: SortOrder
     bodyType?: SortOrder
     isLuxury?: SortOrder
+    insuranceSegment?: SortOrderInput | SortOrder
     driveType?: SortOrderInput | SortOrder
     seats?: SortOrderInput | SortOrder
     description?: SortOrder
@@ -27187,6 +29089,7 @@ export namespace Prisma {
     transmission?: StringWithAggregatesFilter<"Car"> | string
     bodyType?: StringWithAggregatesFilter<"Car"> | string
     isLuxury?: BoolWithAggregatesFilter<"Car"> | boolean
+    insuranceSegment?: StringNullableWithAggregatesFilter<"Car"> | string | null
     driveType?: StringNullableWithAggregatesFilter<"Car"> | string | null
     seats?: IntNullableWithAggregatesFilter<"Car"> | number | null
     description?: StringWithAggregatesFilter<"Car"> | string
@@ -27704,6 +29607,16 @@ export namespace Prisma {
     logoImage?: StringFilter<"Bank"> | string
     interestRate?: DecimalFilter<"Bank"> | Decimal | DecimalJsLike | number | string
     loanPolicy?: StringNullableFilter<"Bank"> | string | null
+    adminFeesCap?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: JsonNullableFilter<"Bank">
+    cor?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    opex?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: JsonNullableFilter<"Bank">
+    insuranceTable?: JsonNullableFilter<"Bank">
     createdAt?: DateTimeFilter<"Bank"> | Date | string
     updatedAt?: DateTimeFilter<"Bank"> | Date | string
     loanRequests?: LoanRequestListRelationFilter
@@ -27715,6 +29628,16 @@ export namespace Prisma {
     logoImage?: SortOrder
     interestRate?: SortOrder
     loanPolicy?: SortOrderInput | SortOrder
+    adminFeesCap?: SortOrderInput | SortOrder
+    defaultAdminFeesPct?: SortOrderInput | SortOrder
+    minInsurancePremium?: SortOrderInput | SortOrder
+    assetDepreciationRate?: SortOrderInput | SortOrder
+    ftpAnchors?: SortOrderInput | SortOrder
+    cor?: SortOrderInput | SortOrder
+    opex?: SortOrderInput | SortOrder
+    irrTarget?: SortOrderInput | SortOrder
+    brandSegmentMap?: SortOrderInput | SortOrder
+    insuranceTable?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     loanRequests?: LoanRequestOrderByRelationAggregateInput
@@ -27729,6 +29652,16 @@ export namespace Prisma {
     logoImage?: StringFilter<"Bank"> | string
     interestRate?: DecimalFilter<"Bank"> | Decimal | DecimalJsLike | number | string
     loanPolicy?: StringNullableFilter<"Bank"> | string | null
+    adminFeesCap?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: JsonNullableFilter<"Bank">
+    cor?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    opex?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: JsonNullableFilter<"Bank">
+    insuranceTable?: JsonNullableFilter<"Bank">
     createdAt?: DateTimeFilter<"Bank"> | Date | string
     updatedAt?: DateTimeFilter<"Bank"> | Date | string
     loanRequests?: LoanRequestListRelationFilter
@@ -27740,6 +29673,16 @@ export namespace Prisma {
     logoImage?: SortOrder
     interestRate?: SortOrder
     loanPolicy?: SortOrderInput | SortOrder
+    adminFeesCap?: SortOrderInput | SortOrder
+    defaultAdminFeesPct?: SortOrderInput | SortOrder
+    minInsurancePremium?: SortOrderInput | SortOrder
+    assetDepreciationRate?: SortOrderInput | SortOrder
+    ftpAnchors?: SortOrderInput | SortOrder
+    cor?: SortOrderInput | SortOrder
+    opex?: SortOrderInput | SortOrder
+    irrTarget?: SortOrderInput | SortOrder
+    brandSegmentMap?: SortOrderInput | SortOrder
+    insuranceTable?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: BankCountOrderByAggregateInput
@@ -27758,6 +29701,16 @@ export namespace Prisma {
     logoImage?: StringWithAggregatesFilter<"Bank"> | string
     interestRate?: DecimalWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string
     loanPolicy?: StringNullableWithAggregatesFilter<"Bank"> | string | null
+    adminFeesCap?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: JsonNullableWithAggregatesFilter<"Bank">
+    cor?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    opex?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: JsonNullableWithAggregatesFilter<"Bank">
+    insuranceTable?: JsonNullableWithAggregatesFilter<"Bank">
     createdAt?: DateTimeWithAggregatesFilter<"Bank"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Bank"> | Date | string
   }
@@ -28021,9 +29974,21 @@ export namespace Prisma {
     loanAmount?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFilter<"LoanRequest"> | number
+    termMonths?: IntNullableFilter<"LoanRequest"> | number | null
+    downPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     interestRate?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     finalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    adminFees?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: StringNullableFilter<"LoanRequest"> | string | null
+    offerSnapshot?: JsonNullableFilter<"LoanRequest">
     netSalary?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     employerSector?: StringNullableFilter<"LoanRequest"> | string | null
     employer?: StringNullableFilter<"LoanRequest"> | string | null
@@ -28059,9 +30024,21 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrderInput | SortOrder
+    downPaymentPct?: SortOrderInput | SortOrder
     monthlyPayment?: SortOrderInput | SortOrder
+    baseInstallment?: SortOrderInput | SortOrder
+    monthlyInsurance?: SortOrderInput | SortOrder
     interestRate?: SortOrderInput | SortOrder
     finalPayment?: SortOrderInput | SortOrder
+    balloonPayment?: SortOrderInput | SortOrder
+    balloonPaymentPct?: SortOrderInput | SortOrder
+    adminFees?: SortOrderInput | SortOrder
+    totalInsurance?: SortOrderInput | SortOrder
+    totalProfit?: SortOrderInput | SortOrder
+    totalPayment?: SortOrderInput | SortOrder
+    insuranceSegment?: SortOrderInput | SortOrder
+    offerSnapshot?: SortOrderInput | SortOrder
     netSalary?: SortOrderInput | SortOrder
     employerSector?: SortOrderInput | SortOrder
     employer?: SortOrderInput | SortOrder
@@ -28100,9 +30077,21 @@ export namespace Prisma {
     loanAmount?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFilter<"LoanRequest"> | number
+    termMonths?: IntNullableFilter<"LoanRequest"> | number | null
+    downPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     interestRate?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     finalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    adminFees?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: StringNullableFilter<"LoanRequest"> | string | null
+    offerSnapshot?: JsonNullableFilter<"LoanRequest">
     netSalary?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     employerSector?: StringNullableFilter<"LoanRequest"> | string | null
     employer?: StringNullableFilter<"LoanRequest"> | string | null
@@ -28138,9 +30127,21 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrderInput | SortOrder
+    downPaymentPct?: SortOrderInput | SortOrder
     monthlyPayment?: SortOrderInput | SortOrder
+    baseInstallment?: SortOrderInput | SortOrder
+    monthlyInsurance?: SortOrderInput | SortOrder
     interestRate?: SortOrderInput | SortOrder
     finalPayment?: SortOrderInput | SortOrder
+    balloonPayment?: SortOrderInput | SortOrder
+    balloonPaymentPct?: SortOrderInput | SortOrder
+    adminFees?: SortOrderInput | SortOrder
+    totalInsurance?: SortOrderInput | SortOrder
+    totalProfit?: SortOrderInput | SortOrder
+    totalPayment?: SortOrderInput | SortOrder
+    insuranceSegment?: SortOrderInput | SortOrder
+    offerSnapshot?: SortOrderInput | SortOrder
     netSalary?: SortOrderInput | SortOrder
     employerSector?: SortOrderInput | SortOrder
     employer?: SortOrderInput | SortOrder
@@ -28182,9 +30183,21 @@ export namespace Prisma {
     loanAmount?: DecimalWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     loanTerm?: IntWithAggregatesFilter<"LoanRequest"> | number
+    termMonths?: IntNullableWithAggregatesFilter<"LoanRequest"> | number | null
+    downPaymentPct?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     interestRate?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     finalPayment?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    adminFees?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: StringNullableWithAggregatesFilter<"LoanRequest"> | string | null
+    offerSnapshot?: JsonNullableWithAggregatesFilter<"LoanRequest">
     netSalary?: DecimalNullableWithAggregatesFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     employerSector?: StringNullableWithAggregatesFilter<"LoanRequest"> | string | null
     employer?: StringNullableWithAggregatesFilter<"LoanRequest"> | string | null
@@ -28427,25 +30440,51 @@ export namespace Prisma {
     NOT?: AboutPageWhereInput | AboutPageWhereInput[]
     id?: StringFilter<"AboutPage"> | string
     title?: StringFilter<"AboutPage"> | string
-    content?: StringFilter<"AboutPage"> | string
-    heroImage?: StringNullableFilter<"AboutPage"> | string | null
+    introText?: StringFilter<"AboutPage"> | string
+    visionTitle?: StringFilter<"AboutPage"> | string
+    visionParagraph1?: StringFilter<"AboutPage"> | string
+    visionParagraph2?: StringFilter<"AboutPage"> | string
+    visionImage?: StringNullableFilter<"AboutPage"> | string | null
+    visionImageAlt?: StringNullableFilter<"AboutPage"> | string | null
+    missionTitle?: StringFilter<"AboutPage"> | string
+    missionParagraph1?: StringFilter<"AboutPage"> | string
+    missionParagraph2?: StringFilter<"AboutPage"> | string
+    missionImage?: StringNullableFilter<"AboutPage"> | string | null
+    missionImageAlt?: StringNullableFilter<"AboutPage"> | string | null
+    whyUsTitle?: StringFilter<"AboutPage"> | string
+    ctaTitle?: StringFilter<"AboutPage"> | string
+    ctaText?: StringFilter<"AboutPage"> | string
     isPublished?: BoolFilter<"AboutPage"> | boolean
     metaDescription?: StringNullableFilter<"AboutPage"> | string | null
     metaKeywords?: StringNullableFilter<"AboutPage"> | string | null
     createdAt?: DateTimeFilter<"AboutPage"> | Date | string
     updatedAt?: DateTimeFilter<"AboutPage"> | Date | string
+    features?: AboutFeatureListRelationFilter
   }
 
   export type AboutPageOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrder
-    heroImage?: SortOrderInput | SortOrder
+    introText?: SortOrder
+    visionTitle?: SortOrder
+    visionParagraph1?: SortOrder
+    visionParagraph2?: SortOrder
+    visionImage?: SortOrderInput | SortOrder
+    visionImageAlt?: SortOrderInput | SortOrder
+    missionTitle?: SortOrder
+    missionParagraph1?: SortOrder
+    missionParagraph2?: SortOrder
+    missionImage?: SortOrderInput | SortOrder
+    missionImageAlt?: SortOrderInput | SortOrder
+    whyUsTitle?: SortOrder
+    ctaTitle?: SortOrder
+    ctaText?: SortOrder
     isPublished?: SortOrder
     metaDescription?: SortOrderInput | SortOrder
     metaKeywords?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    features?: AboutFeatureOrderByRelationAggregateInput
   }
 
   export type AboutPageWhereUniqueInput = Prisma.AtLeast<{
@@ -28454,20 +30493,45 @@ export namespace Prisma {
     OR?: AboutPageWhereInput[]
     NOT?: AboutPageWhereInput | AboutPageWhereInput[]
     title?: StringFilter<"AboutPage"> | string
-    content?: StringFilter<"AboutPage"> | string
-    heroImage?: StringNullableFilter<"AboutPage"> | string | null
+    introText?: StringFilter<"AboutPage"> | string
+    visionTitle?: StringFilter<"AboutPage"> | string
+    visionParagraph1?: StringFilter<"AboutPage"> | string
+    visionParagraph2?: StringFilter<"AboutPage"> | string
+    visionImage?: StringNullableFilter<"AboutPage"> | string | null
+    visionImageAlt?: StringNullableFilter<"AboutPage"> | string | null
+    missionTitle?: StringFilter<"AboutPage"> | string
+    missionParagraph1?: StringFilter<"AboutPage"> | string
+    missionParagraph2?: StringFilter<"AboutPage"> | string
+    missionImage?: StringNullableFilter<"AboutPage"> | string | null
+    missionImageAlt?: StringNullableFilter<"AboutPage"> | string | null
+    whyUsTitle?: StringFilter<"AboutPage"> | string
+    ctaTitle?: StringFilter<"AboutPage"> | string
+    ctaText?: StringFilter<"AboutPage"> | string
     isPublished?: BoolFilter<"AboutPage"> | boolean
     metaDescription?: StringNullableFilter<"AboutPage"> | string | null
     metaKeywords?: StringNullableFilter<"AboutPage"> | string | null
     createdAt?: DateTimeFilter<"AboutPage"> | Date | string
     updatedAt?: DateTimeFilter<"AboutPage"> | Date | string
+    features?: AboutFeatureListRelationFilter
   }, "id" | "id">
 
   export type AboutPageOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrder
-    heroImage?: SortOrderInput | SortOrder
+    introText?: SortOrder
+    visionTitle?: SortOrder
+    visionParagraph1?: SortOrder
+    visionParagraph2?: SortOrder
+    visionImage?: SortOrderInput | SortOrder
+    visionImageAlt?: SortOrderInput | SortOrder
+    missionTitle?: SortOrder
+    missionParagraph1?: SortOrder
+    missionParagraph2?: SortOrder
+    missionImage?: SortOrderInput | SortOrder
+    missionImageAlt?: SortOrderInput | SortOrder
+    whyUsTitle?: SortOrder
+    ctaTitle?: SortOrder
+    ctaText?: SortOrder
     isPublished?: SortOrder
     metaDescription?: SortOrderInput | SortOrder
     metaKeywords?: SortOrderInput | SortOrder
@@ -28484,13 +30548,102 @@ export namespace Prisma {
     NOT?: AboutPageScalarWhereWithAggregatesInput | AboutPageScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"AboutPage"> | string
     title?: StringWithAggregatesFilter<"AboutPage"> | string
-    content?: StringWithAggregatesFilter<"AboutPage"> | string
-    heroImage?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
+    introText?: StringWithAggregatesFilter<"AboutPage"> | string
+    visionTitle?: StringWithAggregatesFilter<"AboutPage"> | string
+    visionParagraph1?: StringWithAggregatesFilter<"AboutPage"> | string
+    visionParagraph2?: StringWithAggregatesFilter<"AboutPage"> | string
+    visionImage?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
+    visionImageAlt?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
+    missionTitle?: StringWithAggregatesFilter<"AboutPage"> | string
+    missionParagraph1?: StringWithAggregatesFilter<"AboutPage"> | string
+    missionParagraph2?: StringWithAggregatesFilter<"AboutPage"> | string
+    missionImage?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
+    missionImageAlt?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
+    whyUsTitle?: StringWithAggregatesFilter<"AboutPage"> | string
+    ctaTitle?: StringWithAggregatesFilter<"AboutPage"> | string
+    ctaText?: StringWithAggregatesFilter<"AboutPage"> | string
     isPublished?: BoolWithAggregatesFilter<"AboutPage"> | boolean
     metaDescription?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
     metaKeywords?: StringNullableWithAggregatesFilter<"AboutPage"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AboutPage"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"AboutPage"> | Date | string
+  }
+
+  export type AboutFeatureWhereInput = {
+    AND?: AboutFeatureWhereInput | AboutFeatureWhereInput[]
+    OR?: AboutFeatureWhereInput[]
+    NOT?: AboutFeatureWhereInput | AboutFeatureWhereInput[]
+    id?: StringFilter<"AboutFeature"> | string
+    aboutPageId?: StringFilter<"AboutFeature"> | string
+    title?: StringFilter<"AboutFeature"> | string
+    description?: StringFilter<"AboutFeature"> | string
+    icon?: StringFilter<"AboutFeature"> | string
+    order?: IntFilter<"AboutFeature"> | number
+    isActive?: BoolFilter<"AboutFeature"> | boolean
+    createdAt?: DateTimeFilter<"AboutFeature"> | Date | string
+    updatedAt?: DateTimeFilter<"AboutFeature"> | Date | string
+    aboutPage?: XOR<AboutPageScalarRelationFilter, AboutPageWhereInput>
+  }
+
+  export type AboutFeatureOrderByWithRelationInput = {
+    id?: SortOrder
+    aboutPageId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    icon?: SortOrder
+    order?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    aboutPage?: AboutPageOrderByWithRelationInput
+  }
+
+  export type AboutFeatureWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AboutFeatureWhereInput | AboutFeatureWhereInput[]
+    OR?: AboutFeatureWhereInput[]
+    NOT?: AboutFeatureWhereInput | AboutFeatureWhereInput[]
+    aboutPageId?: StringFilter<"AboutFeature"> | string
+    title?: StringFilter<"AboutFeature"> | string
+    description?: StringFilter<"AboutFeature"> | string
+    icon?: StringFilter<"AboutFeature"> | string
+    order?: IntFilter<"AboutFeature"> | number
+    isActive?: BoolFilter<"AboutFeature"> | boolean
+    createdAt?: DateTimeFilter<"AboutFeature"> | Date | string
+    updatedAt?: DateTimeFilter<"AboutFeature"> | Date | string
+    aboutPage?: XOR<AboutPageScalarRelationFilter, AboutPageWhereInput>
+  }, "id">
+
+  export type AboutFeatureOrderByWithAggregationInput = {
+    id?: SortOrder
+    aboutPageId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    icon?: SortOrder
+    order?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AboutFeatureCountOrderByAggregateInput
+    _avg?: AboutFeatureAvgOrderByAggregateInput
+    _max?: AboutFeatureMaxOrderByAggregateInput
+    _min?: AboutFeatureMinOrderByAggregateInput
+    _sum?: AboutFeatureSumOrderByAggregateInput
+  }
+
+  export type AboutFeatureScalarWhereWithAggregatesInput = {
+    AND?: AboutFeatureScalarWhereWithAggregatesInput | AboutFeatureScalarWhereWithAggregatesInput[]
+    OR?: AboutFeatureScalarWhereWithAggregatesInput[]
+    NOT?: AboutFeatureScalarWhereWithAggregatesInput | AboutFeatureScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AboutFeature"> | string
+    aboutPageId?: StringWithAggregatesFilter<"AboutFeature"> | string
+    title?: StringWithAggregatesFilter<"AboutFeature"> | string
+    description?: StringWithAggregatesFilter<"AboutFeature"> | string
+    icon?: StringWithAggregatesFilter<"AboutFeature"> | string
+    order?: IntWithAggregatesFilter<"AboutFeature"> | number
+    isActive?: BoolWithAggregatesFilter<"AboutFeature"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"AboutFeature"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AboutFeature"> | Date | string
   }
 
   export type HeroSectionWhereInput = {
@@ -28814,6 +30967,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -28842,6 +30996,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -28870,6 +31025,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -28898,6 +31054,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -28926,6 +31083,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -28951,6 +31109,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -28976,6 +31135,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -29533,6 +31693,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
     loanPolicy?: string | null
+    adminFeesCap?: Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: Decimal | DecimalJsLike | number | string | null
+    opex?: Decimal | DecimalJsLike | number | string | null
+    irrTarget?: Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     loanRequests?: LoanRequestCreateNestedManyWithoutSalaryTransferBankInput
@@ -29544,6 +31714,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
     loanPolicy?: string | null
+    adminFeesCap?: Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: Decimal | DecimalJsLike | number | string | null
+    opex?: Decimal | DecimalJsLike | number | string | null
+    irrTarget?: Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     loanRequests?: LoanRequestUncheckedCreateNestedManyWithoutSalaryTransferBankInput
@@ -29555,6 +31735,16 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loanRequests?: LoanRequestUpdateManyWithoutSalaryTransferBankNestedInput
@@ -29566,6 +31756,16 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loanRequests?: LoanRequestUncheckedUpdateManyWithoutSalaryTransferBankNestedInput
@@ -29577,6 +31777,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
     loanPolicy?: string | null
+    adminFeesCap?: Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: Decimal | DecimalJsLike | number | string | null
+    opex?: Decimal | DecimalJsLike | number | string | null
+    irrTarget?: Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -29587,6 +31797,16 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -29597,6 +31817,16 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -29892,9 +32122,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -29929,9 +32171,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -29964,9 +32218,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30001,9 +32267,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30037,9 +32315,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -30072,9 +32362,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30107,9 +32409,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30385,56 +32699,120 @@ export namespace Prisma {
   export type AboutPageCreateInput = {
     id?: string
     title?: string
-    content: string
-    heroImage?: string | null
+    introText: string
+    visionTitle?: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage?: string | null
+    visionImageAlt?: string | null
+    missionTitle?: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage?: string | null
+    missionImageAlt?: string | null
+    whyUsTitle?: string
+    ctaTitle?: string
+    ctaText: string
     isPublished?: boolean
     metaDescription?: string | null
     metaKeywords?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    features?: AboutFeatureCreateNestedManyWithoutAboutPageInput
   }
 
   export type AboutPageUncheckedCreateInput = {
     id?: string
     title?: string
-    content: string
-    heroImage?: string | null
+    introText: string
+    visionTitle?: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage?: string | null
+    visionImageAlt?: string | null
+    missionTitle?: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage?: string | null
+    missionImageAlt?: string | null
+    whyUsTitle?: string
+    ctaTitle?: string
+    ctaText: string
     isPublished?: boolean
     metaDescription?: string | null
     metaKeywords?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    features?: AboutFeatureUncheckedCreateNestedManyWithoutAboutPageInput
   }
 
   export type AboutPageUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: StringFieldUpdateOperationsInput | string
-    heroImage?: NullableStringFieldUpdateOperationsInput | string | null
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
     isPublished?: BoolFieldUpdateOperationsInput | boolean
     metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
     metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    features?: AboutFeatureUpdateManyWithoutAboutPageNestedInput
   }
 
   export type AboutPageUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: StringFieldUpdateOperationsInput | string
-    heroImage?: NullableStringFieldUpdateOperationsInput | string | null
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
     isPublished?: BoolFieldUpdateOperationsInput | boolean
     metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
     metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    features?: AboutFeatureUncheckedUpdateManyWithoutAboutPageNestedInput
   }
 
   export type AboutPageCreateManyInput = {
     id?: string
     title?: string
-    content: string
-    heroImage?: string | null
+    introText: string
+    visionTitle?: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage?: string | null
+    visionImageAlt?: string | null
+    missionTitle?: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage?: string | null
+    missionImageAlt?: string | null
+    whyUsTitle?: string
+    ctaTitle?: string
+    ctaText: string
     isPublished?: boolean
     metaDescription?: string | null
     metaKeywords?: string | null
@@ -30445,8 +32823,20 @@ export namespace Prisma {
   export type AboutPageUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: StringFieldUpdateOperationsInput | string
-    heroImage?: NullableStringFieldUpdateOperationsInput | string | null
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
     isPublished?: BoolFieldUpdateOperationsInput | boolean
     metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
     metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30457,11 +32847,106 @@ export namespace Prisma {
   export type AboutPageUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: StringFieldUpdateOperationsInput | string
-    heroImage?: NullableStringFieldUpdateOperationsInput | string | null
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
     isPublished?: BoolFieldUpdateOperationsInput | boolean
     metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
     metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureCreateInput = {
+    id?: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    aboutPage: AboutPageCreateNestedOneWithoutFeaturesInput
+  }
+
+  export type AboutFeatureUncheckedCreateInput = {
+    id?: string
+    aboutPageId: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutFeatureUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    aboutPage?: AboutPageUpdateOneRequiredWithoutFeaturesNestedInput
+  }
+
+  export type AboutFeatureUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aboutPageId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureCreateManyInput = {
+    id?: string
+    aboutPageId: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutFeatureUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aboutPageId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -31008,6 +33493,7 @@ export namespace Prisma {
     transmission?: SortOrder
     bodyType?: SortOrder
     isLuxury?: SortOrder
+    insuranceSegment?: SortOrder
     driveType?: SortOrder
     seats?: SortOrder
     description?: SortOrder
@@ -31040,6 +33526,7 @@ export namespace Prisma {
     transmission?: SortOrder
     bodyType?: SortOrder
     isLuxury?: SortOrder
+    insuranceSegment?: SortOrder
     driveType?: SortOrder
     seats?: SortOrder
     description?: SortOrder
@@ -31064,6 +33551,7 @@ export namespace Prisma {
     transmission?: SortOrder
     bodyType?: SortOrder
     isLuxury?: SortOrder
+    insuranceSegment?: SortOrder
     driveType?: SortOrder
     seats?: SortOrder
     description?: SortOrder
@@ -31473,18 +33961,46 @@ export namespace Prisma {
     order?: SortOrder
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type BankCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
     loanPolicy?: SortOrder
+    adminFeesCap?: SortOrder
+    defaultAdminFeesPct?: SortOrder
+    minInsurancePremium?: SortOrder
+    assetDepreciationRate?: SortOrder
+    ftpAnchors?: SortOrder
+    cor?: SortOrder
+    opex?: SortOrder
+    irrTarget?: SortOrder
+    brandSegmentMap?: SortOrder
+    insuranceTable?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type BankAvgOrderByAggregateInput = {
     interestRate?: SortOrder
+    adminFeesCap?: SortOrder
+    defaultAdminFeesPct?: SortOrder
+    minInsurancePremium?: SortOrder
+    assetDepreciationRate?: SortOrder
+    cor?: SortOrder
+    opex?: SortOrder
+    irrTarget?: SortOrder
   }
 
   export type BankMaxOrderByAggregateInput = {
@@ -31493,6 +34009,13 @@ export namespace Prisma {
     logoImage?: SortOrder
     interestRate?: SortOrder
     loanPolicy?: SortOrder
+    adminFeesCap?: SortOrder
+    defaultAdminFeesPct?: SortOrder
+    minInsurancePremium?: SortOrder
+    assetDepreciationRate?: SortOrder
+    cor?: SortOrder
+    opex?: SortOrder
+    irrTarget?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31503,12 +34026,42 @@ export namespace Prisma {
     logoImage?: SortOrder
     interestRate?: SortOrder
     loanPolicy?: SortOrder
+    adminFeesCap?: SortOrder
+    defaultAdminFeesPct?: SortOrder
+    minInsurancePremium?: SortOrder
+    assetDepreciationRate?: SortOrder
+    cor?: SortOrder
+    opex?: SortOrder
+    irrTarget?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type BankSumOrderByAggregateInput = {
     interestRate?: SortOrder
+    adminFeesCap?: SortOrder
+    defaultAdminFeesPct?: SortOrder
+    minInsurancePremium?: SortOrder
+    assetDepreciationRate?: SortOrder
+    cor?: SortOrder
+    opex?: SortOrder
+    irrTarget?: SortOrder
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -31662,17 +34215,6 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type DecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type BoolNullableFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
@@ -31710,9 +34252,21 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrder
+    downPaymentPct?: SortOrder
     monthlyPayment?: SortOrder
+    baseInstallment?: SortOrder
+    monthlyInsurance?: SortOrder
     interestRate?: SortOrder
     finalPayment?: SortOrder
+    balloonPayment?: SortOrder
+    balloonPaymentPct?: SortOrder
+    adminFees?: SortOrder
+    totalInsurance?: SortOrder
+    totalProfit?: SortOrder
+    totalPayment?: SortOrder
+    insuranceSegment?: SortOrder
+    offerSnapshot?: SortOrder
     netSalary?: SortOrder
     employerSector?: SortOrder
     employer?: SortOrder
@@ -31731,9 +34285,19 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrder
+    downPaymentPct?: SortOrder
     monthlyPayment?: SortOrder
+    baseInstallment?: SortOrder
+    monthlyInsurance?: SortOrder
     interestRate?: SortOrder
     finalPayment?: SortOrder
+    balloonPayment?: SortOrder
+    balloonPaymentPct?: SortOrder
+    adminFees?: SortOrder
+    totalInsurance?: SortOrder
+    totalProfit?: SortOrder
+    totalPayment?: SortOrder
     netSalary?: SortOrder
     totalMonthlyObligations?: SortOrder
   }
@@ -31758,9 +34322,20 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrder
+    downPaymentPct?: SortOrder
     monthlyPayment?: SortOrder
+    baseInstallment?: SortOrder
+    monthlyInsurance?: SortOrder
     interestRate?: SortOrder
     finalPayment?: SortOrder
+    balloonPayment?: SortOrder
+    balloonPaymentPct?: SortOrder
+    adminFees?: SortOrder
+    totalInsurance?: SortOrder
+    totalProfit?: SortOrder
+    totalPayment?: SortOrder
+    insuranceSegment?: SortOrder
     netSalary?: SortOrder
     employerSector?: SortOrder
     employer?: SortOrder
@@ -31794,9 +34369,20 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrder
+    downPaymentPct?: SortOrder
     monthlyPayment?: SortOrder
+    baseInstallment?: SortOrder
+    monthlyInsurance?: SortOrder
     interestRate?: SortOrder
     finalPayment?: SortOrder
+    balloonPayment?: SortOrder
+    balloonPaymentPct?: SortOrder
+    adminFees?: SortOrder
+    totalInsurance?: SortOrder
+    totalProfit?: SortOrder
+    totalPayment?: SortOrder
+    insuranceSegment?: SortOrder
     netSalary?: SortOrder
     employerSector?: SortOrder
     employer?: SortOrder
@@ -31815,27 +34401,21 @@ export namespace Prisma {
     loanAmount?: SortOrder
     downPayment?: SortOrder
     loanTerm?: SortOrder
+    termMonths?: SortOrder
+    downPaymentPct?: SortOrder
     monthlyPayment?: SortOrder
+    baseInstallment?: SortOrder
+    monthlyInsurance?: SortOrder
     interestRate?: SortOrder
     finalPayment?: SortOrder
+    balloonPayment?: SortOrder
+    balloonPaymentPct?: SortOrder
+    adminFees?: SortOrder
+    totalInsurance?: SortOrder
+    totalProfit?: SortOrder
+    totalPayment?: SortOrder
     netSalary?: SortOrder
     totalMonthlyObligations?: SortOrder
-  }
-
-  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -31975,11 +34555,33 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type AboutFeatureListRelationFilter = {
+    every?: AboutFeatureWhereInput
+    some?: AboutFeatureWhereInput
+    none?: AboutFeatureWhereInput
+  }
+
+  export type AboutFeatureOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type AboutPageCountOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrder
-    heroImage?: SortOrder
+    introText?: SortOrder
+    visionTitle?: SortOrder
+    visionParagraph1?: SortOrder
+    visionParagraph2?: SortOrder
+    visionImage?: SortOrder
+    visionImageAlt?: SortOrder
+    missionTitle?: SortOrder
+    missionParagraph1?: SortOrder
+    missionParagraph2?: SortOrder
+    missionImage?: SortOrder
+    missionImageAlt?: SortOrder
+    whyUsTitle?: SortOrder
+    ctaTitle?: SortOrder
+    ctaText?: SortOrder
     isPublished?: SortOrder
     metaDescription?: SortOrder
     metaKeywords?: SortOrder
@@ -31990,8 +34592,20 @@ export namespace Prisma {
   export type AboutPageMaxOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrder
-    heroImage?: SortOrder
+    introText?: SortOrder
+    visionTitle?: SortOrder
+    visionParagraph1?: SortOrder
+    visionParagraph2?: SortOrder
+    visionImage?: SortOrder
+    visionImageAlt?: SortOrder
+    missionTitle?: SortOrder
+    missionParagraph1?: SortOrder
+    missionParagraph2?: SortOrder
+    missionImage?: SortOrder
+    missionImageAlt?: SortOrder
+    whyUsTitle?: SortOrder
+    ctaTitle?: SortOrder
+    ctaText?: SortOrder
     isPublished?: SortOrder
     metaDescription?: SortOrder
     metaKeywords?: SortOrder
@@ -32002,13 +34616,74 @@ export namespace Prisma {
   export type AboutPageMinOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrder
-    heroImage?: SortOrder
+    introText?: SortOrder
+    visionTitle?: SortOrder
+    visionParagraph1?: SortOrder
+    visionParagraph2?: SortOrder
+    visionImage?: SortOrder
+    visionImageAlt?: SortOrder
+    missionTitle?: SortOrder
+    missionParagraph1?: SortOrder
+    missionParagraph2?: SortOrder
+    missionImage?: SortOrder
+    missionImageAlt?: SortOrder
+    whyUsTitle?: SortOrder
+    ctaTitle?: SortOrder
+    ctaText?: SortOrder
     isPublished?: SortOrder
     metaDescription?: SortOrder
     metaKeywords?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type AboutPageScalarRelationFilter = {
+    is?: AboutPageWhereInput
+    isNot?: AboutPageWhereInput
+  }
+
+  export type AboutFeatureCountOrderByAggregateInput = {
+    id?: SortOrder
+    aboutPageId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    icon?: SortOrder
+    order?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AboutFeatureAvgOrderByAggregateInput = {
+    order?: SortOrder
+  }
+
+  export type AboutFeatureMaxOrderByAggregateInput = {
+    id?: SortOrder
+    aboutPageId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    icon?: SortOrder
+    order?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AboutFeatureMinOrderByAggregateInput = {
+    id?: SortOrder
+    aboutPageId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    icon?: SortOrder
+    order?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AboutFeatureSumOrderByAggregateInput = {
+    order?: SortOrder
   }
 
   export type HeroSectionCountOrderByAggregateInput = {
@@ -32565,6 +35240,14 @@ export namespace Prisma {
     connect?: LoanRequestWhereUniqueInput | LoanRequestWhereUniqueInput[]
   }
 
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
   export type LoanRequestUpdateManyWithoutSalaryTransferBankNestedInput = {
     create?: XOR<LoanRequestCreateWithoutSalaryTransferBankInput, LoanRequestUncheckedCreateWithoutSalaryTransferBankInput> | LoanRequestCreateWithoutSalaryTransferBankInput[] | LoanRequestUncheckedCreateWithoutSalaryTransferBankInput[]
     connectOrCreate?: LoanRequestCreateOrConnectWithoutSalaryTransferBankInput | LoanRequestCreateOrConnectWithoutSalaryTransferBankInput[]
@@ -32634,14 +35317,6 @@ export namespace Prisma {
     connect?: BankWhereUniqueInput
   }
 
-  export type NullableDecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string | null
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
-  }
-
   export type NullableBoolFieldUpdateOperationsInput = {
     set?: boolean | null
   }
@@ -32666,6 +35341,62 @@ export namespace Prisma {
     delete?: BankWhereInput | boolean
     connect?: BankWhereUniqueInput
     update?: XOR<XOR<BankUpdateToOneWithWhereWithoutLoanRequestsInput, BankUpdateWithoutLoanRequestsInput>, BankUncheckedUpdateWithoutLoanRequestsInput>
+  }
+
+  export type AboutFeatureCreateNestedManyWithoutAboutPageInput = {
+    create?: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput> | AboutFeatureCreateWithoutAboutPageInput[] | AboutFeatureUncheckedCreateWithoutAboutPageInput[]
+    connectOrCreate?: AboutFeatureCreateOrConnectWithoutAboutPageInput | AboutFeatureCreateOrConnectWithoutAboutPageInput[]
+    createMany?: AboutFeatureCreateManyAboutPageInputEnvelope
+    connect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+  }
+
+  export type AboutFeatureUncheckedCreateNestedManyWithoutAboutPageInput = {
+    create?: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput> | AboutFeatureCreateWithoutAboutPageInput[] | AboutFeatureUncheckedCreateWithoutAboutPageInput[]
+    connectOrCreate?: AboutFeatureCreateOrConnectWithoutAboutPageInput | AboutFeatureCreateOrConnectWithoutAboutPageInput[]
+    createMany?: AboutFeatureCreateManyAboutPageInputEnvelope
+    connect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+  }
+
+  export type AboutFeatureUpdateManyWithoutAboutPageNestedInput = {
+    create?: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput> | AboutFeatureCreateWithoutAboutPageInput[] | AboutFeatureUncheckedCreateWithoutAboutPageInput[]
+    connectOrCreate?: AboutFeatureCreateOrConnectWithoutAboutPageInput | AboutFeatureCreateOrConnectWithoutAboutPageInput[]
+    upsert?: AboutFeatureUpsertWithWhereUniqueWithoutAboutPageInput | AboutFeatureUpsertWithWhereUniqueWithoutAboutPageInput[]
+    createMany?: AboutFeatureCreateManyAboutPageInputEnvelope
+    set?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    disconnect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    delete?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    connect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    update?: AboutFeatureUpdateWithWhereUniqueWithoutAboutPageInput | AboutFeatureUpdateWithWhereUniqueWithoutAboutPageInput[]
+    updateMany?: AboutFeatureUpdateManyWithWhereWithoutAboutPageInput | AboutFeatureUpdateManyWithWhereWithoutAboutPageInput[]
+    deleteMany?: AboutFeatureScalarWhereInput | AboutFeatureScalarWhereInput[]
+  }
+
+  export type AboutFeatureUncheckedUpdateManyWithoutAboutPageNestedInput = {
+    create?: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput> | AboutFeatureCreateWithoutAboutPageInput[] | AboutFeatureUncheckedCreateWithoutAboutPageInput[]
+    connectOrCreate?: AboutFeatureCreateOrConnectWithoutAboutPageInput | AboutFeatureCreateOrConnectWithoutAboutPageInput[]
+    upsert?: AboutFeatureUpsertWithWhereUniqueWithoutAboutPageInput | AboutFeatureUpsertWithWhereUniqueWithoutAboutPageInput[]
+    createMany?: AboutFeatureCreateManyAboutPageInputEnvelope
+    set?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    disconnect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    delete?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    connect?: AboutFeatureWhereUniqueInput | AboutFeatureWhereUniqueInput[]
+    update?: AboutFeatureUpdateWithWhereUniqueWithoutAboutPageInput | AboutFeatureUpdateWithWhereUniqueWithoutAboutPageInput[]
+    updateMany?: AboutFeatureUpdateManyWithWhereWithoutAboutPageInput | AboutFeatureUpdateManyWithWhereWithoutAboutPageInput[]
+    deleteMany?: AboutFeatureScalarWhereInput | AboutFeatureScalarWhereInput[]
+  }
+
+  export type AboutPageCreateNestedOneWithoutFeaturesInput = {
+    create?: XOR<AboutPageCreateWithoutFeaturesInput, AboutPageUncheckedCreateWithoutFeaturesInput>
+    connectOrCreate?: AboutPageCreateOrConnectWithoutFeaturesInput
+    connect?: AboutPageWhereUniqueInput
+  }
+
+  export type AboutPageUpdateOneRequiredWithoutFeaturesNestedInput = {
+    create?: XOR<AboutPageCreateWithoutFeaturesInput, AboutPageUncheckedCreateWithoutFeaturesInput>
+    connectOrCreate?: AboutPageCreateOrConnectWithoutFeaturesInput
+    upsert?: AboutPageUpsertWithoutFeaturesInput
+    connect?: AboutPageWhereUniqueInput
+    update?: XOR<XOR<AboutPageUpdateToOneWithWhereWithoutFeaturesInput, AboutPageUpdateWithoutFeaturesInput>, AboutPageUncheckedUpdateWithoutFeaturesInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -32962,6 +35693,33 @@ export namespace Prisma {
     _max?: NestedEnumBookingStatusFilter<$PrismaModel>
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -32987,17 +35745,6 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
-  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type NestedBoolNullableFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
@@ -33008,22 +35755,6 @@ export namespace Prisma {
     in?: $Enums.LoanRequestStatus[] | ListEnumLoanRequestStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.LoanRequestStatus[] | ListEnumLoanRequestStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumLoanRequestStatusFilter<$PrismaModel> | $Enums.LoanRequestStatus
-  }
-
-  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -33308,9 +36039,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -33343,9 +36086,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -33440,9 +36195,21 @@ export namespace Prisma {
     loanAmount?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFilter<"LoanRequest"> | number
+    termMonths?: IntNullableFilter<"LoanRequest"> | number | null
+    downPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     interestRate?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     finalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    adminFees?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: StringNullableFilter<"LoanRequest"> | string | null
+    offerSnapshot?: JsonNullableFilter<"LoanRequest">
     netSalary?: DecimalNullableFilter<"LoanRequest"> | Decimal | DecimalJsLike | number | string | null
     employerSector?: StringNullableFilter<"LoanRequest"> | string | null
     employer?: StringNullableFilter<"LoanRequest"> | string | null
@@ -33584,6 +36351,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -33611,6 +36379,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -33689,6 +36458,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -33716,6 +36486,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -33784,6 +36555,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -33811,6 +36583,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -33889,6 +36662,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -33916,6 +36690,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -33991,9 +36766,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -34027,9 +36814,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -34156,6 +36955,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -34183,6 +36983,7 @@ export namespace Prisma {
     transmission: string
     bodyType: string
     isLuxury?: boolean
+    insuranceSegment?: string | null
     driveType?: string | null
     seats?: number | null
     description: string
@@ -34209,6 +37010,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
     loanPolicy?: string | null
+    adminFeesCap?: Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: Decimal | DecimalJsLike | number | string | null
+    opex?: Decimal | DecimalJsLike | number | string | null
+    irrTarget?: Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34219,6 +37030,16 @@ export namespace Prisma {
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
     loanPolicy?: string | null
+    adminFeesCap?: Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: Decimal | DecimalJsLike | number | string | null
+    opex?: Decimal | DecimalJsLike | number | string | null
+    irrTarget?: Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34251,6 +37072,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -34278,6 +37100,7 @@ export namespace Prisma {
     transmission?: StringFieldUpdateOperationsInput | string
     bodyType?: StringFieldUpdateOperationsInput | string
     isLuxury?: BoolFieldUpdateOperationsInput | boolean
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
     driveType?: NullableStringFieldUpdateOperationsInput | string | null
     seats?: NullableIntFieldUpdateOperationsInput | number | null
     description?: StringFieldUpdateOperationsInput | string
@@ -34310,6 +37133,16 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -34320,6 +37153,191 @@ export namespace Prisma {
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
+    adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    minInsurancePremium?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    assetDepreciationRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ftpAnchors?: NullableJsonNullValueInput | InputJsonValue
+    cor?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    opex?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    irrTarget?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    brandSegmentMap?: NullableJsonNullValueInput | InputJsonValue
+    insuranceTable?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureCreateWithoutAboutPageInput = {
+    id?: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutFeatureUncheckedCreateWithoutAboutPageInput = {
+    id?: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutFeatureCreateOrConnectWithoutAboutPageInput = {
+    where: AboutFeatureWhereUniqueInput
+    create: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput>
+  }
+
+  export type AboutFeatureCreateManyAboutPageInputEnvelope = {
+    data: AboutFeatureCreateManyAboutPageInput | AboutFeatureCreateManyAboutPageInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AboutFeatureUpsertWithWhereUniqueWithoutAboutPageInput = {
+    where: AboutFeatureWhereUniqueInput
+    update: XOR<AboutFeatureUpdateWithoutAboutPageInput, AboutFeatureUncheckedUpdateWithoutAboutPageInput>
+    create: XOR<AboutFeatureCreateWithoutAboutPageInput, AboutFeatureUncheckedCreateWithoutAboutPageInput>
+  }
+
+  export type AboutFeatureUpdateWithWhereUniqueWithoutAboutPageInput = {
+    where: AboutFeatureWhereUniqueInput
+    data: XOR<AboutFeatureUpdateWithoutAboutPageInput, AboutFeatureUncheckedUpdateWithoutAboutPageInput>
+  }
+
+  export type AboutFeatureUpdateManyWithWhereWithoutAboutPageInput = {
+    where: AboutFeatureScalarWhereInput
+    data: XOR<AboutFeatureUpdateManyMutationInput, AboutFeatureUncheckedUpdateManyWithoutAboutPageInput>
+  }
+
+  export type AboutFeatureScalarWhereInput = {
+    AND?: AboutFeatureScalarWhereInput | AboutFeatureScalarWhereInput[]
+    OR?: AboutFeatureScalarWhereInput[]
+    NOT?: AboutFeatureScalarWhereInput | AboutFeatureScalarWhereInput[]
+    id?: StringFilter<"AboutFeature"> | string
+    aboutPageId?: StringFilter<"AboutFeature"> | string
+    title?: StringFilter<"AboutFeature"> | string
+    description?: StringFilter<"AboutFeature"> | string
+    icon?: StringFilter<"AboutFeature"> | string
+    order?: IntFilter<"AboutFeature"> | number
+    isActive?: BoolFilter<"AboutFeature"> | boolean
+    createdAt?: DateTimeFilter<"AboutFeature"> | Date | string
+    updatedAt?: DateTimeFilter<"AboutFeature"> | Date | string
+  }
+
+  export type AboutPageCreateWithoutFeaturesInput = {
+    id?: string
+    title?: string
+    introText: string
+    visionTitle?: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage?: string | null
+    visionImageAlt?: string | null
+    missionTitle?: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage?: string | null
+    missionImageAlt?: string | null
+    whyUsTitle?: string
+    ctaTitle?: string
+    ctaText: string
+    isPublished?: boolean
+    metaDescription?: string | null
+    metaKeywords?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutPageUncheckedCreateWithoutFeaturesInput = {
+    id?: string
+    title?: string
+    introText: string
+    visionTitle?: string
+    visionParagraph1: string
+    visionParagraph2: string
+    visionImage?: string | null
+    visionImageAlt?: string | null
+    missionTitle?: string
+    missionParagraph1: string
+    missionParagraph2: string
+    missionImage?: string | null
+    missionImageAlt?: string | null
+    whyUsTitle?: string
+    ctaTitle?: string
+    ctaText: string
+    isPublished?: boolean
+    metaDescription?: string | null
+    metaKeywords?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutPageCreateOrConnectWithoutFeaturesInput = {
+    where: AboutPageWhereUniqueInput
+    create: XOR<AboutPageCreateWithoutFeaturesInput, AboutPageUncheckedCreateWithoutFeaturesInput>
+  }
+
+  export type AboutPageUpsertWithoutFeaturesInput = {
+    update: XOR<AboutPageUpdateWithoutFeaturesInput, AboutPageUncheckedUpdateWithoutFeaturesInput>
+    create: XOR<AboutPageCreateWithoutFeaturesInput, AboutPageUncheckedCreateWithoutFeaturesInput>
+    where?: AboutPageWhereInput
+  }
+
+  export type AboutPageUpdateToOneWithWhereWithoutFeaturesInput = {
+    where?: AboutPageWhereInput
+    data: XOR<AboutPageUpdateWithoutFeaturesInput, AboutPageUncheckedUpdateWithoutFeaturesInput>
+  }
+
+  export type AboutPageUpdateWithoutFeaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutPageUncheckedUpdateWithoutFeaturesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    introText?: StringFieldUpdateOperationsInput | string
+    visionTitle?: StringFieldUpdateOperationsInput | string
+    visionParagraph1?: StringFieldUpdateOperationsInput | string
+    visionParagraph2?: StringFieldUpdateOperationsInput | string
+    visionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    visionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    missionTitle?: StringFieldUpdateOperationsInput | string
+    missionParagraph1?: StringFieldUpdateOperationsInput | string
+    missionParagraph2?: StringFieldUpdateOperationsInput | string
+    missionImage?: NullableStringFieldUpdateOperationsInput | string | null
+    missionImageAlt?: NullableStringFieldUpdateOperationsInput | string | null
+    whyUsTitle?: StringFieldUpdateOperationsInput | string
+    ctaTitle?: StringFieldUpdateOperationsInput | string
+    ctaText?: StringFieldUpdateOperationsInput | string
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    metaDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    metaKeywords?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -34493,9 +37511,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -34582,9 +37612,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34617,9 +37659,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34652,9 +37706,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34728,9 +37794,21 @@ export namespace Prisma {
     loanAmount: Decimal | DecimalJsLike | number | string
     downPayment: Decimal | DecimalJsLike | number | string
     loanTerm: number
+    termMonths?: number | null
+    downPaymentPct?: Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: Decimal | DecimalJsLike | number | string | null
     interestRate?: Decimal | DecimalJsLike | number | string | null
     finalPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
+    adminFees?: Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: Decimal | DecimalJsLike | number | string | null
+    totalProfit?: Decimal | DecimalJsLike | number | string | null
+    totalPayment?: Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: Decimal | DecimalJsLike | number | string | null
     employerSector?: string | null
     employer?: string | null
@@ -34762,9 +37840,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34798,9 +37888,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34833,9 +37935,21 @@ export namespace Prisma {
     loanAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     downPayment?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     loanTerm?: IntFieldUpdateOperationsInput | number
+    termMonths?: NullableIntFieldUpdateOperationsInput | number | null
+    downPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     monthlyPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    baseInstallment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    monthlyInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     finalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    balloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    adminFees?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalInsurance?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalProfit?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    totalPayment?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    insuranceSegment?: NullableStringFieldUpdateOperationsInput | string | null
+    offerSnapshot?: NullableJsonNullValueInput | InputJsonValue
     netSalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     employerSector?: NullableStringFieldUpdateOperationsInput | string | null
     employer?: NullableStringFieldUpdateOperationsInput | string | null
@@ -34844,6 +37958,50 @@ export namespace Prisma {
     totalMonthlyObligations?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     additionalInfo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumLoanRequestStatusFieldUpdateOperationsInput | $Enums.LoanRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureCreateManyAboutPageInput = {
+    id?: string
+    title: string
+    description: string
+    icon?: string
+    order?: number
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AboutFeatureUpdateWithoutAboutPageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureUncheckedUpdateWithoutAboutPageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AboutFeatureUncheckedUpdateManyWithoutAboutPageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    icon?: StringFieldUpdateOperationsInput | string
+    order?: IntFieldUpdateOperationsInput | number
+    isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

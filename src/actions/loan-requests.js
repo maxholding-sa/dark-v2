@@ -160,32 +160,60 @@ export async function exportLoanRequests(ids = null, search = "") {
     });
 
     // Transform data for Excel export
-    const excelData = loanRequests.map((request) => ({
+    const excelData = loanRequests.map((request) => {
+      const offer =
+        request.offerSnapshot && typeof request.offerSnapshot === "object"
+          ? request.offerSnapshot
+          : null;
+
+      return {
       "الاسم الكامل": request.fullName,
+      "رقم الهوية": request.idNumber,
       "البريد الإلكتروني": request.email,
       "رقم الجوال": request.mobileNumber,
       "المدينة": request.city,
+      "وقت التواصل المفضل": request.time,
       "النوع": request.gender === "male" ? "ذكر" : "أنثى",
       "تاريخ الميلاد": `${request.birthMonth} / ${request.birthYear} هـ`,
       "ماركة السيارة": request.carMake,
       "موديل السيارة": request.carModel,
       "سنة الصنع": request.carYear,
       "فئة السيارة": request.carCategory || "غير محدد",
+      "البنك (العرض المختار)": offer?.bankName || request.salaryTransferBank?.name || "غير محدد",
       "مبلغ القرض": request.loanAmount ? parseFloat(request.loanAmount.toString()) : 0,
       "الدفعة الأولى": request.downPayment ? parseFloat(request.downPayment.toString()) : 0,
-      "مدة القرض": `${request.loanTerm} سنة`,
+      "نسبة الدفعة الأولى %": request.downPaymentPct ? parseFloat(request.downPaymentPct.toString()) : "",
+      "مدة القرض": request.termMonths
+        ? `${request.termMonths} شهر`
+        : `${request.loanTerm} سنة`,
+      "القسط الشهري": request.monthlyPayment ? parseFloat(request.monthlyPayment.toString()) : "",
+      "قسط التمويل (بدون تأمين)": request.baseInstallment
+        ? parseFloat(request.baseInstallment.toString())
+        : "",
+      "التأمين الشهري": request.monthlyInsurance ? parseFloat(request.monthlyInsurance.toString()) : "",
+      "نسبة الربح %": request.interestRate ? parseFloat(request.interestRate.toString()) : "",
+      "النسبة الفعلية APR %": offer?.apr != null ? parseFloat(offer.apr.toString()) : "",
+      "الدفعة الأخيرة": request.finalPayment ? parseFloat(request.finalPayment.toString()) : "",
+      "دفعة البالون": request.balloonPayment ? parseFloat(request.balloonPayment.toString()) : "",
+      "نسبة البالون %": request.balloonPaymentPct ? parseFloat(request.balloonPaymentPct.toString()) : "",
+      "الرسوم الإدارية": request.adminFees ? parseFloat(request.adminFees.toString()) : "",
+      "إجمالي التأمين": request.totalInsurance ? parseFloat(request.totalInsurance.toString()) : "",
+      "إجمالي الربح": request.totalProfit ? parseFloat(request.totalProfit.toString()) : "",
+      "إجمالي التكلفة": request.totalPayment ? parseFloat(request.totalPayment.toString()) : "",
+      "فئة التأمين": request.insuranceSegment || "",
       "صافي الراتب": request.netSalary ? parseFloat(request.netSalary.toString()) : "غير محدد",
       "جهة العمل": request.employerSector || "غير محدد",
       "اسم جهة العمل": request.employer || "غير محدد",
       "جهة تحويل الراتب": request.salaryTransferBank?.name || "غير محدد",
-      "هل لديك تمويل عقاري": request.hasRealEstateFinance === "yes" ? "نعم" : "لا",
-      "هل لديك تعثر في سمة": request.hasCreditDefault === "yes" ? "نعم" : "لا",
+      "هل لديك تمويل عقاري": request.hasRealEstateFinance ? "نعم" : "لا",
+      "هل لديك تعثر في سمة": request.hasCreditDefault ? "نعم" : "لا",
       "إجمالي الإلتزامات الشهرية": request.totalMonthlyObligations ? parseFloat(request.totalMonthlyObligations.toString()) : "غير محدد",
       "معلومات إضافية": request.additionalInfo || "",
       "الحالة": request.status === "PENDING" ? "معلق" : request.status === "APPROVED" ? "مقبول" : request.status === "REJECTED" ? "مرفوض" : request.status === "COMPLETED" ? "مكتمل" : request.status,
       "تاريخ الطلب": new Date(request.createdAt).toLocaleDateString("ar-SA"),
       "آخر تحديث": new Date(request.updatedAt).toLocaleDateString("ar-SA"),
-    }));
+    };
+    });
 
     return {
       success: true,

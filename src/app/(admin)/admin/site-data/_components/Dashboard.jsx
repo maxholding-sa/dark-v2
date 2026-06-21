@@ -45,7 +45,7 @@ const SiteDataDashboard = () => {
         getSocialMediaLinks(),
         getStoreInfo(),
         getLogos(),
-        getAboutPage(),
+        getAboutPage({ forAdmin: true }),
         getHeroSection(),
       ]);
 
@@ -53,7 +53,7 @@ const SiteDataDashboard = () => {
       if (!socialResult.success) failedLoads.push(`وسائل التواصل: ${socialResult.error || "خطأ غير معروف"}`);
       if (!storeResult.success) failedLoads.push(`بيانات المتجر: ${storeResult.error || "خطأ غير معروف"}`);
       if (!logosResult.success) failedLoads.push(`الشعارات: ${logosResult.error || "خطأ غير معروف"}`);
-      if (!aboutResult.success) failedLoads.push(`صفحة عن المتجر: ${aboutResult.error || "خطأ غير معروف"}`);
+      if (!aboutResult.success) failedLoads.push(`صفحة من نحن: ${aboutResult.error || "خطأ غير معروف"}`);
       if (!heroResult.success) failedLoads.push(`قسم البطل: ${heroResult.error || "خطأ غير معروف"}`);
 
       setData({
@@ -161,7 +161,7 @@ const SiteDataDashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-right">
-              صفحة عن المتجر
+              صفحة من نحن
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -169,7 +169,7 @@ const SiteDataDashboard = () => {
               {data.aboutPage?.isPublished ? "منشورة" : "مسودة"}
             </div>
             <p className="text-xs text-gray-500 text-right">
-              {data.aboutPage?.title || "لم يتم التعيين"}
+              {data.aboutPage?.features?.length || 0} ميزة
             </p>
           </CardContent>
         </Card>
@@ -191,17 +191,16 @@ const SiteDataDashboard = () => {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex justify-end">
-          <TabsList className="flex-row-reverse">
-            <TabsTrigger value="hero-section">قسم البطل</TabsTrigger>
-            <TabsTrigger value="logos">الشعارات</TabsTrigger>
-            <TabsTrigger value="dealership-info">موقع المعرض</TabsTrigger>
-            <TabsTrigger value="store-info">بيانات المتجر</TabsTrigger>
-            <TabsTrigger value="social-media">وسائل التواصل</TabsTrigger>
-            <TabsTrigger value="pixels">البيكسل والتحليلات</TabsTrigger>
-          </TabsList>
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-4">
+        <TabsList className="inline-flex flex-wrap h-auto gap-1 w-full justify-start">
+          <TabsTrigger value="about-page">صفحة من نحن</TabsTrigger>
+          <TabsTrigger value="hero-section">قسم البطل</TabsTrigger>
+          <TabsTrigger value="logos">الشعارات</TabsTrigger>
+          <TabsTrigger value="dealership-info">موقع المعرض</TabsTrigger>
+          <TabsTrigger value="store-info">بيانات المتجر</TabsTrigger>
+          <TabsTrigger value="social-media">وسائل التواصل</TabsTrigger>
+          <TabsTrigger value="pixels">البيكسل والتحليلات</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="social-media">
           <SocialMediaManager

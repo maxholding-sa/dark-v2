@@ -1,0 +1,28 @@
+-- Bank finance configuration
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "adminFeesCap" DECIMAL(10,2);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "defaultAdminFeesPct" DECIMAL(5,4);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "minInsurancePremium" DECIMAL(10,2);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "assetDepreciationRate" DECIMAL(5,4);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "ftpAnchors" JSONB;
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "cor" DECIMAL(6,4);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "opex" DECIMAL(6,4);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "irrTarget" DECIMAL(6,4);
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "brandSegmentMap" JSONB;
+ALTER TABLE "Bank" ADD COLUMN IF NOT EXISTS "insuranceTable" JSONB;
+
+-- Car insurance segment override
+ALTER TABLE "Car" ADD COLUMN IF NOT EXISTS "insuranceSegment" TEXT;
+
+-- Selected offer breakdown on loan requests
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "termMonths" INTEGER;
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "downPaymentPct" DECIMAL(5,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "baseInstallment" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "monthlyInsurance" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "balloonPayment" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "balloonPaymentPct" DECIMAL(5,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "adminFees" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "totalInsurance" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "totalProfit" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "totalPayment" DECIMAL(12,2);
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "insuranceSegment" TEXT;
+ALTER TABLE "LoanRequest" ADD COLUMN IF NOT EXISTS "offerSnapshot" JSONB;

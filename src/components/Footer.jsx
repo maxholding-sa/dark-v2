@@ -6,11 +6,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Facebook, Instagram, Mail, Phone, Video, Youtube, Twitter, Linkedin, MapPin } from "lucide-react";
 import { SiTiktok, SiWhatsapp, SiSnapchat } from "react-icons/si";
-import { getActiveLogo, getSocialMediaLinks, getStoreInfo, getLogoByType } from "@/actions/site-management";
+import { getActiveLogo, getSocialMediaLinks, getStoreInfo, getLogoByType, getAboutPage } from "@/actions/site-management";
 
-const navItems = [
+const baseNavItems = [
   { name: "الصفحة الرئيسية", href: "/" },
-  { name: "عن المتجر", href: "/about" },
+  { name: "من نحن", href: "/about", dynamic: true },
   { name: "السيارات", href: "/cars" },
   { name: "البنوك", href: "/banks" },
   { name: "الشركات", href: "/companies" },
@@ -51,7 +51,12 @@ const Footer = ({ initialData }) => {
   const [logo, setLogo] = useState(initialData?.logo);
   const [socialLinks, setSocialLinks] = useState(initialData?.socialLinks || []);
   const [storeInfo, setStoreInfo] = useState(initialData?.storeInfo);
+  const [aboutNavLabel, setAboutNavLabel] = useState(initialData?.aboutNavLabel || "من نحن");
   const [loading, setLoading] = useState(!initialData);
+
+  const navItems = baseNavItems.map((item) =>
+    item.dynamic ? { ...item, name: aboutNavLabel } : item
+  );
 
   useEffect(() => {
     if (!initialData) {
@@ -61,10 +66,11 @@ const Footer = ({ initialData }) => {
 
   const loadFooterData = async () => {
     try {
-      const [logoResult, socialResult, storeResult] = await Promise.all([
+      const [logoResult, socialResult, storeResult, aboutResult] = await Promise.all([
         getLogoByType("footer"),
         getSocialMediaLinks(),
         getStoreInfo(),
+        getAboutPage(),
       ]);
 
       if (logoResult.success && logoResult.data) {
@@ -78,6 +84,10 @@ const Footer = ({ initialData }) => {
 
       if (storeResult.success) {
         setStoreInfo(storeResult.data);
+      }
+
+      if (aboutResult.success && aboutResult.data?.title) {
+        setAboutNavLabel(aboutResult.data.title);
       }
     } catch (error) {
       console.error("Error loading footer data:", error);

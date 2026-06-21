@@ -29,8 +29,8 @@ const SiteManagementPage = () => {
       icon: "🖼️",
     },
     {
-      title: "صفحة عن المتجر",
-      description: "إدارة محتوى صفحة عن المتجر",
+      title: "صفحة من نحن",
+      description: "إدارة محتوى الرؤية والرسالة والمميزات والصور",
       href: "/admin/site-management/about-page",
       icon: "📄",
     },

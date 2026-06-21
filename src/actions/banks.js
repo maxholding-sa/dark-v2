@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import { getBanksSupabase } from "@/lib/supabaseReads";
+import { serializeBankRecord } from "@/lib/bank-finance";
 
 export const getBanks = unstable_cache(
   async () => {
@@ -11,14 +12,7 @@ export const getBanks = unstable_cache(
         orderBy: { createdAt: "desc" },
       });
 
-      const serializedBanks = banks.map((bank) => ({
-        ...bank,
-        interestRate: bank.interestRate ? parseFloat(bank.interestRate.toString()) : 0,
-        createdAt: bank.createdAt instanceof Date ? bank.createdAt.toISOString() : bank.createdAt,
-        updatedAt: bank.updatedAt instanceof Date ? bank.updatedAt.toISOString() : bank.updatedAt,
-      }));
-
-      return { success: true, data: serializedBanks };
+      return { success: true, data: banks.map(serializeBankRecord) };
     } catch (error) {
       console.warn("[getBanks] Prisma failed, using Supabase:", error.message);
       return getBanksSupabase();

@@ -324,9 +324,9 @@ const AddCarForm = () => {
         onValueChange={setActiveTab}
       >
         <div className="flex justify-end mb-2">
-          <TabsList className="grid w-fit grid-cols-2 flex-row-reverse">
-            <TabsTrigger value="manual">إدخال يدوي</TabsTrigger>
+          <TabsList dir="rtl" className="grid w-fit grid-cols-2">
             <TabsTrigger value="ai">رفع بالذكاء الاصطناعي</TabsTrigger>
+            <TabsTrigger value="manual">إدخال يدوي</TabsTrigger>
           </TabsList>
         </div>
 

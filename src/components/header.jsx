@@ -12,9 +12,9 @@ import { getLogoByType } from "@/actions/site-management";
 import LoadingBar from "./LoadingBar";
 
 
-const navItems = [
+const baseNavItems = [
   { name: "الصفحة الرئيسية", href: "/" },
-  { name: "عن المتجر", href: "/about" },
+  { name: "من نحن", href: "/about", dynamic: true },
   { name: "السيارات", href: "/cars" },
   { name: "البنوك", href: "/banks" },
   { name: "الشركات", href: "/companies" },
@@ -25,7 +25,7 @@ const navItems = [
 ];
 
 
-const Header = ({ isAdminPage = false, navLogo: initialNavLogo }) => {
+const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = "من نحن" }) => {
   const [open, setOpen] = useState(false);
   const [navLogo, setNavLogo] = useState(initialNavLogo);
   const router = useRouter();
@@ -33,6 +33,10 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [roleLoading, setRoleLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  const navItems = baseNavItems.map((item) =>
+    item.dynamic ? { ...item, name: aboutNavLabel } : item
+  );
 
   useEffect(() => {
     setMounted(true);

@@ -37,6 +37,7 @@ model Car {
   transmission      String
   bodyType          String
   isLuxury          Boolean            @default(false)
+  insuranceSegment  String?            // A–G for finance/insurance lookup
   driveType         String?
   seats             Int?
   description       String
@@ -208,14 +209,24 @@ enum LoanRequestStatus {
 }
 
 model Bank {
-  id           String   @id @default(uuid())
-  name         String
-  logoImage    String
-  interestRate Decimal  @db.Decimal(5, 2)  // سعر الفائدة
-  loanPolicy   String?  // سياسة القرض
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  loanRequests LoanRequest[]
+  id                    String   @id @default(uuid())
+  name                  String
+  logoImage             String
+  interestRate          Decimal  @db.Decimal(5, 2) // profit margin %
+  loanPolicy            String?
+  adminFeesCap          Decimal? @db.Decimal(10, 2)
+  defaultAdminFeesPct   Decimal? @db.Decimal(5, 4) // e.g. 0.01 = 1%
+  minInsurancePremium   Decimal? @db.Decimal(10, 2)
+  assetDepreciationRate Decimal? @db.Decimal(5, 4) // e.g. 0.15 = 15%/year
+  ftpAnchors            Json?    // annual FTP anchor rates
+  cor                   Decimal? @db.Decimal(6, 4) // cost of risk
+  opex                  Decimal? @db.Decimal(6, 4)
+  irrTarget             Decimal? @db.Decimal(6, 4)
+  brandSegmentMap       Json?    // car brand -> segment A–G
+  insuranceTable        Json?    // gender x age x segment rates
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  loanRequests          LoanRequest[]
 }
 
 model Article {
@@ -302,9 +313,21 @@ model LoanRequest {
   loanAmount              Decimal          @db.Decimal(12, 2)
   downPayment             Decimal          @db.Decimal(12, 2)
   loanTerm                Int // in years
-  monthlyPayment          Decimal?         @db.Decimal(12, 2) // Selected monthly payment
-  interestRate            Decimal?         @db.Decimal(5, 2) // Selected interest rate
-  finalPayment            Decimal?         @db.Decimal(12, 2) // Total final payment
+  termMonths              Int?
+  downPaymentPct          Decimal?         @db.Decimal(5, 2)
+  monthlyPayment          Decimal?         @db.Decimal(12, 2)
+  baseInstallment         Decimal?         @db.Decimal(12, 2)
+  monthlyInsurance        Decimal?         @db.Decimal(12, 2)
+  interestRate            Decimal?         @db.Decimal(5, 2)
+  finalPayment            Decimal?         @db.Decimal(12, 2) // last month cashflow
+  balloonPayment          Decimal?         @db.Decimal(12, 2)
+  balloonPaymentPct       Decimal?         @db.Decimal(5, 2)
+  adminFees               Decimal?         @db.Decimal(12, 2)
+  totalInsurance          Decimal?         @db.Decimal(12, 2)
+  totalProfit             Decimal?         @db.Decimal(12, 2)
+  totalPayment            Decimal?         @db.Decimal(12, 2) // grand total
+  insuranceSegment        String?
+  offerSnapshot           Json?
 
   // Financial Information
   netSalary               Decimal?         @db.Decimal(12, 2)
@@ -381,17 +404,47 @@ model Logo {
 }
 
 model AboutPage {
-  id             String   @id @default(uuid())
-  title          String   @default("عن المتجر") // Page title
-  content        String   @db.Text // Rich HTML content
-  heroImage      String?  // Hero image URL
-  isPublished    Boolean  @default(true)
-  metaDescription String? // SEO meta description
-  metaKeywords   String?  // SEO meta keywords
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String         @id @default(uuid())
+  title             String         @default("من نحن")
+  introText         String         @db.Text
+  visionTitle       String         @default("رؤيتنا")
+  visionParagraph1  String         @db.Text
+  visionParagraph2  String         @db.Text
+  visionImage       String?
+  visionImageAlt    String?
+  missionTitle      String         @default("رسالتنا")
+  missionParagraph1 String         @db.Text
+  missionParagraph2 String         @db.Text
+  missionImage      String?
+  missionImageAlt   String?
+  whyUsTitle        String         @default("لماذا يختار العملاء ماكس موتورز؟")
+  ctaTitle          String         @default("هل أنت مستعد للعثور على سيارتك؟")
+  ctaText           String         @db.Text
+  isPublished       Boolean        @default(true)
+  metaDescription   String?
+  metaKeywords      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  features          AboutFeature[]
 
-  @@unique([id]) // Only one about page
+  @@unique([id])
+}
+
+model AboutFeature {
+  id          String    @id @default(uuid())
+  aboutPageId String
+  title       String
+  description String    @db.Text
+  icon        String    @default("Target")
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  aboutPage   AboutPage @relation(fields: [aboutPageId], references: [id], onDelete: Cascade)
+
+  @@index([aboutPageId])
+  @@index([order])
+  @@index([isActive])
 }
 
 model HeroSection {

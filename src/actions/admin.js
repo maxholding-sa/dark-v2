@@ -269,7 +269,7 @@ export async function getDashboardData() {
     // =================================================================================================
 
     // Fetch all necessary data in single operation
-    const [cars, testDrives] = await Promise.all([
+    const [cars, testDrives, loanRequests] = await Promise.all([
       // get all cars with minimal field
       db.Car.findMany({
         select: {
@@ -284,6 +284,15 @@ export async function getDashboardData() {
         select: {
           id: true,
           status: true,
+          carId: true,
+        },
+      }),
+
+      db.loanRequest.findMany({
+        select: {
+          id: true,
+          status: true,
+          loanAmount: true,
           carId: true,
         },
       }),
@@ -333,6 +342,47 @@ export async function getDashboardData() {
         ? (soldCarsAfterTestDrive / completedTestDrives) * 100
         : 0;
 
+    const totalLoanRequests = loanRequests.length;
+    const pendingLoanRequests = loanRequests.filter(
+      (req) => req.status === "PENDING"
+    ).length;
+    const approvedLoanRequests = loanRequests.filter(
+      (req) => req.status === "APPROVED"
+    ).length;
+    const rejectedLoanRequests = loanRequests.filter(
+      (req) => req.status === "REJECTED"
+    ).length;
+    const completedLoanRequests = loanRequests.filter(
+      (req) => req.status === "COMPLETED"
+    ).length;
+
+    const totalLoanAmount = loanRequests.reduce(
+      (sum, req) => sum + Number(req.loanAmount),
+      0
+    );
+    const averageLoanAmount =
+      totalLoanRequests > 0 ? totalLoanAmount / totalLoanRequests : 0;
+
+    const approvalRate =
+      totalLoanRequests > 0
+        ? ((approvedLoanRequests + completedLoanRequests) / totalLoanRequests) *
+          100
+        : 0;
+
+    const completedLoanRequestsCarIds = loanRequests
+      .filter((req) => req.status === "COMPLETED")
+      .map((req) => req.carId);
+
+    const soldCarsAfterLoanRequests = cars.filter(
+      (car) =>
+        car.status === "SOLD" && completedLoanRequestsCarIds.includes(car.id)
+    ).length;
+
+    const loanConversionRate =
+      completedLoanRequests > 0
+        ? (soldCarsAfterLoanRequests / completedLoanRequests) * 100
+        : 0;
+
     return {
       success: true,
       data: {
@@ -351,6 +401,17 @@ export async function getDashboardData() {
           cancelled: cancelledTestDrives,
           noShow: noShowTestDrives,
           conversionRate: parseFloat(conversionRate.toFixed(2)),
+        },
+        loanRequests: {
+          total: totalLoanRequests,
+          pending: pendingLoanRequests,
+          approved: approvedLoanRequests,
+          rejected: rejectedLoanRequests,
+          completed: completedLoanRequests,
+          totalLoanAmount: parseFloat(totalLoanAmount.toFixed(2)),
+          averageLoanAmount: parseFloat(averageLoanAmount.toFixed(2)),
+          approvalRate: parseFloat(approvalRate.toFixed(2)),
+          conversionRate: parseFloat(loanConversionRate.toFixed(2)),
         },
       },
     };

@@ -38,7 +38,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatSaudiRiyalReact, formatSaudiRiyalText } from "@/lib/helper";
+import { formatSaudiRiyalReact, formatSaudiRiyalText, formatYesNo, formatLoanRequestStatusAr } from "@/lib/helper";
+import LoanRequestDetailView from "./LoanRequestDetailView";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -369,7 +370,7 @@ const LoanRequestList = () => {
                               phoneNumber={loanRequest.mobileNumber}
                               fixed={false}
                               className="h-6 w-6"
-                              text={`السلام عليكم،\n\nنحن من معرض ماكس موتورز. لقد اطلعنا على طلبكم.\n\nتفاصيل الطلب:\n- الاسم: ${loanRequest.fullName}\n- رقم الجوال: ${loanRequest.mobileNumber}\n- البريد الإلكتروني: ${loanRequest.email}\n- المدينة: ${loanRequest.city}\n\nتفاصيل السيارة:\n- الماركة: ${loanRequest.carMake}\n- الموديل: ${loanRequest.carModel}\n- السنة: ${loanRequest.carYear}\n- الفئة: ${loanRequest.carCategory || 'غير محدد'}\n- رابط السيارة: ${typeof window !== 'undefined' ? window.location.origin : ''}/cars/${loanRequest.carId}\n\nتفاصيل القرض:\n- مبلغ القرض: ${formatSaudiRiyalText(loanRequest.loanAmount)}\n- الدفعة الأولى: ${formatSaudiRiyalText(loanRequest.downPayment)}\n- مدة القرض: ${loanRequest.loanTerm} سنة\n- صافي الراتب: ${loanRequest.netSalary ? formatSaudiRiyalText(loanRequest.netSalary) : 'غير محدد'}\n- جهة العمل: ${loanRequest.employerSector || 'غير محدد'}\n- اسم جهة العمل: ${loanRequest.employer || 'غير محدد'}\n- جهة تحويل الراتب: ${loanRequest.salaryTransferBank?.name || 'غير محدد'}\n- هل لديك تمويل عقاري: ${loanRequest.hasRealEstateFinance === 'yes' ? 'نعم' : 'لا'}\n- هل لديك تعثر في سمة: ${loanRequest.hasCreditDefault === 'yes' ? 'نعم' : 'لا'}\n- إجمالي الإلتزامات الشهرية: ${loanRequest.totalMonthlyObligations ? formatSaudiRiyalText(loanRequest.totalMonthlyObligations) : 'غير محدد'}\n\nحالة الطلب: ${loanRequest.status === 'PENDING' ? 'معلق' : loanRequest.status === 'APPROVED' ? 'مقبول' : loanRequest.status === 'REJECTED' ? 'مرفوض' : loanRequest.status === 'COMPLETED' ? 'مكتمل' : loanRequest.status}\n\nيرجى التواصل معنا لمتابعة الطلب.`}
+                              text={`السلام عليكم،\n\nنحن من معرض ماكس موتورز. لقد اطلعنا على طلبكم.\n\nتفاصيل الطلب:\n- الاسم: ${loanRequest.fullName}\n- رقم الهوية: ${loanRequest.idNumber || "غير محدد"}\n- رقم الجوال: ${loanRequest.mobileNumber}\n- البريد الإلكتروني: ${loanRequest.email}\n- المدينة: ${loanRequest.city}\n- وقت التواصل: ${loanRequest.time || "غير محدد"}\n\nتفاصيل السيارة:\n- الماركة: ${loanRequest.carMake}\n- الموديل: ${loanRequest.carModel}\n- السنة: ${loanRequest.carYear}\n- الفئة: ${loanRequest.carCategory || 'غير محدد'}\n- رابط السيارة: ${typeof window !== 'undefined' ? window.location.origin : ''}/cars/${loanRequest.carId}\n\nتفاصيل القرض:\n- مبلغ القرض: ${formatSaudiRiyalText(loanRequest.loanAmount)}\n- الدفعة الأولى: ${formatSaudiRiyalText(loanRequest.downPayment)}\n- مدة القرض: ${loanRequest.termMonths ? `${loanRequest.termMonths} شهر` : `${loanRequest.loanTerm} سنة`}\n- القسط الشهري: ${loanRequest.monthlyPayment ? formatSaudiRiyalText(loanRequest.monthlyPayment) : 'غير محدد'}\n- صافي الراتب: ${loanRequest.netSalary ? formatSaudiRiyalText(loanRequest.netSalary) : 'غير محدد'}\n- جهة العمل: ${loanRequest.employerSector || 'غير محدد'}\n- اسم جهة العمل: ${loanRequest.employer || 'غير محدد'}\n- جهة تحويل الراتب: ${loanRequest.salaryTransferBank?.name || 'غير محدد'}\n- هل لديك تمويل عقاري: ${formatYesNo(loanRequest.hasRealEstateFinance)}\n- هل لديك تعثر في سمة: ${formatYesNo(loanRequest.hasCreditDefault)}\n- إجمالي الإلتزامات الشهرية: ${loanRequest.totalMonthlyObligations ? formatSaudiRiyalText(loanRequest.totalMonthlyObligations) : 'غير محدد'}\n\nحالة الطلب: ${formatLoanRequestStatusAr(loanRequest.status)}\n\nيرجى التواصل معنا لمتابعة الطلب.`}
                             />
                           </div>
                         </TableCell>
@@ -538,178 +539,18 @@ const LoanRequestList = () => {
 
       {/* Loan Request Detail Modal */}
       {selectedLoanRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold">تفاصيل طلب القرض</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-black p-6">
+            <div className="mb-4 flex items-start justify-between">
+              <h3 className="text-xl font-bold text-white">تفاصيل طلب القرض</h3>
               <Button variant="ghost" size="sm" onClick={closeModal}>
                 ×
               </Button>
             </div>
-            <div className="space-y-6">
-              {/* Personal Information */}
-              <div className="bg-black-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3 text-white-800">المعلومات الشخصية</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-medium text-sm text-white-600">الاسم الكامل:</label>
-                    <p className="text-lg">{selectedLoanRequest.fullName}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">البريد الإلكتروني:</label>
-                    <p className="text-lg">
-                      <a href={`mailto:${selectedLoanRequest.email}`} className="text-blue-600 hover:underline">
-                        {selectedLoanRequest.email}
-                      </a>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">رقم الجوال:</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg">{selectedLoanRequest.mobileNumber}</p>
-                      <WhatsAppButton
-                        phoneNumber={selectedLoanRequest.mobileNumber}
-                        fixed={false}
-                        className="h-8 w-8"
-                        text={`السلام عليكم،\n\nنحن من معرض ماكس موتورز. لقد اطلعنا على طلبكم.\n\nتفاصيل الطلب:\n- الاسم: ${selectedLoanRequest.fullName}\n- رقم الجوال: ${selectedLoanRequest.mobileNumber}\n- البريد الإلكتروني: ${selectedLoanRequest.email}\n- المدينة: ${selectedLoanRequest.city}\n\nتفاصيل السيارة:\n- الماركة: ${selectedLoanRequest.carMake}\n- الموديل: ${selectedLoanRequest.carModel}\n- السنة: ${selectedLoanRequest.carYear}\n- الفئة: ${selectedLoanRequest.carCategory || 'غير محدد'}\n- رابط السيارة: ${typeof window !== 'undefined' ? window.location.origin : ''}/cars/${selectedLoanRequest.carId}\n\nتفاصيل القرض:\n- مبلغ القرض: ${formatSaudiRiyalText(selectedLoanRequest.loanAmount)}\n- الدفعة الأولى: ${formatSaudiRiyalText(selectedLoanRequest.downPayment)}\n- مدة القرض: ${selectedLoanRequest.loanTerm} سنة\n- صافي الراتب: ${selectedLoanRequest.netSalary ? formatSaudiRiyalText(selectedLoanRequest.netSalary) : 'غير محدد'}\n- جهة العمل: ${selectedLoanRequest.employerSector || 'غير محدد'}\n- اسم جهة العمل: ${selectedLoanRequest.employer || 'غير محدد'}\n- جهة تحويل الراتب: ${selectedLoanRequest.salaryTransferBank?.name || 'غير محدد'}\n- هل لديك تمويل عقاري: ${selectedLoanRequest.hasRealEstateFinance === 'yes' ? 'نعم' : 'لا'}\n- هل لديك تعثر في سمة: ${selectedLoanRequest.hasCreditDefault === 'yes' ? 'نعم' : 'لا'}\n- إجمالي الإلتزامات الشهرية: ${selectedLoanRequest.totalMonthlyObligations ? formatSaudiRiyalText(selectedLoanRequest.totalMonthlyObligations) : 'غير محدد'}\n\nحالة الطلب: ${selectedLoanRequest.status === 'PENDING' ? 'معلق' : selectedLoanRequest.status === 'APPROVED' ? 'مقبول' : selectedLoanRequest.status === 'REJECTED' ? 'مرفوض' : selectedLoanRequest.status === 'COMPLETED' ? 'مكتمل' : selectedLoanRequest.status}\n\nيرجى التواصل معنا لمتابعة الطلب.`}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">المدينة:</label>
-                    <p className="text-lg">{selectedLoanRequest.city}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">النوع:</label>
-                    <p className="text-lg">{selectedLoanRequest.gender === "male" ? "ذكر" : "أنثى"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">تاريخ الميلاد:</label>
-                    <p className="text-lg">{selectedLoanRequest.birthMonth} / {selectedLoanRequest.birthYear} هـ</p>
-                  </div>
-                  {selectedLoanRequest.idImage && (
-                    <div className="md:col-span-2">
-                      <label className="font-medium text-sm text-white-600">صورة الهوية:</label>
-                      <div className="mt-2">
-                        <img
-                          src={selectedLoanRequest.idImage}
-                          alt="صورة الهوية"
-                          className="max-w-full h-auto max-h-48 rounded-lg border"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Car Information */}
-              <div className="bg-black-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3 text-white-800">معلومات السيارة</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-medium text-sm text-white-600">ماركة السيارة:</label>
-                    <p className="text-lg">{selectedLoanRequest.carMake}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">موديل السيارة:</label>
-                    <p className="text-lg">{selectedLoanRequest.carModel}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">سنة الصنع:</label>
-                    <p className="text-lg">{selectedLoanRequest.carYear}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">فئة السيارة:</label>
-                    <p className="text-lg">{selectedLoanRequest.carCategory || "غير محدد"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Loan Details */}
-              <div className="bg-black-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3 text-white-800">تفاصيل القرض</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-medium text-sm text-white-600">مبلغ القرض:</label>
-                    <p className="text-lg">{formatSaudiRiyalReact(selectedLoanRequest.loanAmount)}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">الدفعة الأولى:</label>
-                    <p className="text-lg">{formatSaudiRiyalReact(selectedLoanRequest.downPayment)}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">مدة القرض:</label>
-                    <p className="text-lg">{selectedLoanRequest.loanTerm} سنة</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">الحالة:</label>
-                    <p className="text-lg">{getStatusBadge(selectedLoanRequest.status)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Information */}
-              <div className="bg-black-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3 text-white-800">المعلومات المالية</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-medium text-sm text-white-600">صافي الراتب:</label>
-                    <p className="text-lg">{selectedLoanRequest.netSalary ? formatSaudiRiyalReact(selectedLoanRequest.netSalary) : "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">جهة العمل:</label>
-                    <p className="text-lg">{selectedLoanRequest.employerSector || "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">اسم جهة العمل:</label>
-                    <p className="text-lg">{selectedLoanRequest.employer || "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">جهة تحويل الراتب:</label>
-                    <p className="text-lg">{selectedLoanRequest.salaryTransferBank?.name || "غير محدد"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">هل لديك تمويل عقاري:</label>
-                    <p className="text-lg">{selectedLoanRequest.hasRealEstateFinance ? "نعم" : "لا"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">هل لديك تعثر في سمة:</label>
-                    <p className="text-lg">{selectedLoanRequest.hasCreditDefault ? "نعم" : "لا"}</p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">إجمالي الإلتزامات الشهرية:</label>
-                    <p className="text-lg">{selectedLoanRequest.totalMonthlyObligations ? formatSaudiRiyalReact(selectedLoanRequest.totalMonthlyObligations) : "غير محدد"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Information */}
-              {selectedLoanRequest.additionalInfo && (
-                <div className="bg-black-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-3 text-white-800">معلومات إضافية</h4>
-                  <p className="text-lg whitespace-pre-wrap">{selectedLoanRequest.additionalInfo}</p>
-                </div>
-              )}
-
-              {/* Timestamps */}
-              <div className="bg-black-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3 text-white-800">تواريخ</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-medium text-sm text-white-600">تاريخ الطلب:</label>
-                    <p className="text-sm text-gray-500">
-                      {new Date(selectedLoanRequest.createdAt).toLocaleString("ar-SA")}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="font-medium text-sm text-white-600">آخر تحديث:</label>
-                    <p className="text-sm text-gray-500">
-                      {new Date(selectedLoanRequest.updatedAt).toLocaleString("ar-SA")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LoanRequestDetailView
+              loanRequest={selectedLoanRequest}
+              statusBadge={getStatusBadge(selectedLoanRequest.status)}
+            />
           </div>
         </div>
       )}

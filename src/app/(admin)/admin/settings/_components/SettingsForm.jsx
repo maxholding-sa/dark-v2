@@ -10,7 +10,8 @@ const SettingsForm = () => {
   return (
     <div dir="rtl">
       <Tabs defaultValue="hours">
-        <TabsList className="flex justify-start w-full bg-black/40 border border-white/10 p-1 mb-6 flex-wrap h-auto gap-1">
+        <div className="flex justify-end mb-6">
+          <TabsList dir="rtl" className="flex flex-wrap h-auto gap-1 bg-black/40 border border-white/10 p-1">
           <TabsTrigger value="hours" className="flex items-center gap-2 px-4">
             <Clock className="h-4 w-4" /> ساعات العمل
           </TabsTrigger>
@@ -34,7 +35,8 @@ const SettingsForm = () => {
           <TabsTrigger value="clarity" className="flex items-center gap-2 px-4 data-[state=active]:bg-teal-600">
             <Activity className="h-4 w-4" /> كلايريتي
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         <TabsContent value="hours" className="space-y-6">
           <WorkingHoursCard />

@@ -12,6 +12,11 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { checkPermission } from "@/lib/permissions";
+import {
+  BrandSegmentNotFoundError,
+  resolveInsuranceSegmentForCar,
+} from "@/lib/brand-segment";
+import { DEFAULT_BRAND_SEGMENT_MAP } from "@/lib/loan-calculator";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -245,6 +250,19 @@ export async function addCarToDB({ carData, images }) {
       imageUrls.push(publicUrl);
     }
 
+    // Resolve insurance category once from canonical brand table (no silent fallback).
+    let insuranceSegment;
+    try {
+      insuranceSegment = resolveInsuranceSegmentForCar(carData.make, DEFAULT_BRAND_SEGMENT_MAP);
+    } catch (error) {
+      if (error instanceof BrandSegmentNotFoundError) {
+        throw new Error(
+          `لا يمكن حفظ السيارة: ${error.message} أضف الماركة إلى جدول فئات التأمين أو صحّح اسم الشركة المصنعة.`
+        );
+      }
+      throw error;
+    }
+
     // Add the car to the database
     const car = await db.car.create({
       data: {
@@ -267,6 +285,7 @@ export async function addCarToDB({ carData, images }) {
         isLuxury: carData.isLuxury,
         driveType: carData.driveType,
         testDriveAvailable: carData.testDriveAvailable,
+        insuranceSegment,
         images: imageUrls, // Store the array of image URLs
       },
     });
@@ -493,6 +512,24 @@ export async function updateCar(id, carData, newImages = []) {
       }
     }
 
+    const makeChanged =
+      String(carData.make ?? "").trim() !== String(existingCar.make ?? "").trim();
+
+    let insuranceSegment = existingCar.insuranceSegment;
+    if (makeChanged || !insuranceSegment) {
+      try {
+        insuranceSegment = resolveInsuranceSegmentForCar(carData.make, DEFAULT_BRAND_SEGMENT_MAP);
+      } catch (error) {
+        if (error instanceof BrandSegmentNotFoundError) {
+          return {
+            success: false,
+            error: `لا يمكن حفظ السيارة: ${error.message} أضف الماركة إلى جدول فئات التأمين أو صحّح اسم الشركة المصنعة.`,
+          };
+        }
+        throw error;
+      }
+    }
+
     // Update the car in the database
     const updatedCar = await db.car.update({
       where: { id: id },
@@ -515,6 +552,7 @@ export async function updateCar(id, carData, newImages = []) {
         isLuxury: carData.isLuxury,
         driveType: carData.driveType,
         testDriveAvailable: carData.testDriveAvailable,
+        insuranceSegment,
         images: imageUrls, // update images if new ones provided
       },
     });

@@ -431,20 +431,120 @@ export async function deleteLogo(id) {
 
 // ==================== ABOUT PAGE MANAGEMENT ====================
 
-export async function getAboutPage() {
+const DEFAULT_ABOUT_FEATURES = [
+  {
+    title: "دقة في البحث",
+    description: "استخدام خوارزميات الذكاء الاصطناعي لفرز آلاف السيارات واقتراح الأنسب لك.",
+    icon: "Target",
+    order: 1,
+  },
+  {
+    title: "فريق متخصص",
+    description: "خبراء فنيين ومستشارين ماليين متاحين لمساعدتك في اتخاذ القرار الصحيح.",
+    icon: "Users",
+    order: 2,
+  },
+  {
+    title: "جودة مضمونة",
+    description: "نتعامل فقط مع وكالات معتمدة وبائعين وموثقين لضمان سلامة سيارتك.",
+    icon: "Award",
+    order: 3,
+  },
+  {
+    title: "رضا العملاء",
+    description: "أكثر من 10,000 عميل سعيد وجدوا سيارات أحلامهم عبر منصتنا.",
+    icon: "Heart",
+    order: 4,
+  },
+];
+
+const DEFAULT_ABOUT_PAGE = {
+  title: "من نحن",
+  introText:
+    "ماكس موتورز هي المنصة الرائدة في المنطقة للبحث عن السيارات باستخدام تقنية الذكاء الاصطناعي. نحن نجمع بين الخبرة العريقة في سوق السيارات والتكنولوجيا المتطورة لنوفر لعملائنا تجربة شراء فريدة، شفافة، وآمنة تماماً.",
+  visionTitle: "رؤيتنا",
+  visionParagraph1:
+    "رؤيتنا هي أن نصبح الوجهة الأولى والموثوقة في المنطقة لكل من يرغب في شراء أو بيع سيارة، من خلال بناء منظومة رقمية تعتمد على البيانات والذكاء الاصطناعي لتبسيط اتخاذ القرار.",
+  visionParagraph2:
+    "نسعى دائماً للابتكار وتحويل عملية امتلاك السيارة من مهمة شاقة إلى تجربة ممتعة ومضمونة النتائج.",
+  visionImage: "/about-saudi-vision.jpg",
+  visionImageAlt: "أفق الرياض مع برج المملكة - السعودية",
+  missionTitle: "رسالتنا",
+  missionParagraph1:
+    'تكمن رسالتنا في تمكين المستخدم من الوصول إلى "السيارة المثالية" من خلال توفير أدوات بحث ذكية، تقارير شفافة، وفريق دعم محترف يرافق العميل في كافة اشتراطات الفحص والتمويل.',
+  missionParagraph2:
+    "الالتزام بالجودة والدقة هو جوهر خدماتنا، لأن ثقة العملاء هي رأس مالنا الحقيقي.",
+  missionImage: "/about-saudi-mission.jpg",
+  missionImageAlt: "الحِجر (مدائن صالح) في العلا - السعودية",
+  whyUsTitle: "لماذا يختار العملاء ماكس موتورز؟",
+  ctaTitle: "هل أنت مستعد للعثور على سيارتك؟",
+  ctaText:
+    "انضم إلى آلاف المستخدمين الذين يثقون في ماكس موتورز للوصول إلى أفضل العروض المتاحة.",
+  isPublished: true,
+  metaDescription:
+    "تعرف على ماكس موتورز - المنصة الرائدة للبحث عن السيارات بالذكاء الاصطناعي في المنطقة.",
+  metaKeywords: "ماكس موتورز, سيارات, ذكاء اصطناعي, شراء سيارات, السعودية",
+};
+
+function supportsAboutFeatures() {
+  return typeof db.aboutFeature?.findMany === "function";
+}
+
+function aboutFeaturesInclude(forAdmin = false) {
+  if (!supportsAboutFeatures()) return undefined;
+  return {
+    features: {
+      ...(forAdmin ? {} : { where: { isActive: true } }),
+      orderBy: { order: "asc" },
+    },
+  };
+}
+
+async function findAboutPageRecord(forAdmin = false) {
+  const include = aboutFeaturesInclude(forAdmin);
+  const aboutPage = await db.aboutPage.findFirst(include ? { include } : undefined);
+  if (!aboutPage) return null;
+  return { ...aboutPage, features: aboutPage.features ?? [] };
+}
+
+async function ensureDefaultAboutFeatures(aboutPageId) {
+  if (!supportsAboutFeatures() || !aboutPageId) return;
+
+  const count = await db.aboutFeature.count({ where: { aboutPageId } });
+  if (count > 0) return;
+
+  await db.aboutFeature.createMany({
+    data: DEFAULT_ABOUT_FEATURES.map((feature) => ({
+      ...feature,
+      aboutPageId,
+      isActive: true,
+    })),
+  });
+}
+
+export async function getAboutPage({ forAdmin = false } = {}) {
   try {
-    let aboutPage = await withDbRetry(() => db.aboutPage.findFirst());
+    let aboutPage = await withDbRetry(() => findAboutPageRecord(forAdmin));
 
     if (!aboutPage) {
-      aboutPage = await withDbRetry(() =>
-        db.aboutPage.create({
-          data: {
-            title: "عن المتجر",
-            content: "<p>محتوى صفحة عن المتجر</p>",
-            isPublished: true,
-          },
-        })
-      );
+      const createData = {
+        ...DEFAULT_ABOUT_PAGE,
+        ...(supportsAboutFeatures()
+          ? { features: { create: DEFAULT_ABOUT_FEATURES } }
+          : {}),
+      };
+      aboutPage = await withDbRetry(async () => {
+        const created = await db.aboutPage.create({
+          data: createData,
+          ...(aboutFeaturesInclude(forAdmin)
+            ? { include: aboutFeaturesInclude(forAdmin) }
+            : {}),
+        });
+        return { ...created, features: created.features ?? [] };
+      });
+    } else if (!aboutPage.features?.length) {
+      await withDbRetry(() => ensureDefaultAboutFeatures(aboutPage.id));
+      aboutPage = await withDbRetry(() => findAboutPageRecord(forAdmin));
     }
 
     return { success: true, data: serializeDates(aboutPage) };
@@ -456,40 +556,163 @@ export async function getAboutPage() {
 
 export async function updateAboutPage(data) {
   try {
-    const user = await getAuthenticatedUser();
+    await getAuthenticatedUser();
 
     let aboutPage = await db.aboutPage.findFirst();
+
+    const pageData = {
+      title: data.title,
+      introText: data.introText,
+      visionTitle: data.visionTitle,
+      visionParagraph1: data.visionParagraph1,
+      visionParagraph2: data.visionParagraph2,
+      visionImage: data.visionImage,
+      visionImageAlt: data.visionImageAlt,
+      missionTitle: data.missionTitle,
+      missionParagraph1: data.missionParagraph1,
+      missionParagraph2: data.missionParagraph2,
+      missionImage: data.missionImage,
+      missionImageAlt: data.missionImageAlt,
+      whyUsTitle: data.whyUsTitle,
+      ctaTitle: data.ctaTitle,
+      ctaText: data.ctaText,
+      isPublished: data.isPublished,
+      metaDescription: data.metaDescription,
+      metaKeywords: data.metaKeywords,
+    };
 
     if (!aboutPage) {
       aboutPage = await db.aboutPage.create({
         data: {
-          title: data.title,
-          content: data.content,
-          heroImage: data.heroImage,
-          isPublished: data.isPublished !== false,
-          metaDescription: data.metaDescription,
-          metaKeywords: data.metaKeywords,
+          ...DEFAULT_ABOUT_PAGE,
+          ...pageData,
+          ...(supportsAboutFeatures()
+            ? { features: { create: DEFAULT_ABOUT_FEATURES } }
+            : {}),
         },
+        ...(aboutFeaturesInclude(true) ? { include: aboutFeaturesInclude(true) } : {}),
       });
+      aboutPage = { ...aboutPage, features: aboutPage.features ?? [] };
     } else {
       aboutPage = await db.aboutPage.update({
         where: { id: aboutPage.id },
+        data: pageData,
+        ...(aboutFeaturesInclude(true) ? { include: aboutFeaturesInclude(true) } : {}),
+      });
+      aboutPage = { ...aboutPage, features: aboutPage.features ?? [] };
+    }
+
+    revalidatePath("/admin/site-management/about-page");
+    revalidatePath("/admin/site-data");
+    revalidatePath("/about");
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    return { success: true, data: aboutPage };
+  } catch (error) {
+    console.error("Error updating about page:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createAboutFeature(data) {
+  try {
+    await getAuthenticatedUser();
+
+    if (!supportsAboutFeatures()) {
+      return {
+        success: false,
+        error: "جدول المميزات غير متوفر. شغّل prisma generate ثم prisma db push وأعد تشغيل السيرفر.",
+      };
+    }
+
+    let aboutPage = await db.aboutPage.findFirst();
+    if (!aboutPage) {
+      aboutPage = await db.aboutPage.create({
         data: {
-          title: data.title,
-          content: data.content,
-          heroImage: data.heroImage,
-          isPublished: data.isPublished,
-          metaDescription: data.metaDescription,
-          metaKeywords: data.metaKeywords,
+          ...DEFAULT_ABOUT_PAGE,
+          features: { create: DEFAULT_ABOUT_FEATURES },
         },
       });
     }
 
+    const feature = await db.aboutFeature.create({
+      data: {
+        aboutPageId: aboutPage.id,
+        title: data.title,
+        description: data.description,
+        icon: data.icon || "Target",
+        order: data.order ?? 0,
+        isActive: data.isActive !== false,
+      },
+    });
+
     revalidatePath("/admin/site-management/about-page");
+    revalidatePath("/admin/site-data");
     revalidatePath("/about");
-    return { success: true, data: aboutPage };
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    return { success: true, data: feature };
   } catch (error) {
-    console.error("Error updating about page:", error);
+    console.error("Error creating about feature:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateAboutFeature(id, data) {
+  try {
+    await getAuthenticatedUser();
+
+    if (!supportsAboutFeatures()) {
+      return {
+        success: false,
+        error: "جدول المميزات غير متوفر. شغّل prisma generate ثم prisma db push وأعد تشغيل السيرفر.",
+      };
+    }
+
+    const feature = await db.aboutFeature.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        icon: data.icon,
+        order: data.order,
+        isActive: data.isActive,
+      },
+    });
+
+    revalidatePath("/admin/site-management/about-page");
+    revalidatePath("/admin/site-data");
+    revalidatePath("/about");
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    return { success: true, data: feature };
+  } catch (error) {
+    console.error("Error updating about feature:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteAboutFeature(id) {
+  try {
+    await getAuthenticatedUser();
+
+    if (!supportsAboutFeatures()) {
+      return {
+        success: false,
+        error: "جدول المميزات غير متوفر. شغّل prisma generate ثم prisma db push وأعد تشغيل السيرفر.",
+      };
+    }
+
+    await db.aboutFeature.delete({ where: { id } });
+
+    revalidatePath("/admin/site-management/about-page");
+    revalidatePath("/admin/site-data");
+    revalidatePath("/about");
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting about feature:", error);
     return { success: false, error: error.message };
   }
 }

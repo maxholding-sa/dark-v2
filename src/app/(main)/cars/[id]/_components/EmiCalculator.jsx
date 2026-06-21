@@ -11,7 +11,7 @@ import {
   LOAN_CALCULATOR_META,
 } from "@/lib/loan-calculator";
 
-function EmiCalculator({ price, carId, carBrand }) {
+function EmiCalculator({ price, carId, carBrand, insuranceSegment }) {
   const router = useRouter();
   const [loanAmount, setLoanAmount] = useState(price || 1000);
   const [downPayment, setDownPayment] = useState(0);
@@ -88,6 +88,14 @@ function EmiCalculator({ price, carId, carBrand }) {
       return;
     }
 
+    if (!insuranceSegment) {
+      setError("فئة التأمين غير محددة لهذه السيارة — لا يمكن حساب القسط.");
+      setResults(null);
+      return;
+    }
+
+    setError("");
+
     const selectedBank = banks.find((bank) => bank.id === selectedBankId);
     const bankConfig = createBankConfigFromBank(selectedBank);
     const calculation = calculateIslamicAutoFinance(bankConfig, {
@@ -99,7 +107,7 @@ function EmiCalculator({ price, carId, carBrand }) {
       balloon_payment_pct: balloonPercent / 100,
       gender,
       age_bracket: ageBracket,
-      car_brand: carBrand,
+      insurance_segment: insuranceSegment,
       rebate,
     });
 
@@ -113,8 +121,7 @@ function EmiCalculator({ price, carId, carBrand }) {
       totalMonthlyPayment: calculation.totals.total_monthly_payment.toFixed(2),
       totalInsurance: calculation.totals.total_insurance.toFixed(2),
       adminFees: calculation.derived.admin_fees.toFixed(2),
-      apr: (calculation.metrics.apr * 100).toFixed(2),
-      irr: (calculation.metrics.irr * 100).toFixed(2),
+      flatProfitRate: (calculation.totals.flat_profit_rate * 100).toFixed(2),
     });
   };
 
@@ -454,19 +461,10 @@ function EmiCalculator({ price, carId, carBrand }) {
 
                 <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
                   <div className="text-sm font-inter text-white-700 dark:text-white-300">
-                    IRR
+                    معدل الربح السنوي (مسطح)
                   </div>
                   <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
-                    %{results.irr}
-                  </div>
-                </div>
-
-                <div className="bg-black dark:bg-white-900 p-3 rounded-lg text-center">
-                  <div className="text-sm font-inter text-white-700 dark:text-white-300">
-                    APR
-                  </div>
-                  <div className="text-lg font-bold text-white-900 dark:text-white mt-1">
-                    %{results.apr}
+                    %{results.flatProfitRate}
                   </div>
                 </div>
 

@@ -13,24 +13,49 @@ export const serializedCarsData = (car, wishlisted = false) => {
 
 export const serializeLoanRequest = (request) => {
   if (!request) return null;
+  const decimal = (value) => (value != null ? parseFloat(value.toString()) : null);
   return {
     ...request,
-    loanAmount: request.loanAmount ? parseFloat(request.loanAmount.toString()) : 0,
-    downPayment: request.downPayment ? parseFloat(request.downPayment.toString()) : 0,
-    monthlyPayment: request.monthlyPayment ? parseFloat(request.monthlyPayment.toString()) : null,
-    interestRate: request.interestRate ? parseFloat(request.interestRate.toString()) : null,
-    finalPayment: request.finalPayment ? parseFloat(request.finalPayment.toString()) : null,
-    netSalary: request.netSalary ? parseFloat(request.netSalary.toString()) : null,
-    totalMonthlyObligations: request.totalMonthlyObligations ? parseFloat(request.totalMonthlyObligations.toString()) : null,
+    loanAmount: decimal(request.loanAmount) ?? 0,
+    downPayment: decimal(request.downPayment) ?? 0,
+    downPaymentPct: decimal(request.downPaymentPct),
+    monthlyPayment: decimal(request.monthlyPayment),
+    baseInstallment: decimal(request.baseInstallment),
+    monthlyInsurance: decimal(request.monthlyInsurance),
+    interestRate: decimal(request.interestRate),
+    finalPayment: decimal(request.finalPayment),
+    balloonPayment: decimal(request.balloonPayment),
+    balloonPaymentPct: decimal(request.balloonPaymentPct),
+    adminFees: decimal(request.adminFees),
+    totalInsurance: decimal(request.totalInsurance),
+    totalProfit: decimal(request.totalProfit),
+    totalPayment: decimal(request.totalPayment),
+    netSalary: decimal(request.netSalary),
+    totalMonthlyObligations: decimal(request.totalMonthlyObligations),
     createdAt: request.createdAt?.toISOString ? request.createdAt.toISOString() : request.createdAt,
     updatedAt: request.updatedAt?.toISOString ? request.updatedAt.toISOString() : request.updatedAt,
     car: request.car ? serializedCarsData(request.car) : null,
-    salaryTransferBank: request.salaryTransferBank ? {
-      ...request.salaryTransferBank,
-      interestRate: request.salaryTransferBank.interestRate ? parseFloat(request.salaryTransferBank.interestRate.toString()) : 0,
-      createdAt: request.salaryTransferBank.createdAt?.toISOString ? request.salaryTransferBank.createdAt.toISOString() : request.salaryTransferBank.createdAt,
-      updatedAt: request.salaryTransferBank.updatedAt?.toISOString ? request.salaryTransferBank.updatedAt.toISOString() : request.salaryTransferBank.updatedAt,
-    } : null,
+    salaryTransferBank: request.salaryTransferBank
+      ? {
+          ...request.salaryTransferBank,
+          interestRate: request.salaryTransferBank.interestRate
+            ? parseFloat(request.salaryTransferBank.interestRate.toString())
+            : 0,
+          adminFeesCap: decimal(request.salaryTransferBank.adminFeesCap),
+          defaultAdminFeesPct: decimal(request.salaryTransferBank.defaultAdminFeesPct),
+          minInsurancePremium: decimal(request.salaryTransferBank.minInsurancePremium),
+          assetDepreciationRate: decimal(request.salaryTransferBank.assetDepreciationRate),
+          cor: decimal(request.salaryTransferBank.cor),
+          opex: decimal(request.salaryTransferBank.opex),
+          irrTarget: decimal(request.salaryTransferBank.irrTarget),
+          createdAt: request.salaryTransferBank.createdAt?.toISOString
+            ? request.salaryTransferBank.createdAt.toISOString()
+            : request.salaryTransferBank.createdAt,
+          updatedAt: request.salaryTransferBank.updatedAt?.toISOString
+            ? request.salaryTransferBank.updatedAt.toISOString()
+            : request.salaryTransferBank.updatedAt,
+        }
+      : null,
   };
 };
 
@@ -62,4 +87,55 @@ export const formatSaudiRiyalText = (amount) => {
   const value = Number(amount) || 0;
   const formattedNumber = new Intl.NumberFormat("en-EN").format(value);
   return `${formattedNumber} ريال سعودي`;
+};
+
+const HIJRI_MONTH_NAMES = {
+  "1": "محرم",
+  "2": "صفر",
+  "3": "ربيع الأول",
+  "4": "ربيع الآخر",
+  "5": "جمادى الأولى",
+  "6": "جمادى الآخرة",
+  "7": "رجب",
+  "8": "شعبان",
+  "9": "رمضان",
+  "10": "شوال",
+  "11": "ذو القعدة",
+  "12": "ذو الحجة",
+};
+
+export const formatHijriBirthMonth = (month) =>
+  HIJRI_MONTH_NAMES[String(month)] || month || "غير محدد";
+
+export const formatYesNo = (value) => {
+  if (value === true || value === "yes") return "نعم";
+  if (value === false || value === "no") return "لا";
+  return "غير محدد";
+};
+
+export const formatGenderAr = (gender) => {
+  if (gender === "male") return "ذكر";
+  if (gender === "female") return "أنثى";
+  return gender || "غير محدد";
+};
+
+export const formatLoanRequestStatusAr = (status) => {
+  switch (status) {
+    case "PENDING":
+      return "معلق";
+    case "APPROVED":
+      return "مقبول";
+    case "REJECTED":
+      return "مرفوض";
+    case "COMPLETED":
+      return "مكتمل";
+    default:
+      return status || "غير محدد";
+  }
+};
+
+export const formatPercent = (value, digits = 2) => {
+  if (value == null || value === "") return "غير محدد";
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? `${numeric.toFixed(digits)}%` : "غير محدد";
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowUp, ArrowDown, Save } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronDown, ChevronUp, Loader2, Save } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,25 +25,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import LoadingBar from "@/components/LoadingBar";
+import {
+  bankFinanceFormStateFromRecord,
+  emptyBankFinanceFormState,
+  newBankFinanceFormState,
+} from "@/lib/bank-finance";
+import BrandSegmentMapEditor from "./_components/BrandSegmentMapEditor";
+
+const baseFormState = () => ({
+  id: null,
+  name: "",
+  logoImage: "",
+  interestRate: "",
+  loanPolicy: "",
+  ...newBankFinanceFormState(),
+});
+
+const bankHasCustomJson = (bank) =>
+  Boolean(bank?.ftpAnchors || bank?.brandSegmentMap || bank?.insuranceTable);
 
 const BankCRUDPage = () => {
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdvancedJson, setShowAdvancedJson] = useState(false);
+  const [activeJsonTab, setActiveJsonTab] = useState("ftpAnchors");
 
-  const [formState, setFormState] = useState({
-    id: null,
-    name: "",
-    logoImage: "",
-    interestRate: "",
-    loanPolicy: "",
-  });
+  const [formState, setFormState] = useState(baseFormState());
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bankToDelete, setBankToDelete] = useState(null);
+  const [brandEditorKey, setBrandEditorKey] = useState("new");
 
   const fetchBanks = async () => {
     setLoading(true);
@@ -121,17 +137,18 @@ const BankCRUDPage = () => {
     }
   };
 
+  const handleBrandSegmentMapChange = (brandSegmentMap) => {
+    setFormState((prev) => ({ ...prev, brandSegmentMap }));
+  };
+
   const openNewDialog = () => {
-    setFormState({
-      id: null,
-      name: "",
-      logoImage: "",
-      interestRate: "",
-      loanPolicy: "",
-    });
+    setFormState(baseFormState());
     setImageFile(null);
     setImagePreview("");
     setIsEditMode(false);
+    setShowAdvancedJson(false);
+    setActiveJsonTab("ftpAnchors");
+    setBrandEditorKey(`new-${Date.now()}`);
     setDialogOpen(true);
   };
 
@@ -142,12 +159,39 @@ const BankCRUDPage = () => {
       logoImage: bank.logoImage,
       interestRate: bank.interestRate.toString(),
       loanPolicy: bank.loanPolicy || "",
+      ...bankFinanceFormStateFromRecord(bank),
     });
     setImageFile(null);
     setImagePreview(bank.logoImage);
     setIsEditMode(true);
+    setShowAdvancedJson(bankHasCustomJson(bank));
+    setActiveJsonTab("ftpAnchors");
+    setBrandEditorKey(bank.id);
     setDialogOpen(true);
   };
+
+  const toggleAdvancedJson = () => {
+    setShowAdvancedJson((prev) => {
+      const next = !prev;
+      if (next && !formState.ftpAnchors && !formState.insuranceTable) {
+        const defaults = emptyBankFinanceFormState();
+        setFormState((current) => ({
+          ...current,
+          ftpAnchors: defaults.ftpAnchors,
+          insuranceTable: defaults.insuranceTable,
+        }));
+      }
+      if (next) {
+        setActiveJsonTab("ftpAnchors");
+      }
+      return next;
+    });
+  };
+
+  const jsonTabs = [
+    { id: "ftpAnchors", label: "مراسي FTP" },
+    { id: "insuranceTable", label: "جدول التأمين" },
+  ];
 
   const confirmDelete = async () => {
     if (!bankToDelete) return;
@@ -190,23 +234,37 @@ const BankCRUDPage = () => {
 
     let logoImageUrl = formState.logoImage;
 
-    // If there's a new image file, convert it to base64
     if (imageFile) {
       logoImageUrl = imagePreview;
     }
 
     const method = isEditMode ? "PUT" : "POST";
-    const body = isEditMode
-      ? JSON.stringify({ id, name, logoImage: logoImageUrl, interestRate: parseFloat(interestRate), loanPolicy })
-      : JSON.stringify({ name, logoImage: logoImageUrl, interestRate: parseFloat(interestRate), loanPolicy });
+    const payload = {
+      ...(isEditMode ? { id } : {}),
+      name,
+      logoImage: logoImageUrl,
+      interestRate: parseFloat(interestRate),
+      loanPolicy,
+      adminFeesCap: formState.adminFeesCap,
+      defaultAdminFeesPct: formState.defaultAdminFeesPct,
+      minInsurancePremium: formState.minInsurancePremium,
+      assetDepreciationRate: formState.assetDepreciationRate,
+      cor: formState.cor,
+      opex: formState.opex,
+      irrTarget: formState.irrTarget,
+      ftpAnchors: formState.ftpAnchors,
+      brandSegmentMap: formState.brandSegmentMap,
+      insuranceTable: formState.insuranceTable,
+    };
 
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/bank", {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body,
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (json.success) {
@@ -220,6 +278,8 @@ const BankCRUDPage = () => {
       }
     } catch (error) {
       toast.error(error.message || "فشل الحفظ");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -340,106 +400,343 @@ const BankCRUDPage = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-black text-white max-w-lg">
-          <DialogHeader>
+        <DialogContent className="!top-[4vh] !flex !max-h-[92vh] !translate-y-0 w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden bg-black p-0 text-white sm:max-w-3xl">
+          <DialogHeader className="shrink-0 border-b border-white/10 px-5 py-4 text-right sm:px-6">
             <DialogTitle className="text-xl">
               {isEditMode ? "تعديل البنك" : "إضافة بنك جديد"}
             </DialogTitle>
-            <DialogDescription>
-              الرجاء ملء المعلومات أدناه لإضافة أو تحديث بيانات البنك.
+            <DialogDescription className="text-white/60">
+              {isEditMode
+                ? "عدّل بيانات البنك وإعدادات محرك التمويل ثم احفظ التغييرات."
+                : "أدخل البيانات الأساسية. جداول JSON اختيارية — تُستخدم الإعدادات الافتراضية إذا تُركت فارغة."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 mt-4">
-            <div>
-              <Label htmlFor="name" className="text-sm font-medium">
-                اسم البنك <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                value={formState.name}
-                onChange={handleInputChange}
-                placeholder="أدخل اسم البنك"
-                className="mt-1.5"
-                required
-              />
-            </div>
 
-            <div>
-              <Label htmlFor="logoImage" className="text-sm font-medium">
-                شعار البنك <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="logoImage"
-                name="logoImage"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="mt-1.5"
-              />
-              {imagePreview && (
-                <div className="mt-3 flex justify-center">
-                  <div className="relative w-32 h-32 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-contain"
-                    />
+          <div
+            className="overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+            style={{ maxHeight: "calc(92vh - 10.5rem)" }}
+          >
+            <form id="bank-form" onSubmit={handleSubmit} className="px-5 py-4 sm:px-6 sm:py-5" dir="rtl">
+              <div className="space-y-6">
+                <section className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-white">البيانات الأساسية</h3>
+                    <p className="text-xs text-white/50">الاسم، الشعار، سعر الفائدة، وسياسة القرض</p>
                   </div>
-                </div>
-              )}
-              <p className="text-xs text-gray-500 mt-1.5">
-                يمكنك رفع صورة بصيغة PNG أو JPG
-              </p>
-            </div>
 
-            <div>
-              <Label htmlFor="interestRate" className="text-sm font-medium">
-                سعر الفائدة (%) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="interestRate"
-                name="interestRate"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={formState.interestRate}
-                onChange={handleInputChange}
-                placeholder="مثال: 5.50"
-                className="mt-1.5"
-                required
-              />
-            </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="name" className="text-sm font-medium">
+                        اسم البنك <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formState.name}
+                        onChange={handleInputChange}
+                        placeholder="أدخل اسم البنك"
+                        className="mt-1.5 bg-zinc-900"
+                        required
+                      />
+                    </div>
 
-            <div>
-              <Label htmlFor="loanPolicy" className="text-sm font-medium">
-                سياسة القرض
-              </Label>
-              <Textarea
-                id="loanPolicy"
-                name="loanPolicy"
-                value={formState.loanPolicy}
-                onChange={handleInputChange}
-                placeholder="أدخل سياسة القرض"
-                className="mt-1.5"
-                rows={4}
-              />
-            </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="logoImage" className="text-sm font-medium">
+                        شعار البنك <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="logoImage"
+                        name="logoImage"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="mt-1.5 bg-zinc-900 file:ml-3 file:rounded-md file:border file:border-white/10 file:bg-zinc-800 file:px-3 file:py-1 file:text-white"
+                      />
+                      {imagePreview ? (
+                        <div className="mt-3 flex justify-start">
+                          <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-white/10 bg-zinc-900 sm:h-28 sm:w-28">
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 rounded-md border border-dashed border-white/10 px-3 py-2 text-xs text-white/50">
+                          لم يتم اختيار شعار بعد
+                        </p>
+                      )}
+                    </div>
 
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button type="button" onClick={handleSubmit}>
-                {isEditMode ? "تحديث البنك" : "إضافة البنك"}
-              </Button>
-            </DialogFooter>
+                    <div>
+                      <Label htmlFor="interestRate" className="text-sm font-medium">
+                        سعر الفائدة (%) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="interestRate"
+                        name="interestRate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={formState.interestRate}
+                        onChange={handleInputChange}
+                        placeholder="مثال: 5.50"
+                        className="mt-1.5 bg-zinc-900"
+                        required
+                      />
+                    </div>
+
+                    <div className="hidden sm:block" aria-hidden="true" />
+
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="loanPolicy" className="text-sm font-medium">
+                        سياسة القرض
+                      </Label>
+                      <Textarea
+                        id="loanPolicy"
+                        name="loanPolicy"
+                        value={formState.loanPolicy}
+                        onChange={handleInputChange}
+                        placeholder="أدخل سياسة القرض"
+                        className="mt-1.5 field-sizing-fixed min-h-20 resize-y bg-zinc-900"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-4 rounded-xl border border-white/10 bg-zinc-950/60 p-4 sm:p-5">
+                  <div>
+                    <h3 className="text-base font-semibold text-white">إعدادات محرك التمويل</h3>
+                    <p className="text-xs text-white/50">
+                      الرسوم، التأمين، ومعاملات التسعير. القيم الافتراضية تُستخدم عند ترك الحقل فارغاً.
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-white/80">الرسوم والتأمين</p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <Label htmlFor="adminFeesCap">حد الرسوم الإدارية (ريال)</Label>
+                          <Input
+                            id="adminFeesCap"
+                            name="adminFeesCap"
+                            type="number"
+                            min="0"
+                            value={formState.adminFeesCap}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="defaultAdminFeesPct">نسبة الرسوم الإدارية (%)</Label>
+                          <Input
+                            id="defaultAdminFeesPct"
+                            name="defaultAdminFeesPct"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formState.defaultAdminFeesPct}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="minInsurancePremium">الحد الأدنى للتأمين السنوي (ريال)</Label>
+                          <Input
+                            id="minInsurancePremium"
+                            name="minInsurancePremium"
+                            type="number"
+                            min="0"
+                            value={formState.minInsurancePremium}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="assetDepreciationRate">إهلاك الأصل السنوي (0.15 = 15%)</Label>
+                          <Input
+                            id="assetDepreciationRate"
+                            name="assetDepreciationRate"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={formState.assetDepreciationRate}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-white/80">معاملات التسعير الداخلية</p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <Label htmlFor="cor">تكلفة المخاطر (COR)</Label>
+                          <Input
+                            id="cor"
+                            name="cor"
+                            type="number"
+                            step="0.0001"
+                            value={formState.cor}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="opex">المصاريف التشغيلية (OPEX)</Label>
+                          <Input
+                            id="opex"
+                            name="opex"
+                            type="number"
+                            step="0.0001"
+                            value={formState.opex}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="irrTarget">هدف العائد (IRR Target)</Label>
+                          <Input
+                            id="irrTarget"
+                            name="irrTarget"
+                            type="number"
+                            step="0.0001"
+                            value={formState.irrTarget}
+                            onChange={handleInputChange}
+                            className="mt-1.5 bg-zinc-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-white/10 bg-black/40 p-3 sm:p-4">
+                      <BrandSegmentMapEditor
+                        key={brandEditorKey}
+                        initialValue={formState.brandSegmentMap}
+                        onChange={handleBrandSegmentMapChange}
+                      />
+                    </div>
+
+                    <div className="rounded-lg border border-white/10 bg-black/40 p-3 sm:p-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                        <div className="min-w-0 text-right">
+                          <p className="text-sm font-medium text-white">جداول JSON المتقدمة</p>
+                          <p className="text-xs leading-relaxed text-white/50">
+                            {showAdvancedJson
+                              ? "اختر الجدول من التبويبات أدناه وعدّله داخل منطقة التمرير."
+                              : "اختياري — اضغط «عرض» لتخصيص الجداول أو اتركها فارغة للافتراضي."}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={toggleAdvancedJson}
+                          className="w-full shrink-0 sm:w-auto"
+                        >
+                          {showAdvancedJson ? (
+                            <>
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                              إخفاء
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                              عرض
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      {showAdvancedJson ? (
+                        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                          <div className="flex flex-wrap gap-2">
+                            {jsonTabs.map((tab) => (
+                              <Button
+                                key={tab.id}
+                                type="button"
+                                size="sm"
+                                variant={activeJsonTab === tab.id ? "default" : "outline"}
+                                onClick={() => setActiveJsonTab(tab.id)}
+                                className="text-xs sm:text-sm"
+                              >
+                                {tab.label}
+                              </Button>
+                            ))}
+                          </div>
+
+                          <div className="rounded-md border border-white/10 bg-zinc-950/80 p-3">
+                            {activeJsonTab === "ftpAnchors" ? (
+                              <div>
+                                <Label htmlFor="ftpAnchors">مراسي FTP (مصفوفة JSON)</Label>
+                                <Textarea
+                                  id="ftpAnchors"
+                                  name="ftpAnchors"
+                                  value={formState.ftpAnchors}
+                                  onChange={handleInputChange}
+                                  dir="ltr"
+                                  spellCheck={false}
+                                  className="mt-2 h-48 max-h-48 field-sizing-fixed overflow-y-auto resize-none bg-zinc-900 font-mono text-xs leading-5"
+                                />
+                              </div>
+                            ) : null}
+
+                            {activeJsonTab === "insuranceTable" ? (
+                              <div>
+                                <Label htmlFor="insuranceTable">جدول أسعار التأمين (JSON)</Label>
+                                <Textarea
+                                  id="insuranceTable"
+                                  name="insuranceTable"
+                                  value={formState.insuranceTable}
+                                  onChange={handleInputChange}
+                                  dir="ltr"
+                                  spellCheck={false}
+                                  className="mt-2 h-48 max-h-48 field-sizing-fixed overflow-y-auto resize-none bg-zinc-900 font-mono text-xs leading-5"
+                                />
+                              </div>
+                            ) : null}
+
+                            <p className="mt-2 text-xs text-white/45">
+                              استخدم التمرير داخل المربع لعرض JSON الكامل دون توسيع النافذة.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </form>
           </div>
+
+          <DialogFooter className="shrink-0 gap-2 border-t border-white/10 bg-black px-5 py-3 sm:px-6 sm:py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              إلغاء
+            </Button>
+            <Button type="submit" form="bank-form" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : isEditMode ? (
+                "تحديث البنك"
+              ) : (
+                "إضافة البنك"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

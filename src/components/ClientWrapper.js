@@ -7,7 +7,7 @@ import Header from "@/components/header";
 import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
 
-export default function ClientWrapper({ children, isSignUpPage, navLogo, footerData }) {
+export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNavLabel, footerData }) {
     const [theme, setTheme] = useState("dark");
     const [isLoading, setIsLoading] = useState(false);
     const pathname = usePathname();
@@ -53,7 +53,7 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, footerD
 
     return (
         <>
-            {!isAuthPage && !isAdminPage && <Header navLogo={navLogo} />}
+            {!isAuthPage && !isAdminPage && <Header navLogo={navLogo} aboutNavLabel={aboutNavLabel} />}
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
             {!isAuthPage && !isAdminPage && <Footer initialData={footerData} />}

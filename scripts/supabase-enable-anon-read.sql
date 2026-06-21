@@ -69,3 +69,15 @@ DROP POLICY IF EXISTS "anon_read_pixel_settings" ON "PixelSettings";
 CREATE POLICY "anon_read_pixel_settings" ON "PixelSettings"
   FOR SELECT TO anon, authenticated
   USING (true);
+
+ALTER TABLE IF EXISTS "AboutPage" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_about_page" ON "AboutPage";
+CREATE POLICY "anon_read_about_page" ON "AboutPage"
+  FOR SELECT TO anon, authenticated
+  USING ("isPublished" = true);
+
+ALTER TABLE IF EXISTS "AboutFeature" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_read_about_features" ON "AboutFeature";
+CREATE POLICY "anon_read_about_features" ON "AboutFeature"
+  FOR SELECT TO anon, authenticated
+  USING ("isActive" = true);

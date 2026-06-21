@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/prisma';
+import { aggregateInventorySegmentsByMake } from '@/lib/brand-segment';
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
+    const withSegments = searchParams.get('withSegments') === '1';
 
     const whereClause = {};
     if (year) {
@@ -24,9 +26,24 @@ export async function GET(request) {
 
     const uniqueMakes = makes.map(car => car.make).filter(make => make);
 
-    return NextResponse.json({ makes: uniqueMakes });
+    if (!withSegments) {
+      return NextResponse.json({ makes: uniqueMakes });
+    }
+
+    const cars = await db.car.findMany({
+      where: whereClause,
+      select: {
+        make: true,
+        insuranceSegment: true,
+      },
+    });
+
+    return NextResponse.json({
+      makes: uniqueMakes,
+      segmentHints: aggregateInventorySegmentsByMake(cars),
+    });
   } catch (error) {
     console.error('Error fetching car makes:', error);
-    return NextResponse.json({ makes: [] });
+    return NextResponse.json({ makes: [], segmentHints: {} });
   }
 }

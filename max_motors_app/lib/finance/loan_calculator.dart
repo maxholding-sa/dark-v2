@@ -44,6 +44,10 @@ class BankConfig {
   const BankConfig({
     this.adminFeesCap = 5000,
     this.minInsurancePremium = 1650,
+    this.assetDepreciationRate = 0.15,
+    this.minTermMonths = 12,
+    this.maxTermMonths = 60,
+    this.defaultAdminFeesPct = 0.01,
     this.ftpAnchors = const [2.45, 2.7, 2.75, 2.78, 2.8, 2.46],
     this.cor = 0.0108,
     this.opex = 0.0048,
@@ -54,6 +58,10 @@ class BankConfig {
 
   final double adminFeesCap;
   final double minInsurancePremium;
+  final double assetDepreciationRate;
+  final int minTermMonths;
+  final int maxTermMonths;
+  final double defaultAdminFeesPct;
   final List<double> ftpAnchors;
   final double cor;
   final double opex;
@@ -196,23 +204,65 @@ double pmt(double rate, int nper, double pv, [double fv = 0]) {
   return (-rate * (pv * q + fv)) / (q - 1);
 }
 
-/// Newton-Raphson IRR solver — matches the JS `rate()` helper.
-double rate(int nper, double payment, double pv,
-    [double fv = 0, double tol = 1e-8, int maxIter = 100]) {
-  double r = 0.01;
-  for (var i = 0; i < maxIter; i++) {
-    final q = math.pow(1 + r, nper).toDouble();
-    final f = pv * q + payment * ((q - 1) / r) + fv;
-    final df = nper * pv * math.pow(1 + r, nper - 1).toDouble() +
-        payment *
-            ((nper * r * math.pow(1 + r, nper - 1).toDouble() - q + 1) /
-                (r * r));
-    if (df.abs() < _epsilon) break;
-    final dr = f / df;
-    r -= dr;
-    if (dr.abs() < tol) break;
+/// NPV for standard loan equation: pv*(1+r)^n + pmt*((1+r)^n-1)/r + fv = 0
+double loanNpv(double rate, int nper, double pv, double pmt, [double fv = 0]) {
+  if (rate.abs() < _epsilon) return pv + pmt * nper + fv;
+  final q = math.pow(1 + rate, nper).toDouble();
+  return pv * q + (pmt * (q - 1)) / rate + fv;
+}
+
+/// Bracketed bisection RATE solver — avoids spurious roots with balloon payments.
+double? rate(int nper, double payment, double pv,
+    [double fv = 0, double tol = 1e-10, int maxIter = 200]) {
+  if (nper <= 0 || payment.isNaN || pv.isNaN || fv.isNaN) return null;
+
+  var lo = 0.0;
+  var fLo = loanNpv(lo, nper, pv, payment, fv);
+  var hi = 0.01;
+  var fHi = loanNpv(hi, nper, pv, payment, fv);
+
+  while (fLo * fHi > 0 && hi < 10) {
+    hi = math.min(hi * 2, 10);
+    fHi = loanNpv(hi, nper, pv, payment, fv);
   }
-  return r;
+
+  if (fLo * fHi > 0) return null;
+
+  for (var i = 0; i < maxIter; i++) {
+    final mid = (lo + hi) / 2;
+    final fMid = loanNpv(mid, nper, pv, payment, fv);
+    if (fMid.abs() < tol || (hi - lo) / 2 < tol) return mid;
+    if (fLo * fMid <= 0) {
+      hi = mid;
+      fHi = fMid;
+    } else {
+      lo = mid;
+      fLo = fMid;
+    }
+  }
+
+  return (lo + hi) / 2;
+}
+
+double? computeAprIncludingFees({
+  required int termMonths,
+  required double baseInstallment,
+  required double financeAmount,
+  required double adminFees,
+  required double balloonPayment,
+  double rebate = 0,
+}) {
+  final netFinanced =
+      math.max(0.0, financeAmount - rebate - adminFees);
+  final pv = -netFinanced;
+  final monthlyRate =
+      rate(termMonths, baseInstallment, pv, balloonPayment);
+  if (monthlyRate == null ||
+      !monthlyRate.isFinite ||
+      monthlyRate < 0) {
+    return null;
+  }
+  return math.pow(1 + monthlyRate, 12).toDouble() - 1;
 }
 
 List<_BaseRow> _buildBaseSchedule(double financeAmount, double monthlyRate,
@@ -252,24 +302,19 @@ class _BaseRow {
   final double outstandingEnd;
 }
 
-double _totalInsurance(List<_BaseRow> base, double financeAmount,
-    double insuranceRate, int termMonths, double minPremium) {
+double _totalInsurance(
+  double carPrice,
+  double insuranceRate,
+  int termMonths,
+  double minPremium,
+  double depreciationRate,
+) {
   final years = (termMonths / 12).ceil();
   double total = 0;
   for (var yearIndex = 0; yearIndex < years; yearIndex++) {
-    final startMonth = yearIndex * 12 + 1;
-    final row = base.firstWhere(
-      (r) => r.month == startMonth,
-      orElse: () => _BaseRow(
-        month: startMonth,
-        outstandingStart: financeAmount,
-        profit: 0,
-        principal: 0,
-        outstandingEnd: financeAmount,
-      ),
-    );
-    final annualPremium =
-        math.max(row.outstandingStart * insuranceRate, minPremium);
+    final assetValue = carPrice * math.pow(1 - depreciationRate, yearIndex).toDouble();
+    final rawPremium = assetValue * insuranceRate;
+    final annualPremium = yearIndex == 0 ? math.max(rawPremium, minPremium) : rawPremium;
     total += annualPremium;
   }
   return ((total) * 100).ceil() / 100;
@@ -299,7 +344,11 @@ FinanceResult calculateIslamicAutoFinance(
   BankConfig bankConfig,
   FinanceInputs inputs,
 ) {
-  final term = math.max(1, inputs.termMonths);
+  final term = _clamp(
+    inputs.termMonths.toDouble(),
+    bankConfig.minTermMonths.toDouble(),
+    bankConfig.maxTermMonths.toDouble(),
+  ).round();
   final profitRate = _normalizeRate(inputs.profitRate);
   final downPct = _normalizeRate(inputs.downPaymentPct);
   final adminPct = _normalizeRate(inputs.adminFeesPct);
@@ -327,7 +376,12 @@ FinanceResult calculateIslamicAutoFinance(
   final base = _buildBaseSchedule(
       financeAmount, monthlyRate, term, balloonPayment, monthlyInstallment);
   final totalInsurance = _totalInsurance(
-      base, financeAmount, insuranceRate, term, bankConfig.minInsurancePremium);
+    carPrice,
+    insuranceRate,
+    term,
+    bankConfig.minInsurancePremium,
+    bankConfig.assetDepreciationRate,
+  );
   final monthlyInsurance = totalInsurance / term;
   final totalMonthlyPayment = monthlyInstallment + monthlyInsurance;
 
@@ -347,11 +401,19 @@ FinanceResult calculateIslamicAutoFinance(
   final totalPrincipal = base.fold<double>(0, (sum, r) => sum + r.principal);
   final grandTotal = totalPrincipal + totalInsurance + totalProfit + adminFees;
 
-  final monthlyRoiRate = rate(
-      term, monthlyInstallment, -(financeAmount - rebate + totalInsurance),
-      balloonPayment);
-  final irr = monthlyRoiRate * 12;
-  final apr = math.pow(1 + monthlyRoiRate, 12).toDouble() - 1;
+  final aprIncludingFees = computeAprIncludingFees(
+    termMonths: term,
+    baseInstallment: monthlyInstallment,
+    financeAmount: financeAmount,
+    adminFees: adminFees,
+    balloonPayment: balloonPayment,
+    rebate: rebate,
+  );
+  final monthlyRoiRate = aprIncludingFees != null
+      ? math.pow(1 + aprIncludingFees, 1 / 12).toDouble() - 1
+      : null;
+  final irr = monthlyRoiRate != null ? monthlyRoiRate * 12 : null;
+  final apr = aprIncludingFees;
 
   return FinanceResult(
     downPayment: _round(downPayment),

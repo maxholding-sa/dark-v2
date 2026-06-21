@@ -10,78 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatSaudiRiyalReact } from "@/lib/helper";
-import { calculateIslamicAutoFinance, createBankConfigFromBank } from "@/lib/loan-calculator";
+import { buildCustomerFinancingOffer, createBankConfigFromBank, LOAN_CALCULATOR_META, registerAprDisclosureBanks } from "@/lib/loan-calculator";
+import { isBrandInSegmentMap, parseBrandSegmentMap, validateInsuranceSegment } from "@/lib/brand-segment";
+import {
+  buildFinancingScenarioInputs,
+  logFinancingOfferScenario,
+} from "@/lib/financing-scenario-log";
 import { Currency, User, Mail, Phone, MessageSquare, Calendar, ChevronLeft, ChevronRight, Upload, CheckCircle, Car, File, Key, Lock, Banknote, TrendingUp, AlertTriangle, Shield, Target, Award, BarChart3, DollarSign, Percent, Clock, Star } from "lucide-react";
 
 const CURRENT_HIJRI_YEAR = 1447;
-
-/** Car summary for loan flow: no price (handled in financing steps). */
-function LoanRequestCarSummary({ car, variant = "step" }) {
-  const headline = [car.make, car.model].filter(Boolean).join(" ");
-  const specRows = [
-    { label: "سنة الصنع", value: car.year },
-    {
-      label: "مسافة الاستخدام",
-      value:
-        car.mileage != null && car.mileage !== ""
-          ? `${Number(car.mileage).toLocaleString("ar-SA")} كم`
-          : "غير محدد",
-    },
-    { label: "اللون", value: car.color || "غير محدد" },
-    { label: "نوع الوقود", value: car.fuelType || "غير محدد" },
-    { label: "ناقل الحركة", value: car.transmission || "غير محدد" },
-    { label: "نوع الهيكل", value: car.bodyType || "غير محدد" },
-    {
-      label: "عدد المقاعد",
-      value: car.seats != null && car.seats !== "" ? String(car.seats) : "غير محدد",
-    },
-  ];
-  if (car.category) {
-    specRows.push({ label: "فئة السيارة", value: car.category });
-  }
-
-  const wrap =
-    variant === "review"
-      ? "rounded-xl border border-white/15 bg-zinc-900/80 p-5 text-right text-white"
-      : "rounded-xl border border-yellow-600/50 bg-gradient-to-br from-yellow-800/90 to-yellow-950/90 p-5 text-right text-white shadow-lg";
-
-  return (
-    <div className={wrap}>
-      <div className="flex flex-col gap-1 border-b border-white/20 pb-4 mb-4">
-        <span className="text-xs font-medium text-white/70">المركبة المرتبطة بطلبك</span>
-        <h3 className="text-xl font-bold leading-snug">{headline || "—"}</h3>
-        <p className="text-sm text-white/85">موديل {car.year}</p>
-      </div>
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        {specRows.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-lg border border-white/10 bg-black/25 px-3 py-2.5"
-          >
-            <dt className="text-xs text-white/60">{label}</dt>
-            <dd className="mt-0.5 font-semibold text-white">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      {car.description ? (
-        <div className="mt-4 border-t border-white/15 pt-4">
-          <p className="text-xs font-medium text-white/60 mb-1">نبذة</p>
-          <p className="text-sm leading-relaxed text-white/90 line-clamp-4">{car.description}</p>
-        </div>
-      ) : null}
-      {car.id ? (
-        <div className="mt-4 text-center sm:text-right">
-          <Link
-            href={`/cars/${car.id}`}
-            className="inline-flex items-center gap-1 text-sm font-medium text-amber-200 underline-offset-4 hover:underline"
-          >
-            عرض صفحة السيارة كاملة
-          </Link>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 const getAgeBracketFromHijriBirthYear = (birthYear) => {
   const year = Number.parseInt(birthYear, 10);
@@ -114,69 +51,90 @@ const pickTopDistinctOffers = (offers, compareFn, distinctKeyFn, limit = 5) => {
 
 const generateIslamicOffers = ({ banks, formData, car }) => {
   const carPrice = Number(car.price) || 0;
+  if (carPrice <= 0 || !banks.length) {
+    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "missing price or banks" };
+  }
+
+  let insuranceSegment;
+  try {
+    insuranceSegment = validateInsuranceSegment(car.insuranceSegment);
+  } catch {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason:
+        "فئة التأمين غير محددة لهذه السيارة. يجب تعيين فئة التأمين (من جدول الماركات) قبل إنشاء العروض.",
+    };
+  }
+
   const selectedBank =
     banks.find((b) => b.id.toString() === formData.salaryTransferBank) || banks[0];
-  const selectedBankRate = selectedBank?.interestRate ? Number(selectedBank.interestRate) : 4.5;
+  const bankConfig = createBankConfigFromBank(selectedBank);
+  const bankBrandMap = parseBrandSegmentMap(selectedBank?.brandSegmentMap, bankConfig.brand_segment_map);
+
+  if (!isBrandInSegmentMap(bankBrandMap, car.make)) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: `ماركة "${car.make}" غير موجودة في جدول فئات بنك "${selectedBank?.name}". يلزم مراجعة يدوية أو تحديث جدول الفئات.`,
+    };
+  }
+  const profitRate = Number(selectedBank?.interestRate ?? 4.5);
+  const adminPct = bankConfig.default_admin_fees_pct ?? 0.01;
   const ageBracket = getAgeBracketFromHijriBirthYear(formData.birthYear);
   const gender = formData.gender || "male";
 
-  const downOptions = [0.1, 0.2, 0.3, 0.4, 0.5];
-  const terms = [12, 24, 36, 48, 60];
-  const balloonOptions = [0, 0.1, 0.2];
-  const adminOptions = [0.01, 0.015, 0.02];
-  const rateOffsets = [-0.75, -0.25, 0, 0.25, 0.75];
+  const { financingTerms, downPaymentOptions, balloonOptions } = LOAN_CALCULATOR_META;
 
   const offers = [];
   let offerId = 1;
 
-  for (const termMonths of terms) {
-    for (const downPct of downOptions) {
-      for (const balloonPct of balloonOptions) {
-        const effectiveRate = Math.max(0.01, (selectedBankRate + rateOffsets[(offerId - 1) % rateOffsets.length]) / 100);
-        const adminPct = adminOptions[(offerId - 1) % adminOptions.length];
-        const result = calculateIslamicAutoFinance(createBankConfigFromBank(selectedBank), {
-          car_price: carPrice,
-          down_payment_pct: downPct,
-          term_months: termMonths,
-          profit_rate: effectiveRate,
-          admin_fees_pct: adminPct,
-          balloon_payment_pct: balloonPct,
-          gender,
-          age_bracket: ageBracket,
-          car_brand: car.make,
-          rebate: 0,
-        });
+  const scenarioInputs = buildFinancingScenarioInputs({
+    car,
+    formData,
+    selectedBank,
+    bankConfig,
+    profitRate,
+    adminPct,
+    ageBracket,
+    gender,
+  });
 
-        offers.push({
-          id: offerId,
-          bankName: selectedBank?.name || "بنك افتراضي",
-          downPayment: result.derived.down_payment_sar,
-          downPaymentPct: downPct * 100,
-          monthlyPayment: result.totals.total_monthly_payment,
-          baseInstallment: result.totals.installment,
-          monthlyInsurance: result.totals.monthly_insurance,
-          termMonths,
-          interestRate: effectiveRate * 100,
-          adminFees: result.derived.admin_fees,
-          balloonPayment: result.derived.balloon_payment,
-          balloonPaymentPct: balloonPct * 100,
-          finalPayment: result.derived.last_month_payment,
-          lastMonthPayment: result.derived.last_month_payment,
-          totalPayment: result.totals.grand_total,
-          totalProfit: result.totals.total_profit,
-          totalInsurance: result.totals.total_insurance,
-          apr: result.metrics.apr,
-          irr: result.metrics.irr,
-          netMargin: result.metrics.net_margin,
-          irrGap: result.metrics.irr_gap,
-        });
+  for (const termMonths of financingTerms) {
+    for (const downPct of downPaymentOptions) {
+      for (const balloonPct of balloonOptions) {
+        offers.push(
+          buildCustomerFinancingOffer(
+            bankConfig,
+            {
+              car_price: carPrice,
+              down_payment_pct: downPct,
+              term_months: termMonths,
+              profit_rate: profitRate,
+              admin_fees_pct: adminPct,
+              balloon_payment_pct: balloonPct,
+              gender,
+              age_bracket: ageBracket,
+              insurance_segment: insuranceSegment,
+              rebate: 0,
+            },
+            {
+              id: offerId,
+              bankName: selectedBank?.name || "بنك افتراضي",
+            }
+          )
+        );
 
         offerId += 1;
       }
     }
   }
 
-  return offers;
+  const pricedOffers = offers.filter((offer) => offer.pricingAvailable !== false);
+
+  return { offers: pricedOffers, scenarioInputs, pricingBlocked: false };
 };
 
 const LoanRequestForm = ({ car }) => {
@@ -232,6 +190,15 @@ const LoanRequestForm = ({ car }) => {
       loanAmount: String(car.price),
     }));
     setSelectedOffer(offer);
+    if (typeof window !== "undefined" && window.__lastFinancingScenario?.inputs) {
+      logFinancingOfferScenario({
+        inputs: window.__lastFinancingScenario.inputs,
+        offers: window.__lastFinancingScenario.outputs.offers,
+        displayed: window.__lastFinancingScenario.outputs.displayedOnScreen,
+        selectedOffer: offer,
+        label: "offer-selected",
+      });
+    }
     nextStep();
   };
 
@@ -306,6 +273,7 @@ const LoanRequestForm = ({ car }) => {
         const result = await response.json();
         if (result.success) {
           setBanks(result.data);
+          registerAprDisclosureBanks(result.data);
         }
       } catch (error) {
         console.error('Error fetching banks:', error);
@@ -403,16 +371,14 @@ const LoanRequestForm = ({ car }) => {
         body: JSON.stringify({
           ...formData,
           mobileNumber: "+966" + formData.mobileNumber,
-          monthlyPayment: selectedOffer?.monthlyPayment,
-          interestRate: selectedOffer?.interestRate,
-          finalPayment: selectedOffer?.finalPayment,
+          selectedOffer,
           carId: car.id,
           carDetails: {
             year: car.year,
             make: car.make,
             model: car.model,
             price: car.price,
-          }
+          },
         }),
       });
 
@@ -442,9 +408,6 @@ const LoanRequestForm = ({ car }) => {
       case 0:
         return (
           <div className="space-y-6">
-            <LoanRequestCarSummary car={car} variant="step" />
-
-            {/* ID Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">معلومات الهوية (السعودية)</h3>
 
@@ -785,7 +748,26 @@ const LoanRequestForm = ({ car }) => {
         );
 
       case 4:
-        const allOffers = generateIslamicOffers({ banks, formData, car });
+        const offerResult = generateIslamicOffers({ banks, formData, car });
+        const allOffers = offerResult.offers;
+        const scenarioInputs = offerResult.scenarioInputs;
+
+        if (offerResult.pricingBlocked) {
+          return (
+            <div className="space-y-4 rounded-lg border border-amber-600/60 bg-amber-950/40 p-6 text-right">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-amber-200">
+                <AlertTriangle className="h-5 w-5" />
+                العروض التمويلية — مراجعة مطلوبة
+              </h3>
+              <p className="text-sm text-amber-100/90 leading-relaxed">
+                {offerResult.pricingBlockReason}
+              </p>
+              <p className="text-xs text-white/60">
+                ماركة السيارة: {car.make} · فئة التأمين المحفوظة: {car.insuranceSegment || "غير محددة"}
+              </p>
+            </div>
+          );
+        }
 
         // Group offers by term
         const offersByTerm = {};
@@ -815,6 +797,17 @@ const LoanRequestForm = ({ car }) => {
           (o) => `${Math.round(o.lastMonthPayment)}-${o.termMonths}-${Math.round(o.balloonPaymentPct)}`
         );
 
+        logFinancingOfferScenario({
+          inputs: scenarioInputs,
+          offers: allOffers,
+          displayed: {
+            lowestDownOffers,
+            lowestMonthlyOffers,
+            highestFinalOffers,
+          },
+          label: "offers-generated",
+        });
+
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -829,6 +822,7 @@ const LoanRequestForm = ({ car }) => {
                 {lowestDownOffers.map((offer) => (
                   <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
                     <div className="text-center mb-4">
+                      <p className="text-xs text-white/60">{offer.bankName}</p>
                       <p className="text-lg font-bold text-yellow-800">
                         عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
                       </p>
@@ -876,6 +870,7 @@ const LoanRequestForm = ({ car }) => {
                 {lowestMonthlyOffers.map((offer) => (
                   <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
                     <div className="text-center mb-4">
+                      <p className="text-xs text-white/60">{offer.bankName}</p>
                       <p className="text-lg font-bold text-yellow-800">
                         عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
                       </p>
@@ -923,6 +918,7 @@ const LoanRequestForm = ({ car }) => {
                 {highestFinalOffers.map((offer) => (
                   <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
                     <div className="text-center mb-4">
+                      <p className="text-xs text-white/60">{offer.bankName}</p>
                       <p className="text-lg font-bold text-yellow-800">
                         عرض قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))} و دفعة اخيرة {formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}
                       </p>
@@ -977,6 +973,7 @@ const LoanRequestForm = ({ car }) => {
                   {selectedOffers.map((offer) => (
                     <div key={offer.id} className="border-2 rounded-lg p-4 border-green-500 bg-white">
                       <div className="text-center mb-4">
+                        <p className="text-xs text-gray-600">{offer.bankName}</p>
                         <p className="text-lg font-bold text-green-800">
                           عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
                         </p>
@@ -1290,8 +1287,6 @@ const LoanRequestForm = ({ car }) => {
             <h3 className="text-lg font-semibold">مراجعة البيانات</h3>
 
             <div className="space-y-4">
-              <LoanRequestCarSummary car={car} variant="review" />
-
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">معلومات الهوية</h4>
                 <p>رقم الهوية: {formData.idNumber}</p>

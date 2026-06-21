@@ -1,5 +1,17 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { db } from "@/lib/prisma";
+
+const toFloat = (value) => {
+  if (value == null || value === "") return null;
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+const toInt = (value) => {
+  if (value == null || value === "") return null;
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : null;
+};
 
 export async function POST(request) {
   try {
@@ -25,6 +37,19 @@ export async function POST(request) {
       monthlyPayment,
       interestRate,
       finalPayment,
+      termMonths,
+      downPaymentPct,
+      baseInstallment,
+      monthlyInsurance,
+      balloonPayment,
+      balloonPaymentPct,
+      adminFees,
+      totalInsurance,
+      totalProfit,
+      totalPayment,
+      insuranceSegment,
+      offerSnapshot,
+      selectedOffer,
       netSalary,
       employerSector,
       employer,
@@ -34,92 +59,95 @@ export async function POST(request) {
       totalMonthlyObligations,
       additionalInfo,
       carId,
-      carDetails
     } = body;
 
-    // Validate required fields
-    if (!fullName || !email || !mobileNumber || !city || !time || !idNumber ||
-        !carMake || !carModel || !carYear || !birthMonth || !birthYear || !gender ||
-        !loanAmount || !downPayment || !loanTerm || !carId) {
+    const offer = selectedOffer && typeof selectedOffer === "object" ? selectedOffer : {};
+
+    if (
+      !fullName ||
+      !email ||
+      !mobileNumber ||
+      !city ||
+      !time ||
+      !idNumber ||
+      !carMake ||
+      !carModel ||
+      !carYear ||
+      !birthMonth ||
+      !birthYear ||
+      !gender ||
+      !loanAmount ||
+      !downPayment ||
+      !loanTerm ||
+      !carId
+    ) {
       return NextResponse.json(
-        { success: false, message: 'جميع الحقول المطلوبة يجب ملؤها' },
+        { success: false, message: "جميع الحقول المطلوبة يجب ملؤها" },
         { status: 400 }
       );
     }
 
-    // Create loan request record
     const loanRequest = await db.loanRequest.create({
       data: {
-        // Personal Information
         fullName,
         email,
         mobileNumber,
         city,
         time,
-
-        // ID Information
         idNumber,
         idImage: idImage || null,
-
-        // Car Information
         carMake,
         carModel,
         carCategory: carCategory || null,
-        carYear: parseInt(carYear),
-
-        // Birth Information
+        carYear: parseInt(carYear, 10),
         birthMonth,
         birthYear,
-
-        // Gender
         gender,
-
-        // Loan Details
         loanAmount: parseFloat(loanAmount),
         downPayment: parseFloat(downPayment),
-        loanTerm: parseInt(loanTerm),
-        monthlyPayment: monthlyPayment ? parseFloat(monthlyPayment) : null,
-        interestRate: interestRate ? parseFloat(interestRate) : null,
-        finalPayment: finalPayment ? parseFloat(finalPayment) : null,
-
-        // Financial Information
+        loanTerm: parseInt(loanTerm, 10),
+        termMonths: toInt(offer.termMonths ?? termMonths),
+        downPaymentPct: toFloat(offer.downPaymentPct ?? downPaymentPct),
+        monthlyPayment: toFloat(offer.monthlyPayment ?? monthlyPayment),
+        baseInstallment: toFloat(offer.baseInstallment ?? baseInstallment),
+        monthlyInsurance: toFloat(offer.monthlyInsurance ?? monthlyInsurance),
+        interestRate: toFloat(offer.interestRate ?? interestRate),
+        finalPayment: toFloat(offer.lastMonthPayment ?? offer.finalPayment ?? finalPayment),
+        balloonPayment: toFloat(offer.balloonPayment ?? balloonPayment),
+        balloonPaymentPct: toFloat(offer.balloonPaymentPct ?? balloonPaymentPct),
+        adminFees: toFloat(offer.adminFees ?? adminFees),
+        totalInsurance: toFloat(offer.totalInsurance ?? totalInsurance),
+        totalProfit: toFloat(offer.totalProfit ?? totalProfit),
+        totalPayment: toFloat(offer.totalPayment ?? totalPayment),
+        insuranceSegment: offer.insuranceSegment ?? insuranceSegment ?? null,
+        offerSnapshot: offerSnapshot ?? (Object.keys(offer).length ? offer : null),
         netSalary: netSalary ? parseFloat(netSalary) : null,
         employerSector: employerSector || null,
         employer: employer || null,
         salaryTransferBankId: salaryTransferBank || null,
-
-        // Credit Information
-        hasRealEstateFinance: hasRealEstateFinance === 'yes',
-        hasCreditDefault: hasCreditDefault === 'yes',
-        totalMonthlyObligations: totalMonthlyObligations ? parseFloat(totalMonthlyObligations) : null,
-
-        // Additional Information
+        hasRealEstateFinance: hasRealEstateFinance === "yes",
+        hasCreditDefault: hasCreditDefault === "yes",
+        totalMonthlyObligations: totalMonthlyObligations
+          ? parseFloat(totalMonthlyObligations)
+          : null,
         additionalInfo: additionalInfo || null,
-
-        // Car relation
         carId,
-
-        // Status
-        status: 'PENDING',
+        status: "PENDING",
       },
     });
 
-    // Here you could add email notification logic or other integrations
-    // For now, we'll just return success
-
     return NextResponse.json({
       success: true,
-      message: 'تم إرسال طلب القرض بنجاح',
+      message: "تم إرسال طلب القرض بنجاح",
       data: {
         id: loanRequest.id,
-        status: loanRequest.status
-      }
+        status: loanRequest.status,
+      },
     });
-
   } catch (error) {
-    console.error('Error creating loan request:', error);
+    console.error("Error creating loan request:", error);
     return NextResponse.json(
-      { success: false, message: 'حدث خطأ في معالجة الطلب' },
+      { success: false, message: "حدث خطأ في معالجة الطلب" },
       { status: 500 }
     );
   }
@@ -127,7 +155,7 @@ export async function POST(request) {
 
 export async function GET() {
   return NextResponse.json(
-    { success: false, message: 'Method not allowed' },
+    { success: false, message: "Method not allowed" },
     { status: 405 }
   );
 }

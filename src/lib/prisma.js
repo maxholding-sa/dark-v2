@@ -76,13 +76,28 @@ const createPrismaClient = () => {
   });
 };
 
+// Bump when Prisma schema changes so HMR does not keep an outdated client.
+const PRISMA_CLIENT_VERSION = "20260618-about-page-v2";
 const globalForPrisma = globalThis;
 
-export const db = globalForPrisma.prisma ?? createPrismaClient();
+function getPrismaClient() {
+  if (
+    globalForPrisma.prisma &&
+    globalForPrisma.prismaClientVersion !== PRISMA_CLIENT_VERSION
+  ) {
+    void globalForPrisma.prisma.$disconnect().catch(() => {});
+    globalForPrisma.prisma = undefined;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+    globalForPrisma.prismaClientVersion = PRISMA_CLIENT_VERSION;
+  }
+
+  return globalForPrisma.prisma;
 }
+
+export const db = getPrismaClient();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

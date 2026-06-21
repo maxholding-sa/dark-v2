@@ -7,7 +7,7 @@ import { SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 import { headers } from "next/headers";
-import { getLogoByType, getPixelSettings, getFooterData } from "@/actions/site-management";
+import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -70,11 +70,12 @@ export default async function RootLayout({ children }) {
 
   // Fetch all layout data on server in parallel. Logos/pixels use actions that catch DB errors;
   // these raw queries must not crash the whole app when the DB is unreachable (e.g. Supabase paused, network).
-  const [navLogoRes, footerLogoRes, pixelSettingsRes, footerDbRes] = await Promise.all([
+  const [navLogoRes, footerLogoRes, pixelSettingsRes, footerDbRes, aboutPageRes] = await Promise.all([
     getLogoByType("navbar"),
     getLogoByType("footer"),
     getPixelSettings(),
     getFooterData(),
+    getAboutPage(),
   ]);
 
   const socialLinks = footerDbRes?.socialLinks || [];
@@ -83,10 +84,12 @@ export default async function RootLayout({ children }) {
   const pixels = pixelSettingsRes?.data || {};
 
   const navLogo = navLogoRes?.data;
+  const aboutNavLabel = aboutPageRes?.data?.title || "من نحن";
   const footerData = {
     logo: footerLogoRes?.data,
     socialLinks: socialLinks || [],
-    storeInfo: storeInfo
+    storeInfo: storeInfo,
+    aboutNavLabel,
   };
 
   return (
@@ -111,6 +114,7 @@ export default async function RootLayout({ children }) {
           <ClientWrapper
             isSignUpPage={isSignUpPage}
             navLogo={navLogo}
+            aboutNavLabel={aboutNavLabel}
             footerData={footerData}
           >
             {children}

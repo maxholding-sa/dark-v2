@@ -16,7 +16,7 @@ const AboutPageManagementPage = () => {
 
   const fetchAboutPage = async () => {
     setLoading(true);
-    const result = await getAboutPage();
+    const result = await getAboutPage({ forAdmin: true });
     if (result.success) {
       setAboutPage(result.data);
     }
@@ -30,8 +30,8 @@ const AboutPageManagementPage = () => {
   return (
     <div className="p-6" dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">صفحة عن المتجر</h1>
-        <p className="text-gray-600 mt-2">إدارة محتوى وتكوين صفحة عن المتجر</p>
+        <h1 className="text-2xl font-bold">صفحة من نحن</h1>
+        <p className="text-gray-600 mt-2">إدارة محتوى صفحة من نحن والرؤية والرسالة والمميزات</p>
       </div>
 
       {loading ? (

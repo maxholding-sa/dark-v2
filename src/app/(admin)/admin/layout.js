@@ -4,14 +4,15 @@ import { notFound } from "next/navigation";
 import React from "react";
 import Sidebar from "./_components/Sidebar";
 import PermissionGuard from "./_components/PermissionGuard";
-import { getLogoByType } from "@/actions/site-management";
+import { getLogoByType, getAboutPage } from "@/actions/site-management";
 
 export const dynamic = 'force-dynamic';
 
 const AdminLayout = async ({ children }) => {
-  const [admin, navLogoRes] = await Promise.all([
+  const [admin, navLogoRes, aboutPageRes] = await Promise.all([
     getAdmin(),
-    getLogoByType("navbar")
+    getLogoByType("navbar"),
+    getAboutPage({ forAdmin: true }),
   ]);
 
   if (!admin.authorized) {
@@ -19,11 +20,12 @@ const AdminLayout = async ({ children }) => {
   }
 
   const navLogo = navLogoRes?.data;
+  const aboutNavLabel = aboutPageRes?.data?.title || "من نحن";
 
   return (
     <div className="h-full">
       {/* Overlapping header page here to avoid making it a client component */}
-      <Header isAdminPage={true} navLogo={navLogo} />
+      <Header isAdminPage={true} navLogo={navLogo} aboutNavLabel={aboutNavLabel} />
 
       <div className="w-56 fixed top-20 bottom-0 z-50 right-0 flex flex-col">
         <Sidebar user={admin.user} />

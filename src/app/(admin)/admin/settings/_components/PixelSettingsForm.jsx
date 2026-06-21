@@ -94,20 +94,22 @@ const PixelSettingsForm = () => {
     return (
         <div dir="rtl" className="space-y-6">
             <Tabs defaultValue="meta" className="w-full">
-                <TabsList className="flex flex-row-reverse justify-start bg-black/40 border border-white/10 p-1 mb-6">
-                    <TabsTrigger value="meta" className="flex flex-row-reverse gap-2 data-[state=active]:bg-blue-600">
+                <div className="flex justify-end mb-6">
+                <TabsList dir="rtl" className="flex flex-wrap h-auto gap-1 bg-black/40 border border-white/10 p-1">
+                    <TabsTrigger value="meta" className="flex items-center gap-2 data-[state=active]:bg-blue-600">
                         <Facebook className="h-4 w-4" /> Meta / FB
                     </TabsTrigger>
-                    <TabsTrigger value="google" className="flex flex-row-reverse gap-2 data-[state=active]:bg-orange-600">
+                    <TabsTrigger value="google" className="flex items-center gap-2 data-[state=active]:bg-orange-600">
                         <Chrome className="h-4 w-4" /> Google
                     </TabsTrigger>
-                    <TabsTrigger value="tiktok" className="flex flex-row-reverse gap-2 data-[state=active]:bg-pink-600">
+                    <TabsTrigger value="tiktok" className="flex items-center gap-2 data-[state=active]:bg-pink-600">
                         <Music2 className="h-4 w-4" /> TikTok / Snap
                     </TabsTrigger>
-                    <TabsTrigger value="clarity" className="flex flex-row-reverse gap-2 data-[state=active]:bg-teal-600">
+                    <TabsTrigger value="clarity" className="flex items-center gap-2 data-[state=active]:bg-teal-600">
                         <Activity className="h-4 w-4" /> Clarity
                     </TabsTrigger>
                 </TabsList>
+                </div>
 
                 {/* Meta / Facebook Tab */}
                 <TabsContent value="meta">

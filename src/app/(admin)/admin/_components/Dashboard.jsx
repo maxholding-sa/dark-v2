@@ -1,11 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Calendar, Car, DollarSign, Info, TrendingUp } from "lucide-react";
+import { Info } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import TestDriveTab from "./TestDriveTab";
+import LoanRequestsTab from "./LoanRequestsTab";
 
 const Dashboard = ({ initialData }) => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -22,7 +22,7 @@ const Dashboard = ({ initialData }) => {
     );
   }
 
-  const { cars, testDrives } = initialData.data;
+  const { cars, testDrives, loanRequests } = initialData.data;
 
   return (
     <div>
@@ -32,9 +32,10 @@ const Dashboard = ({ initialData }) => {
         onValueChange={setActiveTab}
       >
         <div className="flex justify-end mb-2">
-          <TabsList className="flex-row-reverse">
+          <TabsList dir="rtl">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="testDrives">اختبارات القيادة</TabsTrigger>
+            <TabsTrigger value="loanRequests">طلبات القروض</TabsTrigger>
           </TabsList>
         </div>
 
@@ -44,6 +45,10 @@ const Dashboard = ({ initialData }) => {
 
         <TabsContent value="testDrives">
           <TestDriveTab testDrives={testDrives} />
+        </TabsContent>
+
+        <TabsContent value="loanRequests">
+          <LoanRequestsTab loanRequests={loanRequests} />
         </TabsContent>
       </Tabs>
     </div>

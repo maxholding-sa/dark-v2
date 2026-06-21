@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { serializedCarsData } from "@/lib/helper";
+import { serializeBankRecord } from "@/lib/bank-finance";
 import {
   fuelTypes as predefinedFuelTypes,
   transmissions as predefinedTransmissions,
@@ -168,14 +169,7 @@ export async function getBanksSupabase() {
     .order("createdAt", { ascending: false });
   if (error) throw new Error(error.message);
 
-  const serializedBanks = (data ?? []).map((bank) => ({
-    ...bank,
-    interestRate: bank.interestRate
-      ? parseFloat(String(bank.interestRate))
-      : 0,
-  }));
-
-  return { success: true, data: serializedBanks };
+  return { success: true, data: (data ?? []).map(serializeBankRecord) };
 }
 
 export async function getFeaturedBrandsSupabase() {

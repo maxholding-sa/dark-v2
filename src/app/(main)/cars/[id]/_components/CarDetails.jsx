@@ -362,7 +362,7 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
               <DialogHeader>
                 <DialogTitle className="text-2xl text-gray-800">
                 </DialogTitle>
-                <EmiCalculator price={car.price} carId={car.id} carBrand={car.make} />
+                <EmiCalculator price={car.price} carId={car.id} carBrand={car.make} insuranceSegment={car.insuranceSegment} />
               </DialogHeader>
             </DialogContent>
           </Dialog>

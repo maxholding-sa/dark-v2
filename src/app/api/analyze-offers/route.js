@@ -68,8 +68,6 @@ function analyzeOffer(offer, availableIncome, carPrice) {
   const totalProfit = asNumber(offer.totalProfit, 0);
   const totalInsurance = asNumber(offer.totalInsurance, 0);
   const interestRate = asNumber(offer.interestRate, 0);
-  const apr = asNumber(offer.apr, 0);
-  const irr = asNumber(offer.irr, 0);
   const finalPayment = asNumber(
     offer.lastMonthPayment ?? offer.finalPayment,
     0
@@ -94,8 +92,6 @@ function analyzeOffer(offer, availableIncome, carPrice) {
     totalProfit,
     totalInsurance,
     interestRate,
-    apr: apr * 100,
-    irr: irr * 100,
     finalPayment,
     adminFees,
     loanAmount,
@@ -108,7 +104,6 @@ function buildRecommendations(analyzedOffers, risk) {
   const affordable = analyzedOffers.filter((o) => o.isAffordable);
   const byCost = [...analyzedOffers].sort((a, b) => a.totalCost - b.totalCost)[0];
   const byMonthly = [...analyzedOffers].sort((a, b) => a.monthlyPayment - b.monthlyPayment)[0];
-  const byAPR = [...analyzedOffers].sort((a, b) => a.apr - b.apr)[0];
 
   const primary = [];
   const warnings = [];
@@ -117,7 +112,6 @@ function buildRecommendations(analyzedOffers, risk) {
   if (affordable.length > 0) {
     primary.push(`أفضل تكلفة إجمالية: العرض ${byCost.id} (${formatCurrency(byCost.totalCost)})`);
     primary.push(`أخف قسط شهري: العرض ${byMonthly.id} (${formatCurrency(byMonthly.monthlyPayment)})`);
-    primary.push(`أفضل APR: العرض ${byAPR.id} (${byAPR.apr.toFixed(2)}%)`);
   } else {
     warnings.push("لا يوجد عرض ضمن حد التحمل الشهري الحالي");
     suggestions.push("رفع الدفعة الأولى أو اختيار مدة أطول لتقليل القسط الشهري");
