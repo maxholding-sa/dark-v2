@@ -152,7 +152,7 @@ export default function BrandSegmentMapEditor({ initialValue = "", onChange }) {
                         value={row.segment || ""}
                         onValueChange={(segment) => handleSegmentChange(row.make, segment)}
                       >
-                        <SelectTrigger className="h-9 w-full min-w-[7rem] bg-zinc-900">
+                        <SelectTrigger className="h-9 w-full min-w-[7rem]">
                           <SelectValue placeholder="اختر الفئة" />
                         </SelectTrigger>
                         <SelectContent>

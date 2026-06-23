@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
 const StoreInfoForm = ({ storeInfo, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,9 @@ const StoreInfoForm = ({ storeInfo, onSubmit }) => {
     email: storeInfo?.email || "",
     latitude: storeInfo?.latitude || "",
     longitude: storeInfo?.longitude || "",
+    whatsappEnabled: storeInfo?.whatsappEnabled !== undefined ? storeInfo.whatsappEnabled : true,
+    whatsappLabel: storeInfo?.whatsappLabel || "",
+    whatsappText: storeInfo?.whatsappText || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +34,10 @@ const StoreInfoForm = ({ storeInfo, onSubmit }) => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleToggle = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -166,6 +174,49 @@ const StoreInfoForm = ({ storeInfo, onSubmit }) => {
             onChange={handleChange}
             placeholder="46.6753"
           />
+        </div>
+      </div>
+
+      {/* WhatsApp Floating Button Settings */}
+      <div className="p-4 border border-green-200 bg-green-50 rounded space-y-4">
+        <h3 className="font-semibold text-green-800 text-sm">⚙️ إعدادات زر واتساب العائم</h3>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="whatsappEnabled" className="text-sm font-medium">
+            إظهار زر واتساب العائم
+          </Label>
+          <Switch
+            id="whatsappEnabled"
+            checked={formData.whatsappEnabled}
+            onCheckedChange={(val) => handleToggle("whatsappEnabled", val)}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="whatsappLabel">نص التسمية فوق الزر</Label>
+          <Input
+            id="whatsappLabel"
+            name="whatsappLabel"
+            value={formData.whatsappLabel}
+            onChange={handleChange}
+            placeholder="تواصل معنا"
+            disabled={!formData.whatsappEnabled}
+          />
+          <p className="text-xs text-gray-500 mt-1">يظهر فوق زر واتساب. اتركه فارغاً للنص الافتراضي.</p>
+        </div>
+
+        <div>
+          <Label htmlFor="whatsappText">رسالة مسبقة الملء عند الضغط على الزر</Label>
+          <Textarea
+            id="whatsappText"
+            name="whatsappText"
+            value={formData.whatsappText}
+            onChange={handleChange}
+            placeholder="مرحباً، أود الاستفسار عن..."
+            rows={3}
+            disabled={!formData.whatsappEnabled}
+          />
+          <p className="text-xs text-gray-500 mt-1">تظهر هذه الرسالة مكتوبة مسبقاً عند فتح المحادثة.</p>
         </div>
       </div>
 

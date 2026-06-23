@@ -13262,6 +13262,7 @@ export namespace Prisma {
 
   export type BankAvgAggregateOutputType = {
     interestRate: Decimal | null
+    defaultBalloonPaymentPct: Decimal | null
     adminFeesCap: Decimal | null
     defaultAdminFeesPct: Decimal | null
     minInsurancePremium: Decimal | null
@@ -13273,6 +13274,7 @@ export namespace Prisma {
 
   export type BankSumAggregateOutputType = {
     interestRate: Decimal | null
+    defaultBalloonPaymentPct: Decimal | null
     adminFeesCap: Decimal | null
     defaultAdminFeesPct: Decimal | null
     minInsurancePremium: Decimal | null
@@ -13287,6 +13289,7 @@ export namespace Prisma {
     name: string | null
     logoImage: string | null
     interestRate: Decimal | null
+    defaultBalloonPaymentPct: Decimal | null
     loanPolicy: string | null
     adminFeesCap: Decimal | null
     defaultAdminFeesPct: Decimal | null
@@ -13304,6 +13307,7 @@ export namespace Prisma {
     name: string | null
     logoImage: string | null
     interestRate: Decimal | null
+    defaultBalloonPaymentPct: Decimal | null
     loanPolicy: string | null
     adminFeesCap: Decimal | null
     defaultAdminFeesPct: Decimal | null
@@ -13321,6 +13325,8 @@ export namespace Prisma {
     name: number
     logoImage: number
     interestRate: number
+    sectorInterestRates: number
+    defaultBalloonPaymentPct: number
     loanPolicy: number
     adminFeesCap: number
     defaultAdminFeesPct: number
@@ -13340,6 +13346,7 @@ export namespace Prisma {
 
   export type BankAvgAggregateInputType = {
     interestRate?: true
+    defaultBalloonPaymentPct?: true
     adminFeesCap?: true
     defaultAdminFeesPct?: true
     minInsurancePremium?: true
@@ -13351,6 +13358,7 @@ export namespace Prisma {
 
   export type BankSumAggregateInputType = {
     interestRate?: true
+    defaultBalloonPaymentPct?: true
     adminFeesCap?: true
     defaultAdminFeesPct?: true
     minInsurancePremium?: true
@@ -13365,6 +13373,7 @@ export namespace Prisma {
     name?: true
     logoImage?: true
     interestRate?: true
+    defaultBalloonPaymentPct?: true
     loanPolicy?: true
     adminFeesCap?: true
     defaultAdminFeesPct?: true
@@ -13382,6 +13391,7 @@ export namespace Prisma {
     name?: true
     logoImage?: true
     interestRate?: true
+    defaultBalloonPaymentPct?: true
     loanPolicy?: true
     adminFeesCap?: true
     defaultAdminFeesPct?: true
@@ -13399,6 +13409,8 @@ export namespace Prisma {
     name?: true
     logoImage?: true
     interestRate?: true
+    sectorInterestRates?: true
+    defaultBalloonPaymentPct?: true
     loanPolicy?: true
     adminFeesCap?: true
     defaultAdminFeesPct?: true
@@ -13506,6 +13518,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal
+    sectorInterestRates: JsonValue | null
+    defaultBalloonPaymentPct: Decimal | null
     loanPolicy: string | null
     adminFeesCap: Decimal | null
     defaultAdminFeesPct: Decimal | null
@@ -13545,6 +13559,8 @@ export namespace Prisma {
     name?: boolean
     logoImage?: boolean
     interestRate?: boolean
+    sectorInterestRates?: boolean
+    defaultBalloonPaymentPct?: boolean
     loanPolicy?: boolean
     adminFeesCap?: boolean
     defaultAdminFeesPct?: boolean
@@ -13567,6 +13583,8 @@ export namespace Prisma {
     name?: boolean
     logoImage?: boolean
     interestRate?: boolean
+    sectorInterestRates?: boolean
+    defaultBalloonPaymentPct?: boolean
     loanPolicy?: boolean
     adminFeesCap?: boolean
     defaultAdminFeesPct?: boolean
@@ -13587,6 +13605,8 @@ export namespace Prisma {
     name?: boolean
     logoImage?: boolean
     interestRate?: boolean
+    sectorInterestRates?: boolean
+    defaultBalloonPaymentPct?: boolean
     loanPolicy?: boolean
     adminFeesCap?: boolean
     defaultAdminFeesPct?: boolean
@@ -13607,6 +13627,8 @@ export namespace Prisma {
     name?: boolean
     logoImage?: boolean
     interestRate?: boolean
+    sectorInterestRates?: boolean
+    defaultBalloonPaymentPct?: boolean
     loanPolicy?: boolean
     adminFeesCap?: boolean
     defaultAdminFeesPct?: boolean
@@ -13622,7 +13644,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type BankOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logoImage" | "interestRate" | "loanPolicy" | "adminFeesCap" | "defaultAdminFeesPct" | "minInsurancePremium" | "assetDepreciationRate" | "ftpAnchors" | "cor" | "opex" | "irrTarget" | "brandSegmentMap" | "insuranceTable" | "createdAt" | "updatedAt", ExtArgs["result"]["bank"]>
+  export type BankOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logoImage" | "interestRate" | "sectorInterestRates" | "defaultBalloonPaymentPct" | "loanPolicy" | "adminFeesCap" | "defaultAdminFeesPct" | "minInsurancePremium" | "assetDepreciationRate" | "ftpAnchors" | "cor" | "opex" | "irrTarget" | "brandSegmentMap" | "insuranceTable" | "createdAt" | "updatedAt", ExtArgs["result"]["bank"]>
   export type BankInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     loanRequests?: boolean | Bank$loanRequestsArgs<ExtArgs>
     _count?: boolean | BankCountOutputTypeDefaultArgs<ExtArgs>
@@ -13640,6 +13662,8 @@ export namespace Prisma {
       name: string
       logoImage: string
       interestRate: Prisma.Decimal
+      sectorInterestRates: Prisma.JsonValue | null
+      defaultBalloonPaymentPct: Prisma.Decimal | null
       loanPolicy: string | null
       adminFeesCap: Prisma.Decimal | null
       defaultAdminFeesPct: Prisma.Decimal | null
@@ -14081,6 +14105,8 @@ export namespace Prisma {
     readonly name: FieldRef<"Bank", 'String'>
     readonly logoImage: FieldRef<"Bank", 'String'>
     readonly interestRate: FieldRef<"Bank", 'Decimal'>
+    readonly sectorInterestRates: FieldRef<"Bank", 'Json'>
+    readonly defaultBalloonPaymentPct: FieldRef<"Bank", 'Decimal'>
     readonly loanPolicy: FieldRef<"Bank", 'String'>
     readonly adminFeesCap: FieldRef<"Bank", 'Decimal'>
     readonly defaultAdminFeesPct: FieldRef<"Bank", 'Decimal'>
@@ -20609,6 +20635,9 @@ export namespace Prisma {
     email: string | null
     latitude: string | null
     longitude: string | null
+    whatsappEnabled: boolean | null
+    whatsappLabel: string | null
+    whatsappText: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20625,6 +20654,9 @@ export namespace Prisma {
     email: string | null
     latitude: string | null
     longitude: string | null
+    whatsappEnabled: boolean | null
+    whatsappLabel: string | null
+    whatsappText: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20641,6 +20673,9 @@ export namespace Prisma {
     email: number
     latitude: number
     longitude: number
+    whatsappEnabled: number
+    whatsappLabel: number
+    whatsappText: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -20659,6 +20694,9 @@ export namespace Prisma {
     email?: true
     latitude?: true
     longitude?: true
+    whatsappEnabled?: true
+    whatsappLabel?: true
+    whatsappText?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20675,6 +20713,9 @@ export namespace Prisma {
     email?: true
     latitude?: true
     longitude?: true
+    whatsappEnabled?: true
+    whatsappLabel?: true
+    whatsappText?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20691,6 +20732,9 @@ export namespace Prisma {
     email?: true
     latitude?: true
     longitude?: true
+    whatsappEnabled?: true
+    whatsappLabel?: true
+    whatsappText?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -20780,6 +20824,9 @@ export namespace Prisma {
     email: string | null
     latitude: string | null
     longitude: string | null
+    whatsappEnabled: boolean
+    whatsappLabel: string | null
+    whatsappText: string | null
     createdAt: Date
     updatedAt: Date
     _count: StoreInfoCountAggregateOutputType | null
@@ -20813,6 +20860,9 @@ export namespace Prisma {
     email?: boolean
     latitude?: boolean
     longitude?: boolean
+    whatsappEnabled?: boolean
+    whatsappLabel?: boolean
+    whatsappText?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["storeInfo"]>
@@ -20829,6 +20879,9 @@ export namespace Prisma {
     email?: boolean
     latitude?: boolean
     longitude?: boolean
+    whatsappEnabled?: boolean
+    whatsappLabel?: boolean
+    whatsappText?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["storeInfo"]>
@@ -20845,6 +20898,9 @@ export namespace Prisma {
     email?: boolean
     latitude?: boolean
     longitude?: boolean
+    whatsappEnabled?: boolean
+    whatsappLabel?: boolean
+    whatsappText?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["storeInfo"]>
@@ -20861,11 +20917,14 @@ export namespace Prisma {
     email?: boolean
     latitude?: boolean
     longitude?: boolean
+    whatsappEnabled?: boolean
+    whatsappLabel?: boolean
+    whatsappText?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type StoreInfoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "address" | "city" | "country" | "phone" | "whatsapp" | "email" | "latitude" | "longitude" | "createdAt" | "updatedAt", ExtArgs["result"]["storeInfo"]>
+  export type StoreInfoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "address" | "city" | "country" | "phone" | "whatsapp" | "email" | "latitude" | "longitude" | "whatsappEnabled" | "whatsappLabel" | "whatsappText" | "createdAt" | "updatedAt", ExtArgs["result"]["storeInfo"]>
 
   export type $StoreInfoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "StoreInfo"
@@ -20882,6 +20941,9 @@ export namespace Prisma {
       email: string | null
       latitude: string | null
       longitude: string | null
+      whatsappEnabled: boolean
+      whatsappLabel: string | null
+      whatsappText: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["storeInfo"]>
@@ -21318,6 +21380,9 @@ export namespace Prisma {
     readonly email: FieldRef<"StoreInfo", 'String'>
     readonly latitude: FieldRef<"StoreInfo", 'String'>
     readonly longitude: FieldRef<"StoreInfo", 'String'>
+    readonly whatsappEnabled: FieldRef<"StoreInfo", 'Boolean'>
+    readonly whatsappLabel: FieldRef<"StoreInfo", 'String'>
+    readonly whatsappText: FieldRef<"StoreInfo", 'String'>
     readonly createdAt: FieldRef<"StoreInfo", 'DateTime'>
     readonly updatedAt: FieldRef<"StoreInfo", 'DateTime'>
   }
@@ -28406,6 +28471,8 @@ export namespace Prisma {
     name: 'name',
     logoImage: 'logoImage',
     interestRate: 'interestRate',
+    sectorInterestRates: 'sectorInterestRates',
+    defaultBalloonPaymentPct: 'defaultBalloonPaymentPct',
     loanPolicy: 'loanPolicy',
     adminFeesCap: 'adminFeesCap',
     defaultAdminFeesPct: 'defaultAdminFeesPct',
@@ -28549,6 +28616,9 @@ export namespace Prisma {
     email: 'email',
     latitude: 'latitude',
     longitude: 'longitude',
+    whatsappEnabled: 'whatsappEnabled',
+    whatsappLabel: 'whatsappLabel',
+    whatsappText: 'whatsappText',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -29606,6 +29676,8 @@ export namespace Prisma {
     name?: StringFilter<"Bank"> | string
     logoImage?: StringFilter<"Bank"> | string
     interestRate?: DecimalFilter<"Bank"> | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: JsonNullableFilter<"Bank">
+    defaultBalloonPaymentPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: StringNullableFilter<"Bank"> | string | null
     adminFeesCap?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
@@ -29627,6 +29699,8 @@ export namespace Prisma {
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
+    sectorInterestRates?: SortOrderInput | SortOrder
+    defaultBalloonPaymentPct?: SortOrderInput | SortOrder
     loanPolicy?: SortOrderInput | SortOrder
     adminFeesCap?: SortOrderInput | SortOrder
     defaultAdminFeesPct?: SortOrderInput | SortOrder
@@ -29651,6 +29725,8 @@ export namespace Prisma {
     name?: StringFilter<"Bank"> | string
     logoImage?: StringFilter<"Bank"> | string
     interestRate?: DecimalFilter<"Bank"> | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: JsonNullableFilter<"Bank">
+    defaultBalloonPaymentPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: StringNullableFilter<"Bank"> | string | null
     adminFeesCap?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: DecimalNullableFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
@@ -29672,6 +29748,8 @@ export namespace Prisma {
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
+    sectorInterestRates?: SortOrderInput | SortOrder
+    defaultBalloonPaymentPct?: SortOrderInput | SortOrder
     loanPolicy?: SortOrderInput | SortOrder
     adminFeesCap?: SortOrderInput | SortOrder
     defaultAdminFeesPct?: SortOrderInput | SortOrder
@@ -29700,6 +29778,8 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Bank"> | string
     logoImage?: StringWithAggregatesFilter<"Bank"> | string
     interestRate?: DecimalWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: JsonNullableWithAggregatesFilter<"Bank">
+    defaultBalloonPaymentPct?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: StringNullableWithAggregatesFilter<"Bank"> | string | null
     adminFeesCap?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: DecimalNullableWithAggregatesFilter<"Bank"> | Decimal | DecimalJsLike | number | string | null
@@ -30295,6 +30375,9 @@ export namespace Prisma {
     email?: StringNullableFilter<"StoreInfo"> | string | null
     latitude?: StringNullableFilter<"StoreInfo"> | string | null
     longitude?: StringNullableFilter<"StoreInfo"> | string | null
+    whatsappEnabled?: BoolFilter<"StoreInfo"> | boolean
+    whatsappLabel?: StringNullableFilter<"StoreInfo"> | string | null
+    whatsappText?: StringNullableFilter<"StoreInfo"> | string | null
     createdAt?: DateTimeFilter<"StoreInfo"> | Date | string
     updatedAt?: DateTimeFilter<"StoreInfo"> | Date | string
   }
@@ -30311,6 +30394,9 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     latitude?: SortOrderInput | SortOrder
     longitude?: SortOrderInput | SortOrder
+    whatsappEnabled?: SortOrder
+    whatsappLabel?: SortOrderInput | SortOrder
+    whatsappText?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -30330,6 +30416,9 @@ export namespace Prisma {
     email?: StringNullableFilter<"StoreInfo"> | string | null
     latitude?: StringNullableFilter<"StoreInfo"> | string | null
     longitude?: StringNullableFilter<"StoreInfo"> | string | null
+    whatsappEnabled?: BoolFilter<"StoreInfo"> | boolean
+    whatsappLabel?: StringNullableFilter<"StoreInfo"> | string | null
+    whatsappText?: StringNullableFilter<"StoreInfo"> | string | null
     createdAt?: DateTimeFilter<"StoreInfo"> | Date | string
     updatedAt?: DateTimeFilter<"StoreInfo"> | Date | string
   }, "id" | "id">
@@ -30346,6 +30435,9 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     latitude?: SortOrderInput | SortOrder
     longitude?: SortOrderInput | SortOrder
+    whatsappEnabled?: SortOrder
+    whatsappLabel?: SortOrderInput | SortOrder
+    whatsappText?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: StoreInfoCountOrderByAggregateInput
@@ -30368,6 +30460,9 @@ export namespace Prisma {
     email?: StringNullableWithAggregatesFilter<"StoreInfo"> | string | null
     latitude?: StringNullableWithAggregatesFilter<"StoreInfo"> | string | null
     longitude?: StringNullableWithAggregatesFilter<"StoreInfo"> | string | null
+    whatsappEnabled?: BoolWithAggregatesFilter<"StoreInfo"> | boolean
+    whatsappLabel?: StringNullableWithAggregatesFilter<"StoreInfo"> | string | null
+    whatsappText?: StringNullableWithAggregatesFilter<"StoreInfo"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"StoreInfo"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"StoreInfo"> | Date | string
   }
@@ -31692,6 +31787,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
     loanPolicy?: string | null
     adminFeesCap?: Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
@@ -31713,6 +31810,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
     loanPolicy?: string | null
     adminFeesCap?: Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
@@ -31734,6 +31833,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -31755,6 +31856,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -31776,6 +31879,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
     loanPolicy?: string | null
     adminFeesCap?: Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
@@ -31796,6 +31901,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -31816,6 +31923,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -32526,6 +32635,9 @@ export namespace Prisma {
     email?: string | null
     latitude?: string | null
     longitude?: string | null
+    whatsappEnabled?: boolean
+    whatsappLabel?: string | null
+    whatsappText?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -32542,6 +32654,9 @@ export namespace Prisma {
     email?: string | null
     latitude?: string | null
     longitude?: string | null
+    whatsappEnabled?: boolean
+    whatsappLabel?: string | null
+    whatsappText?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -32558,6 +32673,9 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableStringFieldUpdateOperationsInput | string | null
     longitude?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappEnabled?: BoolFieldUpdateOperationsInput | boolean
+    whatsappLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappText?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -32574,6 +32692,9 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableStringFieldUpdateOperationsInput | string | null
     longitude?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappEnabled?: BoolFieldUpdateOperationsInput | boolean
+    whatsappLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappText?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -32590,6 +32711,9 @@ export namespace Prisma {
     email?: string | null
     latitude?: string | null
     longitude?: string | null
+    whatsappEnabled?: boolean
+    whatsappLabel?: string | null
+    whatsappText?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -32606,6 +32730,9 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableStringFieldUpdateOperationsInput | string | null
     longitude?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappEnabled?: BoolFieldUpdateOperationsInput | boolean
+    whatsappLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappText?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -32622,6 +32749,9 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableStringFieldUpdateOperationsInput | string | null
     longitude?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappEnabled?: BoolFieldUpdateOperationsInput | boolean
+    whatsappLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappText?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -33977,6 +34107,8 @@ export namespace Prisma {
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
+    sectorInterestRates?: SortOrder
+    defaultBalloonPaymentPct?: SortOrder
     loanPolicy?: SortOrder
     adminFeesCap?: SortOrder
     defaultAdminFeesPct?: SortOrder
@@ -33994,6 +34126,7 @@ export namespace Prisma {
 
   export type BankAvgOrderByAggregateInput = {
     interestRate?: SortOrder
+    defaultBalloonPaymentPct?: SortOrder
     adminFeesCap?: SortOrder
     defaultAdminFeesPct?: SortOrder
     minInsurancePremium?: SortOrder
@@ -34008,6 +34141,7 @@ export namespace Prisma {
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
+    defaultBalloonPaymentPct?: SortOrder
     loanPolicy?: SortOrder
     adminFeesCap?: SortOrder
     defaultAdminFeesPct?: SortOrder
@@ -34025,6 +34159,7 @@ export namespace Prisma {
     name?: SortOrder
     logoImage?: SortOrder
     interestRate?: SortOrder
+    defaultBalloonPaymentPct?: SortOrder
     loanPolicy?: SortOrder
     adminFeesCap?: SortOrder
     defaultAdminFeesPct?: SortOrder
@@ -34039,6 +34174,7 @@ export namespace Prisma {
 
   export type BankSumOrderByAggregateInput = {
     interestRate?: SortOrder
+    defaultBalloonPaymentPct?: SortOrder
     adminFeesCap?: SortOrder
     defaultAdminFeesPct?: SortOrder
     minInsurancePremium?: SortOrder
@@ -34489,6 +34625,9 @@ export namespace Prisma {
     email?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    whatsappEnabled?: SortOrder
+    whatsappLabel?: SortOrder
+    whatsappText?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -34505,6 +34644,9 @@ export namespace Prisma {
     email?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    whatsappEnabled?: SortOrder
+    whatsappLabel?: SortOrder
+    whatsappText?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -34521,6 +34663,9 @@ export namespace Prisma {
     email?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    whatsappEnabled?: SortOrder
+    whatsappLabel?: SortOrder
+    whatsappText?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -37009,6 +37154,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
     loanPolicy?: string | null
     adminFeesCap?: Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
@@ -37029,6 +37176,8 @@ export namespace Prisma {
     name: string
     logoImage: string
     interestRate: Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: Decimal | DecimalJsLike | number | string | null
     loanPolicy?: string | null
     adminFeesCap?: Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: Decimal | DecimalJsLike | number | string | null
@@ -37132,6 +37281,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -37152,6 +37303,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     logoImage?: StringFieldUpdateOperationsInput | string
     interestRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    sectorInterestRates?: NullableJsonNullValueInput | InputJsonValue
+    defaultBalloonPaymentPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     loanPolicy?: NullableStringFieldUpdateOperationsInput | string | null
     adminFeesCap?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     defaultAdminFeesPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null

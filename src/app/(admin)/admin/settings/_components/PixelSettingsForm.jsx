@@ -131,7 +131,7 @@ const PixelSettingsForm = () => {
                                         placeholder="مثال: 123456789012345"
                                         value={formData.facebookPixel}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                     <p className="text-xs text-muted-foreground">معرف البيكسل المكون من 15 رقم تقريبًا</p>
                                 </div>
@@ -162,7 +162,7 @@ const PixelSettingsForm = () => {
                                         placeholder="مثال: G-XXXXXXXXXX"
                                         value={formData.googleAnalytics}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                     <p className="text-xs text-muted-foreground">معرف القياس الخاص بـ GA4 (يبدأ بـ G-)</p>
                                 </div>
@@ -176,7 +176,7 @@ const PixelSettingsForm = () => {
                                         placeholder="مثال: AW-123456789"
                                         value={formData.googleAdsId}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                     <p className="text-xs text-muted-foreground">معرف التحويل الخاص بإعلانات جوجل (يبدأ بـ AW-)</p>
                                 </div>
@@ -207,7 +207,7 @@ const PixelSettingsForm = () => {
                                         placeholder="CXXXXXXXXXXXXXXXXXXX"
                                         value={formData.tiktokPixel}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -220,7 +220,7 @@ const PixelSettingsForm = () => {
                                         placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
                                         value={formData.snapchatPixel}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                 </div>
                             </div>
@@ -248,7 +248,7 @@ const PixelSettingsForm = () => {
                                         placeholder="xxxxxxxxxx"
                                         value={formData.microsoftClarity}
                                         onChange={handleChange}
-                                        className="bg-black/40 border-white/10"
+                                        className=""
                                     />
                                     <p className="text-xs text-muted-foreground">المعرف الخاص بمشروعك في Clarity</p>
                                 </div>

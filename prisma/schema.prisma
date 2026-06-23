@@ -212,7 +212,9 @@ model Bank {
   id                    String   @id @default(uuid())
   name                  String
   logoImage             String
-  interestRate          Decimal  @db.Decimal(5, 2) // profit margin %
+  interestRate          Decimal  @db.Decimal(5, 2) // profit margin % (fallback / legacy)
+  sectorInterestRates   Json?    // { "خاص": 5.5, "حكومي مدني": 4.5, ... }
+  defaultBalloonPaymentPct Decimal? @db.Decimal(5, 2) // الدفعة الآخيرة %
   loanPolicy            String?
   adminFeesCap          Decimal? @db.Decimal(10, 2)
   defaultAdminFeesPct   Decimal? @db.Decimal(5, 4) // e.g. 0.01 = 1%
@@ -373,19 +375,22 @@ model SocialMedia {
 }
 
 model StoreInfo {
-  id           String   @id @default(uuid())
-  name         String   @default("Click Car Motors") // Store name
-  description  String?  @db.Text // Store description/about short
-  address      String?  // Store location/address
-  city         String?  // City
-  country      String?  // Country
-  phone        String?  // Main phone number
-  whatsapp     String?  // WhatsApp number
-  email        String?  // Main email
-  latitude     String?  // GPS latitude for maps
-  longitude    String?  // GPS longitude for maps
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  name                 String   @default("Click Car Motors") // Store name
+  description          String?  @db.Text // Store description/about short
+  address              String?  // Store location/address
+  city                 String?  // City
+  country              String?  // Country
+  phone                String?  // Main phone number
+  whatsapp             String?  // WhatsApp number
+  email                String?  // Main email
+  latitude             String?  // GPS latitude for maps
+  longitude            String?  // GPS longitude for maps
+  whatsappEnabled      Boolean  @default(true)  // Show/hide floating WhatsApp button
+  whatsappLabel        String?  // Label shown above the floating button
+  whatsappText         String?  @db.Text // Pre-filled message text when button is clicked
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@unique([id]) // Only one store info record
 }

@@ -242,7 +242,7 @@ const HomeSearch = () => {
             onKeyDown={handleKeyDown}
             type="text"
             placeholder="أدخل الماركة، الموديل، أو استخدم البحث بالصورة"
-            className={`pr-8 pl-8 py-6 w-full rounded-full border-gray-300 bg-white/95 backdrop-blur-sm text-white ${isInputFocused ? "focus-visible:border-white focus-visible:ring-white/50" : ""
+            className={`pr-8 pl-8 py-6 w-full rounded-full border border-white/30 bg-black/40 backdrop-blur-xl text-white placeholder:text-white/60 shadow-2xl shadow-black/40 ${isInputFocused ? "focus-visible:border-white/60 focus-visible:ring-white/20" : ""
               }`}
             suppressHydrationWarning
           />
@@ -311,7 +311,7 @@ const HomeSearch = () => {
               onKeyDown={handleKeyDown}
               type="text"
               placeholder="أدخل الماركة، الموديل، أو استخدم البحث بالصورة"
-              className={`pr-4 pl-4 py-4 w-full rounded-full border-gray-300 bg-white/95 backdrop-blur-sm text-sm text-center placeholder:text-center text-white ${isInputFocused ? "focus-visible:border-white focus-visible:ring-white/50" : ""
+              className={`pr-4 pl-4 py-4 w-full rounded-full border border-white/30 bg-black/40 backdrop-blur-xl text-sm text-center placeholder:text-center text-white placeholder:text-white/60 shadow-2xl shadow-black/40 ${isInputFocused ? "focus-visible:border-white/60 focus-visible:ring-white/20" : ""
                 }`}
               suppressHydrationWarning
             />

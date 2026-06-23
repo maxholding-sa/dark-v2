@@ -130,7 +130,7 @@ export default function Contact() {
                     name="message"
                     rows="5"
                     placeholder="اكتب رسالتك هنا"
-                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-white shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none"
+                    className="w-full rounded-md border border-input bg-white px-3 py-2 text-gray-900 placeholder:text-gray-400 shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none"
                     value={formData.message}
                     onChange={handleChange}
                     required

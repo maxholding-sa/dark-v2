@@ -285,39 +285,16 @@
 
 @media (max-width: 768px) {
 
-  /* Scroll-triggered animations */
+  /* Scroll-triggered animations (mobile — slightly slower for feel) */
   .scroll-animate {
     opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1),
-      transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .scroll-animate.animate-in {
     opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Staggered animation for child elements */
-  .scroll-animate.animate-in>* {
-    animation: fadeInUp 0.6s ease-out forwards;
-    opacity: 0;
-  }
-
-  .scroll-animate.animate-in>*:nth-child(1) {
-    animation-delay: 0.1s;
-  }
-
-  .scroll-animate.animate-in>*:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-
-  .scroll-animate.animate-in>*:nth-child(3) {
-    animation-delay: 0.3s;
-  }
-
-  .scroll-animate.animate-in>*:nth-child(4) {
-    animation-delay: 0.4s;
+    transform: none;
   }
 
   /* Initial page load animations */
@@ -419,17 +396,30 @@
   }
 }
 
-/* Ensure animations work on all screen sizes, not just mobile */
+/* Scroll-triggered animations — works on all screen sizes */
 .scroll-animate {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* initial transform is applied as an inline style by ScrollAnimate.js */
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scroll-animate.animate-in {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+}
+
+/* Section heading rows (h2 + "view all" button) */
+.scroll-animate-header {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-animate-header.animate-in {
+  opacity: 1;
+  transform: none;
 }
 
 @keyframes bot-nudge {
@@ -527,4 +517,17 @@
   50% {
     transform: rotate(12deg);
   }
+}
+
+/* Hide native browser play button / controls overlay on background videos */
+video:not([controls])::-webkit-media-controls,
+video:not([controls])::-webkit-media-controls-enclosure,
+video:not([controls])::-webkit-media-controls-panel,
+video:not([controls])::-webkit-media-controls-play-button,
+video:not([controls])::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+video:not([controls]) {
+  -webkit-appearance: none;
 }

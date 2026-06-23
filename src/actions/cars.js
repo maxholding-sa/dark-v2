@@ -573,6 +573,182 @@ export async function updateCar(id, carData, newImages = []) {
   }
 }
 
+// Export all cars to Excel-ready format
+export async function exportCars() {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const hasPermission = await checkPermission(userId, "cars");
+    if (!hasPermission) throw new Error("Unauthorized access");
+
+    const cars = await db.car.findMany({ orderBy: { createdAt: "desc" } });
+
+    const rows = cars.map((car) => ({
+      id: car.id,
+      make: car.make,
+      model: car.model,
+      year: car.year,
+      price: car.price ? parseFloat(car.price.toString()) : 0,
+      mileage: car.mileage,
+      color: car.color,
+      fuelType: car.fuelType,
+      transmission: car.transmission,
+      bodyType: car.bodyType,
+      isLuxury: car.isLuxury ? "نعم" : "لا",
+      insuranceSegment: car.insuranceSegment ?? "",
+      driveType: car.driveType ?? "",
+      seats: car.seats ?? "",
+      category: car.category ?? "",
+      videoUrl: car.videoUrl ?? "",
+      status: car.status,
+      featured: car.featured ? "نعم" : "لا",
+      testDriveAvailable: car.testDriveAvailable ? "نعم" : "لا",
+      description: car.description,
+    }));
+
+    return { success: true, data: rows };
+  } catch (error) {
+    console.error("exportCars error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+const UPDATABLE_FIELDS = [
+  "make", "model", "year", "price", "mileage", "color",
+  "fuelType", "transmission", "bodyType", "driveType", "seats",
+  "category", "videoUrl", "status", "description",
+];
+const BOOL_FIELDS = ["isLuxury", "featured", "testDriveAvailable"];
+
+function normalizeStr(val) {
+  if (val == null) return "";
+  return String(val)
+    .normalize("NFC")          // unify Unicode compositions (Arabic can differ)
+    .replace(/\r\n/g, "\n")    // Windows line endings
+    .replace(/\r/g, "\n")      // old Mac line endings
+    .replace(/\u00A0/g, " ")   // non-breaking space → regular space
+    .replace(/\u200B/g, "")    // zero-width space
+    .replace(/\u200C/g, "")    // zero-width non-joiner
+    .replace(/\u200D/g, "")    // zero-width joiner
+    .replace(/\uFEFF/g, "")    // BOM / zero-width no-break space
+    .replace(/[^\S\n]+/g, " ") // collapse any horizontal whitespace runs to one space
+    .replace(/\n+/g, "\n")     // collapse multiple newlines
+    .trim();
+}
+
+function buildCarDiff(row, car) {
+  const fieldChanges = [];
+  const updateData = {};
+
+  for (const field of UPDATABLE_FIELDS) {
+    if (!(field in row)) continue;
+    const incoming =
+      field === "year" || field === "mileage" || field === "seats"
+        ? row[field] !== "" && row[field] != null ? Number(row[field]) : null
+        : field === "price"
+          ? row[field] !== "" && row[field] != null ? parseFloat(row[field]) : null
+          : row[field];
+
+    const current =
+      field === "price" ? parseFloat(car[field]?.toString() ?? "0") : car[field];
+
+    const isNumeric = field === "year" || field === "mileage" || field === "seats" || field === "price";
+    const isDifferent = isNumeric
+      ? String(incoming ?? "") !== String(current ?? "")
+      : normalizeStr(incoming) !== normalizeStr(current);
+
+    if (isDifferent) {
+      fieldChanges.push({ field, from: current, to: incoming });
+      updateData[field] = incoming;
+    }
+  }
+
+  for (const boolField of BOOL_FIELDS) {
+    if (!(boolField in row)) continue;
+    const incoming = row[boolField] === "نعم" || row[boolField] === true;
+    if (incoming !== car[boolField]) {
+      fieldChanges.push({ field: boolField, from: car[boolField], to: incoming });
+      updateData[boolField] = incoming;
+    }
+  }
+
+  return { fieldChanges, updateData };
+}
+
+// Step 1: Compare only — no DB writes, returns diff for admin review
+export async function compareCarImport(rows) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const hasPermission = await checkPermission(userId, "cars");
+    if (!hasPermission) throw new Error("Unauthorized access");
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return { success: false, error: "لا توجد بيانات للمعالجة" };
+    }
+
+    const ids = rows.map((r) => r.id).filter(Boolean);
+    const existing = await db.car.findMany({ where: { id: { in: ids } } });
+    const existingMap = Object.fromEntries(existing.map((c) => [c.id, c]));
+
+    const changes = [];
+    const toUpdate = [];
+
+    for (const row of rows) {
+      if (!row.id) continue;
+      const car = existingMap[row.id];
+      if (!car) continue;
+
+      const { fieldChanges, updateData } = buildCarDiff(row, car);
+
+      if (fieldChanges.length > 0) {
+        changes.push({
+          id: car.id,
+          make: car.make,
+          model: car.model,
+          year: car.year,
+          fieldChanges,
+        });
+        toUpdate.push({ id: car.id, data: updateData });
+      }
+    }
+
+    return { success: true, changes, toUpdate };
+  } catch (error) {
+    console.error("compareCarImport error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Step 2: Apply confirmed updates
+export async function applyCarImport(toUpdate) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const hasPermission = await checkPermission(userId, "cars");
+    if (!hasPermission) throw new Error("Unauthorized access");
+
+    if (!Array.isArray(toUpdate) || toUpdate.length === 0) {
+      return { success: false, error: "لا توجد تحديثات للتطبيق" };
+    }
+
+    await db.$transaction(
+      toUpdate.map(({ id, data }) => db.car.update({ where: { id }, data }))
+    );
+
+    revalidatePath("/admin/cars");
+    revalidateTag("cars");
+
+    return { success: true, updated: toUpdate.length };
+  } catch (error) {
+    console.error("applyCarImport error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 // getCarForEdit - fetch single car for editing
 export async function getCarForEdit(carId) {
   try {

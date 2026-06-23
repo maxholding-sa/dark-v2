@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { formatSaudiRiyalReact } from "@/lib/helper";
 import { buildCustomerFinancingOffer, createBankConfigFromBank, LOAN_CALCULATOR_META, registerAprDisclosureBanks } from "@/lib/loan-calculator";
+import { getBalloonOptionsForBank, getProfitRateForSector } from "@/lib/bank-finance";
+import { EMPLOYER_SECTORS } from "@/constants/employer-sectors";
 import { isBrandInSegmentMap, parseBrandSegmentMap, validateInsuranceSegment } from "@/lib/brand-segment";
 import {
   buildFinancingScenarioInputs,
@@ -81,12 +83,13 @@ const generateIslamicOffers = ({ banks, formData, car }) => {
       pricingBlockReason: `ماركة "${car.make}" غير موجودة في جدول فئات بنك "${selectedBank?.name}". يلزم مراجعة يدوية أو تحديث جدول الفئات.`,
     };
   }
-  const profitRate = Number(selectedBank?.interestRate ?? 4.5);
+  const profitRate = getProfitRateForSector(selectedBank, formData.employerSector);
   const adminPct = bankConfig.default_admin_fees_pct ?? 0.01;
   const ageBracket = getAgeBracketFromHijriBirthYear(formData.birthYear);
   const gender = formData.gender || "male";
 
-  const { financingTerms, downPaymentOptions, balloonOptions } = LOAN_CALCULATOR_META;
+  const { financingTerms, downPaymentOptions } = LOAN_CALCULATOR_META;
+  const balloonOptions = getBalloonOptionsForBank(selectedBank);
 
   const offers = [];
   let offerId = 1;
@@ -629,10 +632,11 @@ const LoanRequestForm = ({ car }) => {
                     <SelectValue placeholder="اختر جهة العمل" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="خاص">خاص</SelectItem>
-                    <SelectItem value="حكومي مدني">حكومي مدني</SelectItem>
-                    <SelectItem value="حكومي عسكرى">حكومي عسكرى</SelectItem>
-                    <SelectItem value="متقاعد">متقاعد</SelectItem>
+                    {EMPLOYER_SECTORS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

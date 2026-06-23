@@ -1,22 +1,35 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
-import { parseBankFinancePayload, serializeBankRecord } from "@/lib/bank-finance";
+import { parseBankFinancePayload, parseSectorInterestRatesPayload, serializeBankRecord } from "@/lib/bank-finance";
 
 export const dynamic = "force-dynamic";
 
 function buildBankData(body) {
-  const { name, logoImage, interestRate, loanPolicy } = body;
-  const { errors, data: financeData } = parseBankFinancePayload(body);
+  const { name, logoImage, loanPolicy, defaultBalloonPaymentPct } = body;
+  const { errors: sectorErrors, data: sectorInterestRates } = parseSectorInterestRatesPayload(body);
+  const { errors: financeErrors, data: financeData } = parseBankFinancePayload(body);
+  const errors = [...sectorErrors, ...financeErrors];
   if (errors.length) {
     return { error: errors.join("، ") };
   }
+
+  const toDecimal = (value) => {
+    if (value == null || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // Keep legacy interestRate in sync (first sector rate) for backward compatibility
+  const interestRate = sectorInterestRates["خاص"] ?? Object.values(sectorInterestRates)[0];
 
   return {
     data: {
       name,
       logoImage,
       interestRate,
+      sectorInterestRates,
+      defaultBalloonPaymentPct: toDecimal(defaultBalloonPaymentPct),
       loanPolicy: loanPolicy || null,
       ...financeData,
     },
@@ -41,8 +54,8 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, logoImage, interestRate } = body;
-    if (!name || !logoImage || interestRate === undefined) {
+    const { name, logoImage } = body;
+    if (!name || !logoImage) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
@@ -63,8 +76,8 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     const body = await request.json();
-    const { id, name, logoImage, interestRate } = body;
-    if (!id || !name || !logoImage || interestRate === undefined) {
+    const { id, name, logoImage } = body;
+    if (!id || !name || !logoImage) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 

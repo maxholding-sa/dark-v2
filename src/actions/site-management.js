@@ -232,36 +232,28 @@ export async function updateStoreInfo(data) {
 
     let storeInfo = await db.storeInfo.findFirst();
 
+    const storeInfoFields = {
+      name: data.name,
+      description: data.description,
+      address: data.address,
+      city: data.city,
+      country: data.country,
+      phone: data.phone,
+      whatsapp: data.whatsapp,
+      email: data.email,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      whatsappEnabled: data.whatsappEnabled !== undefined ? data.whatsappEnabled : true,
+      whatsappLabel: data.whatsappLabel || null,
+      whatsappText: data.whatsappText || null,
+    };
+
     if (!storeInfo) {
-      storeInfo = await db.storeInfo.create({
-        data: {
-          name: data.name,
-          description: data.description,
-          address: data.address,
-          city: data.city,
-          country: data.country,
-          phone: data.phone,
-          whatsapp: data.whatsapp,
-          email: data.email,
-          latitude: data.latitude,
-          longitude: data.longitude,
-        },
-      });
+      storeInfo = await db.storeInfo.create({ data: storeInfoFields });
     } else {
       storeInfo = await db.storeInfo.update({
         where: { id: storeInfo.id },
-        data: {
-          name: data.name,
-          description: data.description,
-          address: data.address,
-          city: data.city,
-          country: data.country,
-          phone: data.phone,
-          whatsapp: data.whatsapp,
-          email: data.email,
-          latitude: data.latitude,
-          longitude: data.longitude,
-        },
+        data: storeInfoFields,
       });
     }
 
@@ -803,7 +795,12 @@ export async function getWhatsAppNumber() {
   try {
     const storeInfo = await withDbRetry(() =>
       db.storeInfo.findFirst({
-        select: { whatsapp: true },
+        select: {
+          whatsapp: true,
+          whatsappEnabled: true,
+          whatsappLabel: true,
+          whatsappText: true,
+        },
       })
     );
 
@@ -811,7 +808,13 @@ export async function getWhatsAppNumber() {
       return { success: false, data: null };
     }
 
-    return { success: true, data: storeInfo.whatsapp };
+    return {
+      success: true,
+      data: storeInfo.whatsapp,
+      whatsappEnabled: storeInfo.whatsappEnabled ?? true,
+      whatsappLabel: storeInfo.whatsappLabel || null,
+      whatsappText: storeInfo.whatsappText || null,
+    };
   } catch (error) {
     console.warn("[getWhatsAppNumber] Prisma failed, using Supabase:", error.message);
     try {

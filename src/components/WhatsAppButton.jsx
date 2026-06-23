@@ -2,7 +2,8 @@
 
 import { FaWhatsapp } from "react-icons/fa";
 
-export default function WhatsAppButton({ phoneNumber, className = "", fixed = true, text = "", label = "", bottomOffset = "bottom-4 md:bottom-6", rightOffset = "right-4 md:right-6" }) {
+export default function WhatsAppButton({ phoneNumber, className = "", fixed = true, text = "", label = "", bottomOffset = "bottom-4 md:bottom-6", rightOffset = "right-4 md:right-6", enabled = true }) {
+  if (!enabled) return null;
   // Clean the phone number: remove + and spaces
   const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/[\+\s]/g, '') : '';
   const encodedText = text ? encodeURIComponent(text) : '';

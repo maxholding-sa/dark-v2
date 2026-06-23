@@ -28,15 +28,19 @@ import LoadingBar from "@/components/LoadingBar";
 import {
   bankFinanceFormStateFromRecord,
   emptyBankFinanceFormState,
+  emptySectorInterestRatesFormState,
   newBankFinanceFormState,
+  sectorInterestRatesFormStateFromRecord,
 } from "@/lib/bank-finance";
+import { EMPLOYER_SECTORS } from "@/constants/employer-sectors";
 import BrandSegmentMapEditor from "./_components/BrandSegmentMapEditor";
 
 const baseFormState = () => ({
   id: null,
   name: "",
   logoImage: "",
-  interestRate: "",
+  sectorInterestRates: emptySectorInterestRatesFormState(),
+  defaultBalloonPaymentPct: "",
   loanPolicy: "",
   ...newBankFinanceFormState(),
 });
@@ -157,7 +161,9 @@ const BankCRUDPage = () => {
       id: bank.id,
       name: bank.name,
       logoImage: bank.logoImage,
-      interestRate: bank.interestRate.toString(),
+      sectorInterestRates: sectorInterestRatesFormStateFromRecord(bank),
+      defaultBalloonPaymentPct:
+        bank.defaultBalloonPaymentPct != null ? String(bank.defaultBalloonPaymentPct) : "",
       loanPolicy: bank.loanPolicy || "",
       ...bankFinanceFormStateFromRecord(bank),
     });
@@ -218,12 +224,29 @@ const BankCRUDPage = () => {
     setBankToDelete(null);
   };
 
+  const handleSectorRateChange = (sector, value) => {
+    setFormState((prev) => ({
+      ...prev,
+      sectorInterestRates: {
+        ...prev.sectorInterestRates,
+        [sector]: value,
+      },
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { id, name, interestRate, loanPolicy } = formState;
+    const { id, name, loanPolicy, sectorInterestRates, defaultBalloonPaymentPct } = formState;
 
-    if (!name || interestRate === "") {
-      toast.error("الرجاء ملء كافة الحقول المطلوبة");
+    const missingSector = EMPLOYER_SECTORS.find(
+      ({ value }) => sectorInterestRates[value] === "" || sectorInterestRates[value] == null
+    );
+    if (!name || missingSector) {
+      toast.error(
+        missingSector
+          ? `الرجاء إدخال سعر الفائدة لـ ${missingSector.label}`
+          : "الرجاء ملء كافة الحقول المطلوبة"
+      );
       return;
     }
 
@@ -243,7 +266,8 @@ const BankCRUDPage = () => {
       ...(isEditMode ? { id } : {}),
       name,
       logoImage: logoImageUrl,
-      interestRate: parseFloat(interestRate),
+      sectorInterestRates,
+      defaultBalloonPaymentPct: defaultBalloonPaymentPct || null,
       loanPolicy,
       adminFeesCap: formState.adminFeesCap,
       defaultAdminFeesPct: formState.defaultAdminFeesPct,
@@ -308,7 +332,8 @@ const BankCRUDPage = () => {
             <TableRow>
               <TableHead className="font-semibold text-center">الشعار</TableHead>
               <TableHead className="font-semibold text-center">الاسم</TableHead>
-              <TableHead className="font-semibold text-center">سعر الفائدة</TableHead>
+              <TableHead className="font-semibold text-center">سعر الفائدة (حسب القطاع)</TableHead>
+              <TableHead className="font-semibold text-center">الدفعة الآخيرة</TableHead>
               <TableHead className="font-semibold text-center">سياسة القرض</TableHead>
               <TableHead className="font-semibold text-center">الترتيب</TableHead>
               <TableHead className="font-semibold text-center">الإجراءات</TableHead>
@@ -317,13 +342,13 @@ const BankCRUDPage = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-20">
+                <TableCell colSpan={7} className="text-center py-20">
                   <LoadingBar fullScreen={false} />
                 </TableCell>
               </TableRow>
             ) : banks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   لا توجد بنوك للعرض
                 </TableCell>
               </TableRow>
@@ -341,9 +366,35 @@ const BankCRUDPage = () => {
                   </TableCell>
                   <TableCell className="text-center font-medium">{bank.name}</TableCell>
                   <TableCell className="text-center">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                      {typeof bank.interestRate === 'number' ? bank.interestRate.toFixed(2) : parseFloat(bank.interestRate).toFixed(2)}%
-                    </span>
+                    <div className="flex flex-wrap justify-center gap-1">
+                      {bank.sectorInterestRates && typeof bank.sectorInterestRates === "object" ? (
+                        EMPLOYER_SECTORS.map(({ value, label }) =>
+                          bank.sectorInterestRates[value] != null ? (
+                            <span
+                              key={value}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                              title={label}
+                            >
+                              {label.split(" ").pop()}: {Number(bank.sectorInterestRates[value]).toFixed(2)}%
+                            </span>
+                          ) : null
+                        )
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          {typeof bank.interestRate === "number"
+                            ? bank.interestRate.toFixed(2)
+                            : parseFloat(bank.interestRate).toFixed(2)}
+                          %
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {bank.defaultBalloonPaymentPct != null ? (
+                      <span className="text-sm font-medium">{Number(bank.defaultBalloonPaymentPct).toFixed(0)}%</span>
+                    ) : (
+                      <span className="text-sm text-gray-500">افتراضي</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bank.loanPolicy
@@ -421,7 +472,7 @@ const BankCRUDPage = () => {
                 <section className="space-y-4">
                   <div>
                     <h3 className="text-base font-semibold text-white">البيانات الأساسية</h3>
-                    <p className="text-xs text-white/50">الاسم، الشعار، سعر الفائدة، وسياسة القرض</p>
+                    <p className="text-xs text-white/50">الاسم، الشعار، سعر الفائدة حسب القطاع، والدفعة الآخيرة</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -435,7 +486,7 @@ const BankCRUDPage = () => {
                         value={formState.name}
                         onChange={handleInputChange}
                         placeholder="أدخل اسم البنك"
-                        className="mt-1.5 bg-zinc-900"
+                        className="mt-1.5"
                         required
                       />
                     </div>
@@ -450,7 +501,7 @@ const BankCRUDPage = () => {
                         type="file"
                         accept="image/*"
                         onChange={handleImageChange}
-                        className="mt-1.5 bg-zinc-900 file:ml-3 file:rounded-md file:border file:border-white/10 file:bg-zinc-800 file:px-3 file:py-1 file:text-white"
+                        className="mt-1.5"
                       />
                       {imagePreview ? (
                         <div className="mt-3 flex justify-start">
@@ -469,23 +520,57 @@ const BankCRUDPage = () => {
                       )}
                     </div>
 
+                    <div className="sm:col-span-2 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          سعر الفائدة حسب القطاع (%) <span className="text-red-500">*</span>
+                        </p>
+                        <p className="text-xs text-white/50">
+                          يُستخدم عند طلب التمويل حسب قطاع صاحب العمل الذي يختاره العميل
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {EMPLOYER_SECTORS.map(({ value, label }) => (
+                          <div key={value}>
+                            <Label htmlFor={`sectorRate-${value}`} className="text-sm font-medium">
+                              {label}
+                            </Label>
+                            <Input
+                              id={`sectorRate-${value}`}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={formState.sectorInterestRates[value] ?? ""}
+                              onChange={(e) => handleSectorRateChange(value, e.target.value)}
+                              placeholder="مثال: 5.50"
+                              className="mt-1.5"
+                              required
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div>
-                      <Label htmlFor="interestRate" className="text-sm font-medium">
-                        سعر الفائدة (%) <span className="text-red-500">*</span>
+                      <Label htmlFor="defaultBalloonPaymentPct" className="text-sm font-medium">
+                        الدفعة الآخيرة (%)
                       </Label>
                       <Input
-                        id="interestRate"
-                        name="interestRate"
+                        id="defaultBalloonPaymentPct"
+                        name="defaultBalloonPaymentPct"
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         max="100"
-                        value={formState.interestRate}
+                        value={formState.defaultBalloonPaymentPct}
                         onChange={handleInputChange}
-                        placeholder="مثال: 5.50"
-                        className="mt-1.5 bg-zinc-900"
-                        required
+                        placeholder="مثال: 20 (اتركه فارغاً للخيارات الافتراضية)"
+                        className="mt-1.5"
                       />
+                      <p className="mt-1 text-xs text-white/50">
+                        نسبة الدفعة الأخيرة من سعر السيارة — تُستخدم في حساب العروض التمويلية
+                      </p>
                     </div>
 
                     <div className="hidden sm:block" aria-hidden="true" />
@@ -500,7 +585,7 @@ const BankCRUDPage = () => {
                         value={formState.loanPolicy}
                         onChange={handleInputChange}
                         placeholder="أدخل سياسة القرض"
-                        className="mt-1.5 field-sizing-fixed min-h-20 resize-y bg-zinc-900"
+                        className="mt-1.5 field-sizing-fixed min-h-20 resize-y"
                         rows={3}
                       />
                     </div>
@@ -528,7 +613,7 @@ const BankCRUDPage = () => {
                             min="0"
                             value={formState.adminFeesCap}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                         <div>
@@ -541,7 +626,7 @@ const BankCRUDPage = () => {
                             min="0"
                             value={formState.defaultAdminFeesPct}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                         <div>
@@ -553,7 +638,7 @@ const BankCRUDPage = () => {
                             min="0"
                             value={formState.minInsurancePremium}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                         <div>
@@ -567,7 +652,7 @@ const BankCRUDPage = () => {
                             max="1"
                             value={formState.assetDepreciationRate}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                       </div>
@@ -585,7 +670,7 @@ const BankCRUDPage = () => {
                             step="0.0001"
                             value={formState.cor}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                         <div>
@@ -597,7 +682,7 @@ const BankCRUDPage = () => {
                             step="0.0001"
                             value={formState.opex}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                         <div>
@@ -609,7 +694,7 @@ const BankCRUDPage = () => {
                             step="0.0001"
                             value={formState.irrTarget}
                             onChange={handleInputChange}
-                            className="mt-1.5 bg-zinc-900"
+                            className="mt-1.5"
                           />
                         </div>
                       </div>

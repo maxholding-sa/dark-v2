@@ -222,7 +222,7 @@ const FeaturedBrandDialog = ({ open, onClose, brand, onSuccess }) => {
               onValueChange={(value) => setFormData({ ...formData, name: value })}
               disabled={isLoading || makesLoading}
             >
-              <SelectTrigger className="bg-zinc-900/50 border-zinc-800 text-white focus:ring-yellow-500/50">
+              <SelectTrigger className="focus:ring-yellow-500/50">
                 <SelectValue placeholder="اختر العلامة التجارية" />
               </SelectTrigger>
               <SelectContent className="bg-[#0a0a0a] border-zinc-800 text-white">
@@ -259,7 +259,7 @@ const FeaturedBrandDialog = ({ open, onClose, brand, onSuccess }) => {
               placeholder="مثال: هيونداي"
               required
               disabled={isLoading}
-              className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
+              className="focus-visible:ring-yellow-500/50"
             />
           </div>
 
@@ -275,7 +275,7 @@ const FeaturedBrandDialog = ({ open, onClose, brand, onSuccess }) => {
               placeholder="0"
               min="0"
               disabled={isLoading}
-              className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
+              className="focus-visible:ring-yellow-500/50"
             />
             <p className="text-xs text-zinc-500">
               يحدد ترتيب ظهور العلامة التجارية (الأصغر يظهر أولاً)

@@ -11,14 +11,6 @@ import { toast } from "sonner";
 import useFetch from "../../../../../../hooks/use-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
-import {
   Car,
   Fuel,
   Gauge,
@@ -32,7 +24,6 @@ import {
   Play,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import EmiCalculator from "./EmiCalculator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import MandebSelector from "./MandebSelector";
@@ -336,36 +327,31 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
           </div>
 
           {/* Emi Calculator */}
-          <Dialog>
-            <DialogTrigger className="w-full text-start  ">
-              <Card className="pt-5 cursor-pointer">
-                <CardContent>
-                  <div className="flex items-center gap-2 text-lg font-medium mb-2">
-                    <Currency className="h-5 w-5 text-yellow-600" />
-                    <h3>حاسبة الأقساط الشهرية</h3>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    القسط الشهري المتوقع: حوالي
-                    <span className="font-bold text-yellow-900">
-                      {" "}
-                      {formatSaudiRiyalReact(car.price / 60)}
-                    </span>{" "}
-                    لمدة 60 شهراً
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    اطلب قرضك الان
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent dir="rtl" className="[&>button]:left-4 [&>button]:right-auto bg-black">
-              <DialogHeader>
-                <DialogTitle className="text-2xl text-gray-800">
-                </DialogTitle>
-                <EmiCalculator price={car.price} carId={car.id} carBrand={car.make} insuranceSegment={car.insuranceSegment} />
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+          <Card
+            className="pt-5 cursor-pointer hover:border-yellow-600 transition-colors"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('startLoading'));
+              router.push(`/loan-request/${car.id}`);
+            }}
+          >
+            <CardContent>
+              <div className="flex items-center gap-2 text-lg font-medium mb-2">
+                <Currency className="h-5 w-5 text-yellow-600" />
+                <h3>حاسبة الأقساط الشهرية</h3>
+              </div>
+              <div className="text-sm text-gray-600">
+                القسط الشهري المتوقع: حوالي
+                <span className="font-bold text-yellow-900">
+                  {" "}
+                  {formatSaudiRiyalReact(car.price / 60)}
+                </span>{" "}
+                لمدة 60 شهراً
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                اطلب قرضك الان
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Request More Info */}
           <Card className="my-6 ">

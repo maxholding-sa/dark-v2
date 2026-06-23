@@ -12,7 +12,7 @@ import { faqItems } from "@/lib/data";
 
 import LinkWithLoader from "@/components/LinkWithLoader";
 import HomeSearch from "@/components/HomeSearch";
-import CarCard from "@/components/CarCard";
+import FeaturedCarsCarousel from "@/components/FeaturedCarsCarousel";
 import FeaturedBrandCard from "@/components/FeaturedBrandCard";
 import FeaturedModelCard from "@/components/FeaturedModelCard";
 import BankCard from "@/components/BankCard";
@@ -44,7 +44,7 @@ export default async function Home() {
     mainLogoRes,
     reviewsRes
   ] = await Promise.all([
-    homeSafe(() => getFeaturedCars(), { data: [] }),
+    homeSafe(() => getFeaturedCars(20), { data: [] }),
     homeSafe(() => getFeaturedBrands(), { data: [] }),
     homeSafe(() => getFeaturedModels(), { data: [] }),
     homeSafe(() => getBanks(), { data: [] }),
@@ -58,6 +58,7 @@ export default async function Home() {
   const featuredBrands = featuredBrandsRes?.data || [];
   const featuredModels = featuredModelsRes?.data || [];
   const banks = banksRes?.data || [];
+  console.log("[home] banks count:", banks.length);
   const heroSection = heroSectionRes?.data || {
     videoUrl: "/hero1.mp4",
     title: "مرحباً بك",
@@ -65,6 +66,9 @@ export default async function Home() {
     isActive: true,
   };
   const whatsappNumber = whatsappNumberRes?.data;
+  const whatsappEnabled = whatsappNumberRes?.whatsappEnabled ?? true;
+  const whatsappLabel = whatsappNumberRes?.whatsappLabel || "";
+  const whatsappText = whatsappNumberRes?.whatsappText || "";
   const mainLogo = mainLogoRes?.data;
   const reviews = reviewsRes || [];
 
@@ -91,11 +95,17 @@ export default async function Home() {
       <link rel="preload" as="image" href="/featured-poster.jpg" />
     <div className="pt-20 flex flex-col bg-black overflow-x-hidden">
       {/* Hero */}
-      <section className="relative min-h-[calc(100svh-5rem)] pt-32 pb-48 md:pt-24 md:pb-48 lg:pt-32 lg:pb-60 overflow-x-hidden">
+      <section
+        className="relative min-h-[calc(100svh-5rem)] pt-32 pb-48 md:pt-24 md:pb-48 lg:pt-32 lg:pb-60 overflow-x-hidden"
+        style={{
+          backgroundImage: `url(${heroSection.posterImage || "/hero1-poster.jpg"})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <HeroVideo
           src={heroVideoSrc}
           mobileSrc={heroIsLocal ? "/hero1-mobile.mp4" : undefined}
-          poster={heroSection.posterImage}
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
         <div className="absolute bottom-0 left-0 w-full h-48 gradient-fade-to-black z-[5] pointer-events-none"></div>
@@ -122,8 +132,8 @@ export default async function Home() {
       <section className="py-20 px-6 md:px-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-blue-500/5 rounded-3xl -z-10"></div>
         <div className="container mx-auto relative z-10">
-          <ScrollAnimate className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            <div className="text-right space-y-6 order-2 md:order-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            <ScrollAnimate variant="right" className="text-right space-y-6 order-2 md:order-1">
               <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">عن ماكس موتورز</h2>
               <div className="space-y-4 text-white/90 text-lg leading-relaxed">
                 <p>نحن منصة رائدة في مجال البحث عن السيارات وحجز اختبارات القيادة في المنطقة. نوفر لك تجربة سلسة وآمنة للعثور على سيارة أحلامك من بين مئات الخيارات المتاحة.</p>
@@ -136,8 +146,8 @@ export default async function Home() {
                   </Button>
                 </LinkWithLoader>
               </div>
-            </div>
-            <div className="relative order-1 md:order-2">
+            </ScrollAnimate>
+            <ScrollAnimate variant="left" className="relative order-1 md:order-2">
               <div className="relative w-full max-w-lg mx-auto group">
                 <div className="relative rounded-3xl overflow-hidden aspect-square flex items-center justify-center">
                   <Image
@@ -150,13 +160,13 @@ export default async function Home() {
                   />
                 </div>
               </div>
-            </div>
-          </ScrollAnimate>
+            </ScrollAnimate>
+          </div>
         </div>
       </section>
 
       {/* Featured Cars */}
-      <section className="py-20 px-6 md:px-12 relative">
+      <section className="py-20 relative w-full">
         <SectionBackgroundVideo
           src="/featured.mp4"
           mobileSrc="/featured-mobile.mp4"
@@ -165,18 +175,16 @@ export default async function Home() {
         />
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black to-transparent z-5"></div>
         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black to-transparent z-5"></div>
-        <div className="container mx-auto relative z-10">
-          <div className="flex justify-between items-center mb-8">
+        <div className="relative z-10 w-full">
+          <ScrollAnimate className="flex justify-between items-center mb-8 px-6 md:px-12">
             <h2 className="text-3xl font-bold text-white">السيارات المميزة</h2>
             <LinkWithLoader href="/cars">
               <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
             </LinkWithLoader>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-            {featuredCars.map((car) => (
-              <CarCard key={car.id} car={car} isFeatured={true} />
-            ))}
-          </div>
+          </ScrollAnimate>
+          <ScrollAnimate>
+            <FeaturedCarsCarousel cars={featuredCars} />
+          </ScrollAnimate>
         </div>
       </section>
 
@@ -205,13 +213,13 @@ export default async function Home() {
       {/* Browse by brands */}
       <section className="py-20 px-6 md:px-12 relative overflow-hidden">
         <div className="container mx-auto relative z-10">
-          <div className="flex justify-between items-center mb-12">
+          <ScrollAnimate className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold text-white">الشركات المميزة</h2>
             <LinkWithLoader href="/companies">
               <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
             </LinkWithLoader>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          </ScrollAnimate>
+          <ScrollAnimate stagger className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {featuredBrands.slice(0, 8).map((brand, index) => (
               <div
                 key={brand.id}
@@ -220,7 +228,7 @@ export default async function Home() {
                 <FeaturedBrandCard brand={brand} />
               </div>
             ))}
-          </div>
+          </ScrollAnimate>
         </div>
       </section>
 
@@ -234,9 +242,11 @@ export default async function Home() {
         />
         <div className="absolute inset-0 bg-black/60 z-5"></div>
         <div className="container mx-auto relative z-10">
-          <ScrollAnimate className="max-w-4xl mx-auto">
-            <h2 className="text-4xl font-bold text-center mb-16 text-white">لماذا تختار منصتنا</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="max-w-4xl mx-auto">
+            <ScrollAnimate variant="up">
+              <h2 className="text-4xl font-bold text-center mb-16 text-white">لماذا تختار منصتنا</h2>
+            </ScrollAnimate>
+            <ScrollAnimate stagger className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 { icon: <Car className="h-8 w-8" />, title: "تشكيلة واسعة", text: "آلاف المركبات الموثقة من وكالات معتمدة وبائعين خاصين." },
                 { icon: <Calendar className="h-8 w-8" />, title: "اختبار قيادة سهل", text: "احجز اختبار القيادة عبر الإنترنت في دقائق، مع خيارات جدولة مرنة." },
@@ -250,32 +260,34 @@ export default async function Home() {
                   <p className="text-white/80">{item.text}</p>
                 </div>
               ))}
-            </div>
-          </ScrollAnimate>
+            </ScrollAnimate>
+          </div>
         </div>
       </section>
 
       {/* Browse by model */}
       <section className="py-20 px-6 md:px-12">
         <div className="container mx-auto">
-          <div className="flex justify-between items-center mb-12">
+          <ScrollAnimate className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold text-white">الموديلات المميزة</h2>
             <LinkWithLoader href="/featured-models">
               <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
             </LinkWithLoader>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          </ScrollAnimate>
+          <ScrollAnimate stagger className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {featuredModels.map((model) => (
               <FeaturedModelCard key={model.id} model={model} />
             ))}
-          </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* FAQs */}
       <section className="py-20 px-6 md:px-40 bg-zinc-950 text-white">
         <div className="container mx-auto text-right">
-          <h2 className="text-3xl font-bold mb-12">الأسئلة الشائعة</h2>
+          <ScrollAnimate variant="up">
+            <h2 className="text-3xl font-bold mb-12">الأسئلة الشائعة</h2>
+          </ScrollAnimate>
           <ScrollAnimate>
             <div className="w-full" dir="rtl">
               {faqItems.map((faq, index) => (
@@ -320,7 +332,7 @@ export default async function Home() {
       </section>
 
       <ChatBot />
-      <WhatsAppButton phoneNumber={whatsappNumber} />
+      <WhatsAppButton phoneNumber={whatsappNumber} enabled={whatsappEnabled} label={whatsappLabel} text={whatsappText} />
     </div>
     </>
   );

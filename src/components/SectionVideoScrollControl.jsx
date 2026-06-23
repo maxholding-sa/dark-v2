@@ -9,12 +9,16 @@ export default function SectionVideoScrollControl({ videoId }) {
         const section = video.closest("section");
         if (!section) return;
 
+        let loaded = false;
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         video.muted = true;
-                        video.load();
+                        if (!loaded) {
+                            video.load();
+                            loaded = true;
+                        }
                         video.play().catch(() => {});
                     } else {
                         video.pause();

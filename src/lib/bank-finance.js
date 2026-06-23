@@ -2,7 +2,9 @@ import {
   DEFAULT_BANK_FINANCE_DEFAULTS,
   DEFAULT_BRAND_SEGMENT_MAP,
   DEFAULT_INSURANCE_TABLE,
+  LOAN_CALCULATOR_META,
 } from "@/lib/loan-calculator";
+import { EMPLOYER_SECTOR_VALUES } from "@/constants/employer-sectors";
 
 const parseJsonField = (value, fallback) => {
   if (value == null || value === "") return fallback;
@@ -23,6 +25,72 @@ const numericBankFinanceFormState = () => ({
   opex: String(DEFAULT_BANK_FINANCE_DEFAULTS.opex),
   irrTarget: String(DEFAULT_BANK_FINANCE_DEFAULTS.irrTarget),
 });
+
+export const emptySectorInterestRatesFormState = () =>
+  Object.fromEntries(EMPLOYER_SECTOR_VALUES.map((sector) => [sector, ""]));
+
+export const sectorInterestRatesFormStateFromRecord = (bank) => {
+  const empty = emptySectorInterestRatesFormState();
+  if (!bank) return empty;
+
+  const rates = bank.sectorInterestRates;
+  if (rates && typeof rates === "object") {
+    return EMPLOYER_SECTOR_VALUES.reduce((acc, sector) => {
+      acc[sector] =
+        rates[sector] != null
+          ? String(rates[sector])
+          : bank.interestRate != null
+            ? String(bank.interestRate)
+            : "";
+      return acc;
+    }, {});
+  }
+
+  const fallback = bank.interestRate != null ? String(bank.interestRate) : "";
+  return EMPLOYER_SECTOR_VALUES.reduce((acc, sector) => {
+    acc[sector] = fallback;
+    return acc;
+  }, {});
+};
+
+export const parseSectorInterestRatesPayload = (payload = {}) => {
+  const errors = [];
+  const rates = {};
+
+  for (const sector of EMPLOYER_SECTOR_VALUES) {
+    const raw = payload.sectorInterestRates?.[sector] ?? payload[`sectorRate_${sector}`];
+    if (raw == null || raw === "") {
+      errors.push(`سعر الفائدة مطلوب لـ ${sector}`);
+      continue;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      errors.push(`سعر الفائدة غير صالح لـ ${sector}`);
+      continue;
+    }
+    rates[sector] = n;
+  }
+
+  return { errors, data: errors.length ? null : rates };
+};
+
+/** Profit margin % for a given employer sector. */
+export function getProfitRateForSector(bank, employerSector) {
+  const sectorRates = bank?.sectorInterestRates;
+  if (sectorRates && employerSector && sectorRates[employerSector] != null) {
+    return Number(sectorRates[employerSector]);
+  }
+  return Number(bank?.interestRate ?? 4.5);
+}
+
+/** Balloon / last-payment options for offer grid (decimal fractions). */
+export function getBalloonOptionsForBank(bank) {
+  const pct = bank?.defaultBalloonPaymentPct;
+  if (pct != null && Number.isFinite(Number(pct))) {
+    return [Number(pct) / 100];
+  }
+  return LOAN_CALCULATOR_META.balloonOptions;
+}
 
 export const emptyBankFinanceFormState = () => ({
   ...numericBankFinanceFormState(),
@@ -119,9 +187,17 @@ export function isBankAprConfigured(bank) {
 export const serializeBankRecord = (bank) => {
   if (!bank) return null;
   const decimal = (value) => (value != null ? parseFloat(value.toString()) : null);
+  const sectorInterestRates =
+    bank.sectorInterestRates && typeof bank.sectorInterestRates === "object"
+      ? Object.fromEntries(
+          Object.entries(bank.sectorInterestRates).map(([k, v]) => [k, parseFloat(String(v))])
+        )
+      : null;
   return {
     ...bank,
     interestRate: bank.interestRate ? parseFloat(bank.interestRate.toString()) : 0,
+    sectorInterestRates,
+    defaultBalloonPaymentPct: decimal(bank.defaultBalloonPaymentPct),
     adminFeesCap: decimal(bank.adminFeesCap),
     defaultAdminFeesPct: decimal(bank.defaultAdminFeesPct),
     minInsurancePremium: decimal(bank.minInsurancePremium),

@@ -3,7 +3,7 @@ import {
   createBankConfigFromBank,
   LOAN_CALCULATOR_META,
 } from "@/lib/loan-calculator";
-import { isBankAprConfigured } from "@/lib/bank-finance";
+import { isBankAprConfigured, getBalloonOptionsForBank, getProfitRateForSector } from "@/lib/bank-finance";
 
 let lastLoggedScenarioKey = null;
 
@@ -41,7 +41,10 @@ export function buildFinancingScenarioInputs({
     bank: {
       id: selectedBank?.id ?? null,
       name: selectedBank?.name ?? null,
-      interestRate: round(Number(selectedBank?.interestRate ?? profitRate)),
+      interestRate: round(getProfitRateForSector(selectedBank, formData.employerSector)),
+      employerSector: formData.employerSector || null,
+      sectorInterestRates: selectedBank?.sectorInterestRates ?? null,
+      defaultBalloonPaymentPct: selectedBank?.defaultBalloonPaymentPct ?? null,
       adminFeesCap: selectedBank?.adminFeesCap ?? null,
       defaultAdminFeesPct: selectedBank?.defaultAdminFeesPct ?? null,
       minInsurancePremium: selectedBank?.minInsurancePremium ?? null,
@@ -57,7 +60,7 @@ export function buildFinancingScenarioInputs({
       scenarioGrid: {
         termsMonths: LOAN_CALCULATOR_META.financingTerms,
         downPaymentPct: LOAN_CALCULATOR_META.downPaymentOptions.map((v) => round(v * 100)),
-        balloonPct: LOAN_CALCULATOR_META.balloonOptions.map((v) => round(v * 100)),
+        balloonPct: getBalloonOptionsForBank(selectedBank).map((v) => round(v * 100)),
       },
     },
     resolvedBankConfig: {

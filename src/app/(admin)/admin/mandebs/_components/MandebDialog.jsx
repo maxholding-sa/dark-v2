@@ -95,7 +95,7 @@ const MandebDialog = ({ open, onClose, mandeb, onSuccess }) => {
                             onChange={handleInputChange}
                             placeholder="مثال: أحمد محمد"
                             required
-                            className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
+                            className="focus-visible:ring-yellow-500/50"
                         />
                     </div>
                     <div className="space-y-2">
@@ -107,7 +107,7 @@ const MandebDialog = ({ open, onClose, mandeb, onSuccess }) => {
                             onChange={handleInputChange}
                             placeholder="مثال: 0500000000"
                             required
-                            className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
+                            className="focus-visible:ring-yellow-500/50"
                         />
                     </div>
                     <div className="space-y-2">
@@ -119,7 +119,7 @@ const MandebDialog = ({ open, onClose, mandeb, onSuccess }) => {
                             onChange={handleInputChange}
                             placeholder="مثال: الرياض"
                             required
-                            className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
+                            className="focus-visible:ring-yellow-500/50"
                         />
                     </div>
                     <DialogFooter className="pt-4 gap-2 sm:gap-0 sm:justify-start flex-row mt-4">

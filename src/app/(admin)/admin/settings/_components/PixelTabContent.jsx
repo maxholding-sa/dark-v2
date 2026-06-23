@@ -139,7 +139,7 @@ const PixelTabContent = ({ type }) => {
                             placeholder="123456789012345"
                             value={formData.facebookPixel}
                             onChange={handleChange}
-                            className="bg-black/40 border-white/10 focus:border-blue-500 transition-colors"
+                            className="focus:border-blue-500 transition-colors"
                         />
                     </div>
                 )}
@@ -156,7 +156,7 @@ const PixelTabContent = ({ type }) => {
                                 placeholder="G-XXXXXXXXXX"
                                 value={formData.googleAnalytics}
                                 onChange={handleChange}
-                                className="bg-black/40 border-white/10"
+                                className=""
                             />
                         </div>
                         <div className="space-y-2">
@@ -169,7 +169,7 @@ const PixelTabContent = ({ type }) => {
                                 placeholder="AW-123456789"
                                 value={formData.googleAdsId}
                                 onChange={handleChange}
-                                className="bg-black/40 border-white/10"
+                                className=""
                             />
                         </div>
                     </div>
@@ -187,7 +187,7 @@ const PixelTabContent = ({ type }) => {
                                 placeholder="CXXXXXXXXXXXXXXXXXXX"
                                 value={formData.tiktokPixel}
                                 onChange={handleChange}
-                                className="bg-black/40 border-white/10"
+                                className=""
                             />
                         </div>
                         <div className="space-y-2">
@@ -200,7 +200,7 @@ const PixelTabContent = ({ type }) => {
                                 placeholder="XXXXXXXX-XXXX...XXXX"
                                 value={formData.snapchatPixel}
                                 onChange={handleChange}
-                                className="bg-black/40 border-white/10"
+                                className=""
                             />
                         </div>
                     </div>

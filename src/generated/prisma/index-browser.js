@@ -242,6 +242,8 @@ exports.Prisma.BankScalarFieldEnum = {
   name: 'name',
   logoImage: 'logoImage',
   interestRate: 'interestRate',
+  sectorInterestRates: 'sectorInterestRates',
+  defaultBalloonPaymentPct: 'defaultBalloonPaymentPct',
   loanPolicy: 'loanPolicy',
   adminFeesCap: 'adminFeesCap',
   defaultAdminFeesPct: 'defaultAdminFeesPct',
@@ -367,6 +369,9 @@ exports.Prisma.StoreInfoScalarFieldEnum = {
   email: 'email',
   latitude: 'latitude',
   longitude: 'longitude',
+  whatsappEnabled: 'whatsappEnabled',
+  whatsappLabel: 'whatsappLabel',
+  whatsappText: 'whatsappText',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

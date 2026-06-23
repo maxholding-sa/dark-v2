@@ -60,7 +60,13 @@ const CarCard = ({ car, isFeatured }) => {
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl trasition group py-0 shadow-lg bg-black/30 backdrop-blur-xl bg-white/10 border border-white/20">
+    <Card
+      className={`overflow-hidden hover:shadow-xl trasition group py-0 shadow-lg border ${
+        isFeatured
+          ? "bg-zinc-900 border-white/10"
+          : "bg-black/30 backdrop-blur-xl bg-white/10 border-white/20"
+      }`}
+    >
       {/* Car image */}
       <div className="relative h-32 sm:h-40 md:h-56">
         {car.images && car.images.length > 0 ? (
@@ -143,22 +149,26 @@ const CarCard = ({ car, isFeatured }) => {
             {car.mileage.toLocaleString()} ميل
           </Badge>
 
-          <Badge variant="outline" className="bg-black/30">
-            {car.color}
-          </Badge>
+          {!isFeatured && (
+            <Badge variant="outline" className="bg-black/30">
+              {car.color}
+            </Badge>
+          )}
         </div>
 
-        <div className="flex justify-between">
-          <Link
-            href={`/cars/${car.id}`}
-            className="flex-1 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-medium h-8 sm:h-9 md:h-10 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('startLoading'));
-            }}
-          >
-            عرض السيارة
-          </Link>
-        </div>
+        {!isFeatured && (
+          <div className="flex justify-between">
+            <Link
+              href={`/cars/${car.id}`}
+              className="flex-1 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-medium h-8 sm:h-9 md:h-10 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('startLoading'));
+              }}
+            >
+              عرض السيارة
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
