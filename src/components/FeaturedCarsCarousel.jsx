@@ -13,6 +13,30 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef(null);
 
+  // Measure the mobile container so we can compute exact pixel offsets
+  const mobileContainerRef = useRef(null);
+  const [containerW, setContainerW] = useState(0);
+
+  useEffect(() => {
+    const el = mobileContainerRef.current;
+    if (!el) return;
+    const update = () => setContainerW(el.offsetWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Each card takes exactly half the container minus half the gap, so the
+  // visible area shows: ½ prev card | full active card | ½ next card
+  const gap = 12;
+  const cardW = containerW > 0 ? (containerW - gap) / 2 : 165;
+  // Offset that keeps the active card perfectly centered
+  const trackOffset =
+    containerW > 0
+      ? (containerW - cardW) / 2 - active * (cardW + gap)
+      : 0;
+
   const goTo = useCallback(
     (index) => {
       if (total === 0) return;
@@ -42,7 +66,6 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     if (touchStartX.current === null) return;
     const delta = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(delta) > 40) {
-      // RTL-friendly: swipe left -> next, swipe right -> prev
       if (delta < 0) next();
       else prev();
     }
@@ -55,75 +78,120 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Stage */}
+      {/* ── MOBILE peek carousel (< md) ─────────────────────────────────────
+          Layout: ½ previous card | active card | ½ next card
+          Each card = (containerWidth - gap) / 2, centered by trackOffset.   */}
       <div
-        dir="ltr"
-        className="relative h-[400px] sm:h-[440px] md:h-[500px] w-full overflow-hidden"
-        style={{ perspective: "1500px", perspectiveOrigin: "center center" }}
+        ref={mobileContainerRef}
+        className="block md:hidden w-full overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Prev / next click zones sit underneath the cards (z-0) so the
-            active card always stays clickable above them. */}
-        <div className="absolute inset-0 z-0 flex">
-          <div onClick={prev} className="flex-1 cursor-pointer" aria-label="السابق" />
-          <div onClick={next} className="flex-1 cursor-pointer" aria-label="التالي" />
-        </div>
-        {cars.map((car, index) => {
-          let offset = index - active;
-          if (offset > total / 2) offset -= total;
-          if (offset < -total / 2) offset += total;
-
-          const abs = Math.abs(offset);
-          const isActive = offset === 0;
-
-          // Render the visible window plus one buffer card on each side so
-          // cards slide in/out smoothly (the buffer is clipped by the stage)
-          // instead of popping in. Anything further out is unmounted.
-          if (abs > 4) return null;
-
-          const inView = abs <= 3;
-          // Equal horizontal step + no z-recede keeps the gaps between every
-          // card identical (perspective z-depth would compress far gaps).
-          const translateX = offset * 78;
-          // Cap the tilt so cards never reach 90deg (which makes them
-          // edge-on / invisible). Side cards stay facing the viewer.
-          const rotateY = -Math.sign(offset) * Math.min(abs * 40, 55);
-
-          return (
-            // Full-stage layer flex-centers the card; the transform then
-            // offsets it. This guarantees the active card is dead-center.
+        <div
+          dir="ltr"
+          className="flex transition-transform duration-500 ease-out"
+          style={{
+            gap: `${gap}px`,
+            transform: `translateX(${trackOffset}px)`,
+          }}
+        >
+          {cars.map((car, i) => (
             <div
               key={car.id}
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ zIndex: 10 + (total - abs), pointerEvents: "none" }}
+              className="flex-shrink-0 transition-opacity duration-300"
+              style={{
+                width: `${cardW}px`,
+                opacity: i === active ? 1 : 0.55,
+              }}
+              onClick={() => i !== active && goTo(i)}
             >
-              <div
-                className="w-[290px] sm:w-[340px] md:w-[390px] lg:w-[440px] pointer-events-none transition-all duration-700 ease-out"
-                style={{
-                  transform: `translateX(${translateX}%) rotateY(${rotateY}deg)`,
-                  transformStyle: "preserve-3d",
-                  opacity: inView ? (isActive ? 1 : 0.78) : 0,
-                  filter: isActive ? "none" : `brightness(${Math.max(0.4, 0.78 - abs * 0.12)})`,
+              <Link
+                href={`/cars/${car.id}`}
+                onClick={(e) => {
+                  if (i !== active) { e.preventDefault(); return; }
+                  window.dispatchEvent(new CustomEvent("startLoading"));
                 }}
               >
-                <div dir="rtl" className={isActive ? "shadow-2xl shadow-black/60 rounded-xl" : ""}>
-                  <CarCard car={car} isFeatured={true} />
+                <CarCard car={car} isFeatured={true} />
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* Dot indicators */}
+        <div className="flex justify-center gap-1.5 mt-3">
+          {cars.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i === active ? "w-6 bg-yellow-500" : "w-2 bg-white/30"
+              }`}
+              aria-label={`انتقل إلى السيارة ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── DESKTOP 3-D carousel (≥ md) ─────────────────────────────────────
+          overflow-hidden and perspective are on SEPARATE elements on purpose.
+          Putting both on the same div causes iOS/Safari to hide all children. */}
+      <div className="hidden md:block w-full overflow-hidden h-[480px] md:h-[500px]">
+        <div
+          dir="ltr"
+          className="relative w-full h-full"
+          style={{ perspective: "1500px", perspectiveOrigin: "center center" }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="absolute inset-0 z-0 flex">
+            <div onClick={prev} className="flex-1 cursor-pointer" aria-label="السابق" />
+            <div onClick={next} className="flex-1 cursor-pointer" aria-label="التالي" />
+          </div>
+
+          {cars.map((car, index) => {
+            let offset = index - active;
+            if (offset > total / 2) offset -= total;
+            if (offset < -total / 2) offset += total;
+
+            const abs = Math.abs(offset);
+            const isActive = offset === 0;
+
+            if (abs > 4) return null;
+
+            const inView = abs <= 3;
+            const translateX = offset * 78;
+            const rotateY = -Math.sign(offset) * Math.min(abs * 40, 55);
+
+            return (
+              <div
+                key={car.id}
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ zIndex: 10 + (total - abs), pointerEvents: "none" }}
+              >
+                <div
+                  className="w-[390px] lg:w-[440px] pointer-events-none transition-all duration-700 ease-out"
+                  style={{
+                    transform: `translateX(${translateX}%) rotateY(${rotateY}deg)`,
+                    opacity: inView ? (isActive ? 1 : 0.78) : 0,
+                    filter: isActive ? "none" : `brightness(${Math.max(0.4, 0.78 - abs * 0.12)})`,
+                  }}
+                >
+                  <div dir="rtl" className={isActive ? "shadow-2xl shadow-black/60 rounded-xl" : ""}>
+                    <CarCard car={car} isFeatured={true} />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {/* Transparent link sitting on top of the center card. This is the
-            only element above the prev/next zones at the center, so clicking
-            the middle card always navigates to its details page. */}
-        <Link
-          href={`/cars/${cars[active].id}`}
-          onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
-          aria-label="عرض تفاصيل السيارة"
-          className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[290px] sm:w-[340px] md:w-[390px] lg:w-[440px] h-[260px] sm:h-[300px] md:h-[360px] lg:h-[400px] cursor-pointer rounded-xl"
-        />
+          <Link
+            href={`/cars/${cars[active].id}`}
+            onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
+            aria-label="عرض تفاصيل السيارة"
+            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[390px] lg:w-[440px] h-[360px] lg:h-[400px] cursor-pointer rounded-xl"
+          />
+        </div>
       </div>
 
       {/* Navigation */}

@@ -129,26 +129,13 @@ export default async function Home() {
       </section>
 
       {/* About Section */}
-      <section className="py-20 px-6 md:px-12 relative overflow-hidden">
+      <section className="py-12 md:py-20 px-6 md:px-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-blue-500/5 rounded-3xl -z-10"></div>
-        <div className="container mx-auto relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            <ScrollAnimate variant="right" className="text-right space-y-6 order-2 md:order-1">
-              <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">عن ماكس موتورز</h2>
-              <div className="space-y-4 text-white/90 text-lg leading-relaxed">
-                <p>نحن منصة رائدة في مجال البحث عن السيارات وحجز اختبارات القيادة في المنطقة. نوفر لك تجربة سلسة وآمنة للعثور على سيارة أحلامك من بين مئات الخيارات المتاحة.</p>
-                <p>مع تقنيات الذكاء الاصطناعي المتقدمة، نساعدك على اتخاذ القرار الصحيح من خلال توفير معلومات دقيقة ومقارنات شاملة بين المركبات المختلفة.</p>
-              </div>
-              <div className="pt-4">
-                <LinkWithLoader href="/about">
-                  <Button size="lg" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-full shadow-2xl hover:shadow-yellow-500/25 transform hover:scale-105 transition-all duration-300 border-2 border-yellow-400/50">
-                    اعرف المزيد
-                  </Button>
-                </LinkWithLoader>
-              </div>
-            </ScrollAnimate>
-            <ScrollAnimate variant="left" className="relative order-1 md:order-2">
-              <div className="relative w-full max-w-lg mx-auto group">
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="flex flex-col md:flex-row md:[direction:ltr] items-center gap-8 md:gap-16">
+            {/* Logo — top on mobile, LEFT on desktop */}
+            <ScrollAnimate variant="left" className="w-full md:w-1/2 flex justify-center">
+              <div className="relative w-[220px] sm:w-[280px] md:w-full md:max-w-lg group">
                 <div className="relative rounded-3xl overflow-hidden aspect-square flex items-center justify-center">
                   <Image
                     src={mainLogo?.imageUrl || "/logo.JPG"}
@@ -158,6 +145,23 @@ export default async function Home() {
                     className="w-full h-auto object-contain"
                     priority
                   />
+                </div>
+              </div>
+            </ScrollAnimate>
+            {/* Text — below logo on mobile, RIGHT on desktop */}
+            <ScrollAnimate variant="right" className="w-full md:w-1/2">
+              <div dir="rtl" className="flex flex-col items-center text-center md:items-end md:text-right space-y-4 md:space-y-6">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">عن ماكس موتورز</h2>
+                <div className="space-y-3 md:space-y-4 text-white/90 text-base md:text-lg leading-relaxed">
+                  <p>نحن منصة رائدة في مجال البحث عن السيارات وحجز اختبارات القيادة في المنطقة. نوفر لك تجربة سلسة وآمنة للعثور على سيارة أحلامك من بين مئات الخيارات المتاحة.</p>
+                  <p>مع تقنيات الذكاء الاصطناعي المتقدمة، نساعدك على اتخاذ القرار الصحيح من خلال توفير معلومات دقيقة ومقارنات شاملة بين المركبات المختلفة.</p>
+                </div>
+                <div className="pt-2 md:pt-4">
+                  <LinkWithLoader href="/about">
+                    <Button size="lg" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-full shadow-2xl hover:shadow-yellow-500/25 transform hover:scale-105 transition-all duration-300 border-2 border-yellow-400/50">
+                      اعرف المزيد
+                    </Button>
+                  </LinkWithLoader>
                 </div>
               </div>
             </ScrollAnimate>
@@ -182,9 +186,7 @@ export default async function Home() {
               <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
             </LinkWithLoader>
           </ScrollAnimate>
-          <ScrollAnimate>
-            <FeaturedCarsCarousel cars={featuredCars} />
-          </ScrollAnimate>
+          <FeaturedCarsCarousel cars={featuredCars} />
         </div>
       </section>
 

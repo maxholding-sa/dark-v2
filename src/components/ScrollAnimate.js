@@ -53,6 +53,9 @@ const ScrollAnimate = ({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("animate-in");
+            // Clear the inline transform so the CSS `transform: none` from
+            // .animate-in can actually take effect (inline styles beat classes).
+            entry.target.style.transform = "";
 
             if (stagger) {
               const kids = Array.from(entry.target.children);

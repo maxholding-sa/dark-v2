@@ -68,13 +68,14 @@ const CarCard = ({ car, isFeatured }) => {
       }`}
     >
       {/* Car image */}
-      <div className="relative h-32 sm:h-40 md:h-56">
+      <div className="relative h-48 sm:h-48 md:h-56">
         {car.images && car.images.length > 0 ? (
           <div className="relative w-full h-full">
             <Image
               src={car.images[0]}
               alt={`${car.make} ${car.model} `}
               fill
+              sizes="(max-width: 640px) 340px, (max-width: 768px) 340px, (max-width: 1024px) 390px, 440px"
               className="object-cover group-hover:scale-105 trasition duration-300 "
             />
           </div>
@@ -109,12 +110,12 @@ const CarCard = ({ car, isFeatured }) => {
       </div>
 
       {/* Card content */}
-      <CardContent className="p-2.5 sm:p-3 md:p-4">
+      <CardContent className="p-3 sm:p-3 md:p-4">
         <div className="flex flex-col mb-1.5 md:mb-2">
-          <h3 className="text-sm sm:text-base md:text-lg font-bold line-clamp-1">
+          <h3 className="text-base sm:text-base md:text-lg font-bold line-clamp-1">
             {car.make} {car.model}
           </h3>
-          <span className="text-base sm:text-lg md:text-xl font-bold text-white">
+          <span className="text-lg sm:text-lg md:text-xl font-bold text-white">
             {formatSaudiRiyalReact(car.price)}
           </span>
         </div>
@@ -128,7 +129,7 @@ const CarCard = ({ car, isFeatured }) => {
           <span>{car.fuelType}</span>
         </div>
 
-        <div className="hidden sm:flex flex-wrap gap-1 mb-3 md:mb-4">
+        <div className="flex flex-wrap gap-1 mb-3 md:mb-4">
           {car.isLuxury && (
             <Badge className="bg-yellow-500 text-black border-yellow-500 hover:bg-yellow-600">
               فارهة
