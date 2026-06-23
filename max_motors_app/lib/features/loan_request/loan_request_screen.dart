@@ -30,6 +30,21 @@ const _hijriMonths = <(String, String)>[
   ('12', 'ذو الحجة'),
 ];
 
+const _gregorianMonths = <(String, String)>[
+  ('1', 'يناير'),
+  ('2', 'فبراير'),
+  ('3', 'مارس'),
+  ('4', 'أبريل'),
+  ('5', 'مايو'),
+  ('6', 'يونيو'),
+  ('7', 'يوليو'),
+  ('8', 'أغسطس'),
+  ('9', 'سبتمبر'),
+  ('10', 'أكتوبر'),
+  ('11', 'نوفمبر'),
+  ('12', 'ديسمبر'),
+];
+
 const _cities = <String>[
   'الرياض', 'جدة', 'مكة', 'المدينة', 'الدمام', 'الخبر', 'الطائف',
   'تبوك', 'أبها', 'حائل', 'الجوف', 'نجران', 'جازان', 'الباحة',
@@ -43,11 +58,13 @@ const _times = <String>[
 const _sectors = <String>['خاص', 'حكومي مدني', 'حكومي عسكرى', 'متقاعد'];
 
 const _currentHijriYear = 1447;
+const _currentGregorianYear = 2026;
 
-String _ageBracketFromHijriBirthYear(String birthYear) {
+String _ageBracketFromBirthYear(String birthYear, {String birthDateType = 'hijri'}) {
   final year = int.tryParse(birthYear) ?? 0;
   if (year == 0) return '31 to 35';
-  final age = _currentHijriYear - year;
+  final currentYear = birthDateType == 'gregorian' ? _currentGregorianYear : _currentHijriYear;
+  final age = currentYear - year;
   if (age <= 24) return '18 to 24';
   if (age <= 30) return '25 to 30';
   if (age <= 35) return '31 to 35';
@@ -97,6 +114,7 @@ class _LoanFormState extends ConsumerState<_LoanForm> {
   late final TextEditingController _obligations;
   late final TextEditingController _additional;
 
+  String _birthDateType = 'hijri';
   String? _birthMonth;
   String? _birthYear;
   String _gender = 'male';
@@ -150,7 +168,7 @@ class _LoanFormState extends ConsumerState<_LoanForm> {
         termMonths: _termYears * 12,
         profitRate: _salaryBank?.interestRate ?? 5,
         downPaymentPct: _downPct,
-        ageBracket: _ageBracketFromHijriBirthYear(_birthYear ?? ''),
+        ageBracket: _ageBracketFromBirthYear(_birthYear ?? '', birthDateType: _birthDateType),
         gender: _gender,
         carBrand: widget.car.make,
       ),
@@ -182,6 +200,7 @@ class _LoanFormState extends ConsumerState<_LoanForm> {
       carModel: car.model,
       carCategory: car.category,
       carYear: car.year,
+      birthDateType: _birthDateType,
       birthMonth: _birthMonth!,
       birthYear: _birthYear!,
       gender: _gender,
@@ -345,16 +364,74 @@ class _LoanFormState extends ConsumerState<_LoanForm> {
               validator: (v) =>
                   (v?.trim().length ?? 0) < 9 ? 'أدخل رقم جوال صحيح' : null,
             ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('نوع تاريخ الميلاد *',
+                    style: TextStyle(fontSize: 12, color: Colors.white70)),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: _birthDateType == 'hijri'
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          side: BorderSide(
+                            color: _birthDateType == 'hijri'
+                                ? AppColors.primary
+                                : Colors.white30,
+                          ),
+                        ),
+                        onPressed: () => setState(() {
+                          _birthDateType = 'hijri';
+                          _birthMonth = null;
+                          _birthYear = null;
+                        }),
+                        child: const Text('هجري'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: _birthDateType == 'gregorian'
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          side: BorderSide(
+                            color: _birthDateType == 'gregorian'
+                                ? AppColors.primary
+                                : Colors.white30,
+                          ),
+                        ),
+                        onPressed: () => setState(() {
+                          _birthDateType = 'gregorian';
+                          _birthMonth = null;
+                          _birthYear = null;
+                        }),
+                        child: const Text('ميلادي'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _birthMonth,
                     isExpanded: true,
-                    decoration:
-                        const InputDecoration(labelText: 'شهر الميلاد (هجري) *'),
+                    decoration: InputDecoration(
+                      labelText: _birthDateType == 'gregorian'
+                          ? 'شهر الميلاد (ميلادي) *'
+                          : 'شهر الميلاد (هجري) *',
+                    ),
                     dropdownColor: AppColors.surfaceAlt,
-                    items: _hijriMonths
+                    items: (_birthDateType == 'gregorian'
+                            ? _gregorianMonths
+                            : _hijriMonths)
                         .map((m) => DropdownMenuItem(
                             value: m.$1, child: Text(m.$2)))
                         .toList(),
@@ -366,13 +443,21 @@ class _LoanFormState extends ConsumerState<_LoanForm> {
                   child: DropdownButtonFormField<String>(
                     value: _birthYear,
                     isExpanded: true,
-                    decoration:
-                        const InputDecoration(labelText: 'سنة الميلاد (هجري) *'),
+                    decoration: InputDecoration(
+                      labelText: _birthDateType == 'gregorian'
+                          ? 'سنة الميلاد (ميلادي) *'
+                          : 'سنة الميلاد (هجري) *',
+                    ),
                     dropdownColor: AppColors.surfaceAlt,
-                    items: List.generate(80, (i) {
-                      final y = (_currentHijriYear - 18 - i).toString();
-                      return DropdownMenuItem(value: y, child: Text('$y هـ'));
-                    }),
+                    items: _birthDateType == 'gregorian'
+                        ? List.generate(80, (i) {
+                            final y = (_currentGregorianYear - 18 - i).toString();
+                            return DropdownMenuItem(value: y, child: Text('$y م'));
+                          })
+                        : List.generate(80, (i) {
+                            final y = (_currentHijriYear - 18 - i).toString();
+                            return DropdownMenuItem(value: y, child: Text('$y هـ'));
+                          }),
                     onChanged: (v) => setState(() => _birthYear = v),
                   ),
                 ),

@@ -14,6 +14,7 @@ class LoanRequestInput {
     required this.carModel,
     this.carCategory,
     required this.carYear,
+    this.birthDateType = 'hijri',
     required this.birthMonth,
     required this.birthYear,
     required this.gender,
@@ -45,6 +46,7 @@ class LoanRequestInput {
   final String carModel;
   final String? carCategory;
   final int carYear;
+  final String birthDateType;
   final String birthMonth;
   final String birthYear;
   final String gender;
@@ -76,6 +78,7 @@ class LoanRequestInput {
         'carModel': carModel,
         'carCategory': carCategory,
         'carYear': carYear,
+        'birthDateType': birthDateType,
         'birthMonth': birthMonth,
         'birthYear': birthYear,
         'gender': gender,

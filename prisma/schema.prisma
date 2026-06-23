@@ -305,7 +305,8 @@ model LoanRequest {
   carYear                 Int
 
   // Birth Information
-  birthMonth              String // Hijri month (1-12)
+  birthDateType           String   @default("hijri") // "hijri" or "gregorian"
+  birthMonth              String // month (1-12)
   birthYear               String
 
   // Gender

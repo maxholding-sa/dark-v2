@@ -7,7 +7,7 @@ import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { serializeLoanRequests } from "@/lib/helper";
+import { serializeLoanRequests, formatBirthDate } from "@/lib/helper";
 
 // fetch loan requests from db
 export async function getLoanRequests(search = "") {
@@ -174,7 +174,7 @@ export async function exportLoanRequests(ids = null, search = "") {
       "المدينة": request.city,
       "وقت التواصل المفضل": request.time,
       "النوع": request.gender === "male" ? "ذكر" : "أنثى",
-      "تاريخ الميلاد": `${request.birthMonth} / ${request.birthYear} هـ`,
+      "تاريخ الميلاد": formatBirthDate(request.birthMonth, request.birthYear, request.birthDateType),
       "ماركة السيارة": request.carMake,
       "موديل السيارة": request.carModel,
       "سنة الصنع": request.carYear,

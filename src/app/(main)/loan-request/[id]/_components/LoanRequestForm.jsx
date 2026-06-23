@@ -21,11 +21,13 @@ import {
 import { Currency, User, Mail, Phone, MessageSquare, Calendar, ChevronLeft, ChevronRight, Upload, CheckCircle, Car, File, Key, Lock, Banknote, TrendingUp, AlertTriangle, Shield, Target, Award, BarChart3, DollarSign, Percent, Clock, Star } from "lucide-react";
 
 const CURRENT_HIJRI_YEAR = 1447;
+const CURRENT_GREGORIAN_YEAR = 2026;
 
-const getAgeBracketFromHijriBirthYear = (birthYear) => {
+const getAgeBracketFromBirthYear = (birthYear, birthDateType = "hijri") => {
   const year = Number.parseInt(birthYear, 10);
   if (!year) return "31 to 35";
-  const age = CURRENT_HIJRI_YEAR - year;
+  const currentYear = birthDateType === "gregorian" ? CURRENT_GREGORIAN_YEAR : CURRENT_HIJRI_YEAR;
+  const age = currentYear - year;
   if (age <= 24) return "18 to 24";
   if (age <= 30) return "25 to 30";
   if (age <= 35) return "31 to 35";
@@ -85,7 +87,7 @@ const generateIslamicOffers = ({ banks, formData, car }) => {
   }
   const profitRate = getProfitRateForSector(selectedBank, formData.employerSector);
   const adminPct = bankConfig.default_admin_fees_pct ?? 0.01;
-  const ageBracket = getAgeBracketFromHijriBirthYear(formData.birthYear);
+  const ageBracket = getAgeBracketFromBirthYear(formData.birthYear, formData.birthDateType);
   const gender = formData.gender || "male";
 
   const { financingTerms, downPaymentOptions } = LOAN_CALCULATOR_META;
@@ -149,6 +151,7 @@ const LoanRequestForm = ({ car }) => {
     carCategory: car.category || "",
     carYear: car.year.toString(),
     mobileNumber: "",
+    birthDateType: "hijri",
     birthMonth: "",
     birthYear: "",
     gender: "",
@@ -539,45 +542,97 @@ const LoanRequestForm = ({ car }) => {
                 </div>
               </div>
 
+              <div>
+                <Label className="mb-2">نوع تاريخ الميلاد *</Label>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { handleInputChange('birthDateType', 'hijri'); handleInputChange('birthMonth', ''); handleInputChange('birthYear', ''); }}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium border transition-colors ${formData.birthDateType === 'hijri' ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-white/20 text-white/70 hover:border-white/40'}`}
+                  >
+                    هجري
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleInputChange('birthDateType', 'gregorian'); handleInputChange('birthMonth', ''); handleInputChange('birthYear', ''); }}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium border transition-colors ${formData.birthDateType === 'gregorian' ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-white/20 text-white/70 hover:border-white/40'}`}
+                  >
+                    ميلادي
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="birthMonth" className="mb-4">شهر الميلاد (هجري) *</Label>
+                  <Label htmlFor="birthMonth" className="mb-4">
+                    {formData.birthDateType === 'gregorian' ? 'شهر الميلاد (ميلادي)' : 'شهر الميلاد (هجري)'} *
+                  </Label>
                   <Select value={formData.birthMonth} onValueChange={(value) => handleInputChange('birthMonth', value)} required>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر شهر الميلاد" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">محرم</SelectItem>
-                      <SelectItem value="2">صفر</SelectItem>
-                      <SelectItem value="3">ربيع الأول</SelectItem>
-                      <SelectItem value="4">ربيع الآخر</SelectItem>
-                      <SelectItem value="5">جمادى الأولى</SelectItem>
-                      <SelectItem value="6">جمادى الآخرة</SelectItem>
-                      <SelectItem value="7">رجب</SelectItem>
-                      <SelectItem value="8">شعبان</SelectItem>
-                      <SelectItem value="9">رمضان</SelectItem>
-                      <SelectItem value="10">شوال</SelectItem>
-                      <SelectItem value="11">ذو القعدة</SelectItem>
-                      <SelectItem value="12">ذو الحجة</SelectItem>
+                      {formData.birthDateType === 'gregorian' ? (
+                        <>
+                          <SelectItem value="1">يناير</SelectItem>
+                          <SelectItem value="2">فبراير</SelectItem>
+                          <SelectItem value="3">مارس</SelectItem>
+                          <SelectItem value="4">أبريل</SelectItem>
+                          <SelectItem value="5">مايو</SelectItem>
+                          <SelectItem value="6">يونيو</SelectItem>
+                          <SelectItem value="7">يوليو</SelectItem>
+                          <SelectItem value="8">أغسطس</SelectItem>
+                          <SelectItem value="9">سبتمبر</SelectItem>
+                          <SelectItem value="10">أكتوبر</SelectItem>
+                          <SelectItem value="11">نوفمبر</SelectItem>
+                          <SelectItem value="12">ديسمبر</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="1">محرم</SelectItem>
+                          <SelectItem value="2">صفر</SelectItem>
+                          <SelectItem value="3">ربيع الأول</SelectItem>
+                          <SelectItem value="4">ربيع الآخر</SelectItem>
+                          <SelectItem value="5">جمادى الأولى</SelectItem>
+                          <SelectItem value="6">جمادى الآخرة</SelectItem>
+                          <SelectItem value="7">رجب</SelectItem>
+                          <SelectItem value="8">شعبان</SelectItem>
+                          <SelectItem value="9">رمضان</SelectItem>
+                          <SelectItem value="10">شوال</SelectItem>
+                          <SelectItem value="11">ذو القعدة</SelectItem>
+                          <SelectItem value="12">ذو الحجة</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="birthYear" className="mb-4">سنة الميلاد (هجري) *</Label>
+                  <Label htmlFor="birthYear" className="mb-4">
+                    {formData.birthDateType === 'gregorian' ? 'سنة الميلاد (ميلادي)' : 'سنة الميلاد (هجري)'} *
+                  </Label>
                   <Select value={formData.birthYear} onValueChange={(value) => handleInputChange('birthYear', value)} required>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر سنة الميلاد" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 100 }, (_, i) => {
-                        const hijriYear = 1445 - i; // Current Hijri year is approximately 1445 AH
-                        return (
-                          <SelectItem key={hijriYear} value={hijriYear.toString()}>
-                            {hijriYear} هـ
-                          </SelectItem>
-                        );
-                      })}
+                      {formData.birthDateType === 'gregorian'
+                        ? Array.from({ length: 100 }, (_, i) => {
+                            const gregYear = CURRENT_GREGORIAN_YEAR - i;
+                            return (
+                              <SelectItem key={gregYear} value={gregYear.toString()}>
+                                {gregYear} م
+                              </SelectItem>
+                            );
+                          })
+                        : Array.from({ length: 100 }, (_, i) => {
+                            const hijriYear = CURRENT_HIJRI_YEAR - i;
+                            return (
+                              <SelectItem key={hijriYear} value={hijriYear.toString()}>
+                                {hijriYear} هـ
+                              </SelectItem>
+                            );
+                          })}
                     </SelectContent>
                   </Select>
                 </div>

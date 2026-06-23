@@ -107,6 +107,31 @@ const HIJRI_MONTH_NAMES = {
 export const formatHijriBirthMonth = (month) =>
   HIJRI_MONTH_NAMES[String(month)] || month || "غير محدد";
 
+const GREGORIAN_MONTH_NAMES = {
+  "1": "يناير",
+  "2": "فبراير",
+  "3": "مارس",
+  "4": "أبريل",
+  "5": "مايو",
+  "6": "يونيو",
+  "7": "يوليو",
+  "8": "أغسطس",
+  "9": "سبتمبر",
+  "10": "أكتوبر",
+  "11": "نوفمبر",
+  "12": "ديسمبر",
+};
+
+export const formatGregorianBirthMonth = (month) =>
+  GREGORIAN_MONTH_NAMES[String(month)] || month || "غير محدد";
+
+export const formatBirthDate = (birthMonth, birthYear, birthDateType) => {
+  if (birthDateType === "gregorian") {
+    return `${formatGregorianBirthMonth(birthMonth)} / ${birthYear} م`;
+  }
+  return `${formatHijriBirthMonth(birthMonth)} / ${birthYear} هـ`;
+};
+
 export const formatYesNo = (value) => {
   if (value === true || value === "yes") return "نعم";
   if (value === false || value === "no") return "لا";

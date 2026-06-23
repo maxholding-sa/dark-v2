@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   formatGenderAr,
-  formatHijriBirthMonth,
+  formatBirthDate,
   formatPercent,
   formatSaudiRiyalReact,
   formatYesNo,
@@ -70,8 +70,8 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
           <DetailField label="وقت التواصل المفضل" value={loanRequest.time} />
           <DetailField label="النوع" value={formatGenderAr(loanRequest.gender)} />
           <DetailField
-            label="تاريخ الميلاد (هجري)"
-            value={`${formatHijriBirthMonth(loanRequest.birthMonth)} / ${loanRequest.birthYear} هـ`}
+            label={loanRequest.birthDateType === "gregorian" ? "تاريخ الميلاد (ميلادي)" : "تاريخ الميلاد (هجري)"}
+            value={formatBirthDate(loanRequest.birthMonth, loanRequest.birthYear, loanRequest.birthDateType)}
           />
         </div>
       </DetailSection>
