@@ -37,6 +37,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       ? (containerW - cardW) / 2 - active * (cardW + gap)
       : 0;
 
+  // Desktop: wraps around infinitely
   const goTo = useCallback(
     (index) => {
       if (total === 0) return;
@@ -48,16 +49,31 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
   const next = useCallback(() => goTo(active + 1), [active, goTo]);
   const prev = useCallback(() => goTo(active - 1), [active, goTo]);
 
+  // Mobile: clamps to [0, total-1] — has a clear start and end
+  const mobileNext = useCallback(
+    () => setActive((cur) => Math.min(cur + 1, total - 1)),
+    [total]
+  );
+  const mobilePrev = useCallback(
+    () => setActive((cur) => Math.max(cur - 1, 0)),
+    []
+  );
+
+  // Autoplay stops at the last card instead of wrapping
   useEffect(() => {
     if (paused || total <= 1) return;
     const id = setInterval(() => {
-      setActive((cur) => (cur + 1) % total);
+      setActive((cur) => {
+        if (cur >= total - 1) return cur;
+        return cur + 1;
+      });
     }, AUTOPLAY_MS);
     return () => clearInterval(id);
   }, [paused, total]);
 
   if (total === 0) return null;
 
+  // Desktop touch handlers (wrapping)
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -68,6 +84,21 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     if (Math.abs(delta) > 40) {
       if (delta < 0) next();
       else prev();
+    }
+    touchStartX.current = null;
+  };
+
+  // Mobile touch handlers (clamped)
+  const handleMobileTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleMobileTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(delta) > 40) {
+      if (delta < 0) mobileNext();
+      else mobilePrev();
     }
     touchStartX.current = null;
   };
@@ -84,8 +115,8 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       <div
         ref={mobileContainerRef}
         className="block md:hidden w-full overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onTouchStart={handleMobileTouchStart}
+        onTouchEnd={handleMobileTouchEnd}
       >
         <div
           dir="ltr"
@@ -112,7 +143,9 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
                   window.dispatchEvent(new CustomEvent("startLoading"));
                 }}
               >
-                <CarCard car={car} isFeatured={true} />
+                <div dir="rtl">
+                  <CarCard car={car} isFeatured={true} />
+                </div>
               </Link>
             </div>
           ))}
@@ -207,7 +240,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={prev}
+            onClick={mobilePrev}
             aria-label="السابق"
             className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40 text-white transition-all duration-300 hover:border-yellow-500 hover:bg-yellow-500 hover:text-black"
           >
@@ -215,7 +248,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
           </button>
           <button
             type="button"
-            onClick={next}
+            onClick={mobileNext}
             aria-label="التالي"
             className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40 text-white transition-all duration-300 hover:border-yellow-500 hover:bg-yellow-500 hover:text-black"
           >
