@@ -21,7 +21,7 @@ import { Loader2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import LoadingBar from "@/components/LoadingBar";
 import {
   createFeaturedBrand,

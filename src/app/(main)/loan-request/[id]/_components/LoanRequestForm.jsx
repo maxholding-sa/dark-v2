@@ -55,8 +55,11 @@ const pickTopDistinctOffers = (offers, compareFn, distinctKeyFn, limit = 5) => {
 
 const generateIslamicOffers = ({ banks, formData, car }) => {
   const carPrice = Number(car.price) || 0;
-  if (carPrice <= 0 || !banks.length) {
-    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "missing price or banks" };
+  if (carPrice <= 0) {
+    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "لم يتم تحديد سعر لهذه السيارة. يرجى التواصل مع الإدارة لتحديث سعر السيارة." };
+  }
+  if (!banks.length) {
+    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "جاري تحميل بيانات البنوك..." };
   }
 
   let insuranceSegment;
@@ -179,6 +182,7 @@ const LoanRequestForm = ({ car }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [banks, setBanks] = useState([]);
+  const [banksLoading, setBanksLoading] = useState(true);
   const [selectedOffers, setSelectedOffers] = useState([]);
   const [comparisonAnalysis, setComparisonAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -283,6 +287,8 @@ const LoanRequestForm = ({ car }) => {
         }
       } catch (error) {
         console.error('Error fetching banks:', error);
+      } finally {
+        setBanksLoading(false);
       }
     };
     fetchBanks();
@@ -526,7 +532,7 @@ const LoanRequestForm = ({ car }) => {
               <div>
                 <Label htmlFor="mobileNumber" className="mb-4">رقم الجوال *</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-white pointer-events-none">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-black pointer-events-none">
                     966+
                   </span>
                   <Input
@@ -807,6 +813,15 @@ const LoanRequestForm = ({ car }) => {
         );
 
       case 4:
+        if (banksLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="w-10 h-10 border-4 border-yellow-700 border-t-transparent rounded-full animate-spin" />
+              <p className="text-white/70 text-sm">جاري تحميل البنوك...</p>
+            </div>
+          );
+        }
+
         const offerResult = generateIslamicOffers({ banks, formData, car });
         const allOffers = offerResult.offers;
         const scenarioInputs = offerResult.scenarioInputs;

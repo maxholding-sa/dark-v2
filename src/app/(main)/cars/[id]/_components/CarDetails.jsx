@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Car,

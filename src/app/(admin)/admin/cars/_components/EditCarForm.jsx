@@ -31,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { updateCar, getCarForEdit } from "@/actions/cars";
 import { fuelTypes, transmissions, bodyTypeOptions, carStatuses, driveTypeOptions } from "@/lib/data";
 import CarImageGalleryEditor from "./CarImageGalleryEditor";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 
 const EditCarForm = ({ carId }) => {
   // Define form schema with Zod
@@ -109,6 +109,12 @@ const EditCarForm = ({ carId }) => {
     },
   });
 
+  const watchedFuelType = watch("fuelType");
+  const watchedTransmission = watch("transmission");
+  const watchedBodyType = watch("bodyType");
+  const watchedDriveType = watch("driveType");
+  const watchedStatus = watch("status");
+
   const [imageError, setImageError] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const router = useRouter();
@@ -140,30 +146,30 @@ const EditCarForm = ({ carId }) => {
     if (getCarResult?.success && getCarResult.data) {
       const car = getCarResult.data;
 
-      // Set form values individually to ensure proper initialization
-      setValue("make", car.make);
-      setValue("model", car.model);
-      setValue("year", car.year.toString());
-      setValue("price", car.price.toString());
-      setValue("mileage", car.mileage.toString());
-      setValue("color", car.color);
-      setValue("fuelType", car.fuelType);
-      setValue("transmission", car.transmission);
-      setValue("bodyType", car.bodyType);
-      setValue("seats", car.seats ? car.seats.toString() : "");
-      setValue("description", car.description);
-      setValue("category", car.category || "");
-      setValue("videoUrl", car.videoUrl || "");
-      setValue("status", car.status);
-      setValue("featured", car.featured);
-      setValue("isLuxury", car.isLuxury || false);
-      setValue("driveType", car.driveType || "");
-      setValue("testDriveAvailable", car.testDriveAvailable);
+      reset({
+        make: car.make,
+        model: car.model,
+        year: car.year.toString(),
+        price: car.price.toString(),
+        mileage: car.mileage.toString(),
+        color: car.color,
+        fuelType: car.fuelType,
+        transmission: car.transmission,
+        bodyType: car.bodyType,
+        seats: car.seats ? car.seats.toString() : "",
+        description: car.description,
+        category: car.category || "",
+        videoUrl: car.videoUrl || "",
+        status: car.status,
+        featured: car.featured,
+        isLuxury: car.isLuxury || false,
+        driveType: car.driveType || "",
+        testDriveAvailable: car.testDriveAvailable,
+      });
 
-      // Set existing images
       setUploadedImages(car.images || []);
     }
-  }, [getCarResult, setValue]);
+  }, [getCarResult, reset]);
 
   // Handle update success
   useEffect(() => {
@@ -404,7 +410,8 @@ const EditCarForm = ({ carId }) => {
                   نوع الوقود
                 </Label>
                 <Select
-                  value={watch("fuelType")}
+                  key={watchedFuelType}
+                  value={watchedFuelType}
                   onValueChange={(value) => setValue("fuelType", value)}
                 >
                   <SelectTrigger
@@ -433,7 +440,8 @@ const EditCarForm = ({ carId }) => {
                   ناقل الحركة
                 </Label>
                 <Select
-                  value={watch("transmission")}
+                  key={watchedTransmission}
+                  value={watchedTransmission}
                   onValueChange={(value) => setValue("transmission", value)}
                 >
                   <SelectTrigger
@@ -462,7 +470,8 @@ const EditCarForm = ({ carId }) => {
                   نوع الهيكل
                 </Label>
                 <Select
-                  value={watch("bodyType")}
+                  key={watchedBodyType}
+                  value={watchedBodyType}
                   onValueChange={(value) => setValue("bodyType", value)}
                 >
                   <SelectTrigger
@@ -489,7 +498,8 @@ const EditCarForm = ({ carId }) => {
               <div className="space-y-2" dir="rtl">
                 <Label htmlFor="driveType" className="text-right block">نوع الدفع</Label>
                 <Select
-                  value={watch("driveType")}
+                  key={watchedDriveType}
+                  value={watchedDriveType}
                   onValueChange={(value) => setValue("driveType", value)}
                 >
                   <SelectTrigger
@@ -532,7 +542,8 @@ const EditCarForm = ({ carId }) => {
                   الحالة
                 </Label>
                 <Select
-                  value={watch("status")}
+                  key={watchedStatus}
+                  value={watchedStatus}
                   onValueChange={(value) => setValue("status", value)}
                 >
                   <SelectTrigger className="text-right">

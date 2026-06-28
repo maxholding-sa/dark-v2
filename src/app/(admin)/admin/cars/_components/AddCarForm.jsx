@@ -33,7 +33,7 @@ import { addCarToDB, processCarImageWithAI } from "@/actions/cars";
 import { fuelTypes, transmissions, bodyTypeOptions, carStatuses, driveTypeOptions } from "@/lib/data";
 import CarImageGalleryEditor from "./CarImageGalleryEditor";
 
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 
 const AddCarForm = () => {
   // Define form schema with Zod

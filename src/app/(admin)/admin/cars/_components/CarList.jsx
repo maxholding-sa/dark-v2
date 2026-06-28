@@ -30,7 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { applyCarImport, compareCarImport, deleteCars, exportCars, getCars, updateCarStatus } from "@/actions/cars";
 import { Card, CardContent } from "@/components/ui/card";
 import {

@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Clock, Loader2, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import {
   getDealershipInfo,
   getUsers,

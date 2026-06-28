@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import useFetch from "../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 
 const ReservationsList = ({ initialData }) => {
   const upcomingBooking = initialData?.data?.filter((booking) =>

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save, BarChart3, Facebook, Chrome, Music2, Share2, MousePointer2 } from "lucide-react";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { getPixelSettings, updatePixelSettings } from "@/actions/site-management";
 import { toast } from "sonner";
 

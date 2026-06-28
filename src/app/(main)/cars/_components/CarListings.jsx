@@ -2,7 +2,7 @@
 import { getCarsByFilters } from "@/actions/car-listing";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import useFetch from "../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import CarsListingLoading from "./CarsListingLoading";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

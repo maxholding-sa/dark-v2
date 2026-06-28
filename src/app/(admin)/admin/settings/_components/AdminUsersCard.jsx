@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Shield, Users, UserX, Settings2, Check, X } from "lucide-react";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { getUsers, updateUserRole, updateUserPermissions } from "@/actions/settings";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";

@@ -23,7 +23,7 @@ import {
     Eye,
     LineChart,
 } from "lucide-react";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { getPixelSettings, updatePixelSettings } from "@/actions/site-management";
 import { toast } from "sonner";
 

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useRouter } from "next/navigation";
-import useFetch from "../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { processAiImageSearch } from "@/actions/home";
 import LoadingBar from "@/components/LoadingBar";
 

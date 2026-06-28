@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldAlert } from "lucide-react";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 import { getUsers, updateUserPermissions } from "@/actions/settings";
 import { ADMIN_ROUTES } from "@/constants/admin-routes";
 import { toast } from "sonner";

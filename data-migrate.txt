@@ -1,4 +1,0 @@
-npx prisma migrate dev --name add_[..]_table
-npx prisma db push
-npx prisma migrate deploy
-npx prisma migrate status

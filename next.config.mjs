@@ -86,6 +86,7 @@ const nextConfig = {
       bodySizeLimit: '150mb',
       allowedOrigins: ['*'],
     },
+
   },
 
   // Increase payload size limits

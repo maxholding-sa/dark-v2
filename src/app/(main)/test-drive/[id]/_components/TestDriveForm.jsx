@@ -38,7 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { bookTestDrive } from "@/actions/test-drive";
 import { toast } from "sonner";
-import useFetch from "../../../../../../hooks/use-fetch";
+import useFetch from "@/hooks/use-fetch";
 
 const testDriveSchema = z.object({
   date: z.date({

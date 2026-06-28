@@ -5,6 +5,10 @@ node_modules/
 # Next.js
 .next/
 out/
+next-env.d.ts
+
+# Prisma (generated on install/build)
+src/generated/
 
 # Env
 .env

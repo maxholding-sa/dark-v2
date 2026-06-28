@@ -27,10 +27,9 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     return () => ro.disconnect();
   }, []);
 
-  // Each card takes exactly half the container minus half the gap, so the
-  // visible area shows: ½ prev card | full active card | ½ next card
+  // Each card is ~42% of the container — balanced portrait size in the peek carousel.
   const gap = 12;
-  const cardW = containerW > 0 ? (containerW - gap) / 2 : 165;
+  const cardW = containerW > 0 ? (containerW - gap) * 0.42 : 150;
   // Offset that keeps the active card perfectly centered
   const trackOffset =
     containerW > 0
@@ -169,7 +168,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       {/* ── DESKTOP 3-D carousel (≥ md) ─────────────────────────────────────
           overflow-hidden and perspective are on SEPARATE elements on purpose.
           Putting both on the same div causes iOS/Safari to hide all children. */}
-      <div className="hidden md:block w-full overflow-hidden h-[480px] md:h-[500px]">
+      <div className="hidden md:block w-full overflow-hidden h-[460px] md:h-[500px]">
         <div
           dir="ltr"
           className="relative w-full h-full"
@@ -193,7 +192,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
             if (abs > 4) return null;
 
             const inView = abs <= 3;
-            const translateX = offset * 78;
+            const translateX = offset * 62;
             const rotateY = -Math.sign(offset) * Math.min(abs * 40, 55);
 
             return (
@@ -203,7 +202,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
                 style={{ zIndex: 10 + (total - abs), pointerEvents: "none" }}
               >
                 <div
-                  className="w-[390px] lg:w-[440px] pointer-events-none transition-all duration-700 ease-out"
+                  className="w-[300px] lg:w-[340px] pointer-events-none transition-all duration-700 ease-out"
                   style={{
                     transform: `translateX(${translateX}%) rotateY(${rotateY}deg)`,
                     opacity: inView ? (isActive ? 1 : 0.78) : 0,
@@ -222,7 +221,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
             href={`/cars/${cars[active].id}`}
             onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
             aria-label="عرض تفاصيل السيارة"
-            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[390px] lg:w-[440px] h-[360px] lg:h-[400px] cursor-pointer rounded-xl"
+            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[300px] lg:w-[340px] h-[360px] lg:h-[390px] cursor-pointer rounded-xl"
           />
         </div>
       </div>
