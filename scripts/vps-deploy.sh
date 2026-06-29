@@ -70,5 +70,20 @@ fi
 
 pm2_cmd save
 
+echo "==> Ensuring nginx has no upload size limit (Excel import, media)"
+NGINX_SITE="/etc/nginx/sites-available/maxmotors"
+if [[ -f "$NGINX_SITE" ]] && command -v nginx >/dev/null 2>&1; then
+  if ! grep -q 'client_max_body_size' "$NGINX_SITE"; then
+    sed -i '/server_name maxmotors\.sa/a\    client_max_body_size 0;' "$NGINX_SITE"
+  else
+    sed -i 's/client_max_body_size[^;]*;/client_max_body_size 0;/g' "$NGINX_SITE"
+  fi
+  if nginx -t >/dev/null 2>&1; then
+    systemctl reload nginx
+  else
+    echo "WARN: nginx config test failed — fix $NGINX_SITE manually"
+  fi
+fi
+
 echo "==> Deploy complete"
 pm2_cmd status "$PM2_APP"

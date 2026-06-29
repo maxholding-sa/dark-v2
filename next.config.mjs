@@ -83,26 +83,30 @@ const nextConfig = {
     // Disabled in dev: parallel webpack workers can race and omit vendor-chunks (@clerk.js, etc.)
     webpackBuildWorker: process.env.NODE_ENV === "production",
     serverActions: {
-      bodySizeLimit: '150mb',
-      allowedOrigins: ['*'],
+      bodySizeLimit: "1gb",
+      allowedOrigins: ["*"],
     },
-
+    // Next.js 15.5+ internal proxy for server actions (defaults to 1MB)
+    proxyClientMaxBodySize: "1gb",
   },
 
-  // Increase payload size limits
+  serverActions: {
+    bodySizeLimit: "1gb",
+    allowedOrigins: ["*"],
+  },
+
+  // Increase payload size limits (Pages Router API routes)
   api: {
     bodyParser: {
-      sizeLimit: '150mb',
+      sizeLimit: "1gb",
     },
-    responseLimit: '150mb',
+    responseLimit: "1gb",
   },
 
-  // Middleware body size limit - MUST match server actions limit
-  // This is critical for allowing large uploads through middleware
-  middlewareClientMaxBodySize: '150mb',
+  // Middleware body buffering limit
+  middlewareClientMaxBodySize: "1gb",
 
-  // Also set at the builder level
-  httpMaxRequestSize: '150mb',
+  httpMaxRequestSize: "1gb",
 
   // Allow streaming uploads
   onDemandEntries: {

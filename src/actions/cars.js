@@ -614,67 +614,7 @@ export async function exportCars() {
   }
 }
 
-const UPDATABLE_FIELDS = [
-  "make", "model", "year", "price", "mileage", "color",
-  "fuelType", "transmission", "bodyType", "driveType", "seats",
-  "category", "videoUrl", "status", "description",
-];
-const BOOL_FIELDS = ["isLuxury", "featured", "testDriveAvailable"];
-
-function normalizeStr(val) {
-  if (val == null) return "";
-  return String(val)
-    .normalize("NFC")          // unify Unicode compositions (Arabic can differ)
-    .replace(/\r\n/g, "\n")    // Windows line endings
-    .replace(/\r/g, "\n")      // old Mac line endings
-    .replace(/\u00A0/g, " ")   // non-breaking space → regular space
-    .replace(/\u200B/g, "")    // zero-width space
-    .replace(/\u200C/g, "")    // zero-width non-joiner
-    .replace(/\u200D/g, "")    // zero-width joiner
-    .replace(/\uFEFF/g, "")    // BOM / zero-width no-break space
-    .replace(/[^\S\n]+/g, " ") // collapse any horizontal whitespace runs to one space
-    .replace(/\n+/g, "\n")     // collapse multiple newlines
-    .trim();
-}
-
-function buildCarDiff(row, car) {
-  const fieldChanges = [];
-  const updateData = {};
-
-  for (const field of UPDATABLE_FIELDS) {
-    if (!(field in row)) continue;
-    const incoming =
-      field === "year" || field === "mileage" || field === "seats"
-        ? row[field] !== "" && row[field] != null ? Number(row[field]) : null
-        : field === "price"
-          ? row[field] !== "" && row[field] != null ? parseFloat(row[field]) : null
-          : row[field];
-
-    const current =
-      field === "price" ? parseFloat(car[field]?.toString() ?? "0") : car[field];
-
-    const isNumeric = field === "year" || field === "mileage" || field === "seats" || field === "price";
-    const isDifferent = isNumeric
-      ? String(incoming ?? "") !== String(current ?? "")
-      : normalizeStr(incoming) !== normalizeStr(current);
-
-    if (isDifferent) {
-      fieldChanges.push({ field, from: current, to: incoming });
-      updateData[field] = incoming;
-    }
-  }
-
-  for (const boolField of BOOL_FIELDS) {
-    if (!(boolField in row)) continue;
-    const incoming = row[boolField] === "نعم" || row[boolField] === true;
-    if (incoming !== car[boolField]) {
-      fieldChanges.push({ field: boolField, from: car[boolField], to: incoming });
-      updateData[boolField] = incoming;
-    }
-  }
-
-  return { fieldChanges, updateData };
-}
+import { compareImportRows } from "@/lib/car-import-diff";
 
 // Step 1: Compare only — no DB writes, returns diff for admin review
 export async function compareCarImport(rows) {
@@ -691,29 +631,7 @@ export async function compareCarImport(rows) {
 
     const ids = rows.map((r) => r.id).filter(Boolean);
     const existing = await db.car.findMany({ where: { id: { in: ids } } });
-    const existingMap = Object.fromEntries(existing.map((c) => [c.id, c]));
-
-    const changes = [];
-    const toUpdate = [];
-
-    for (const row of rows) {
-      if (!row.id) continue;
-      const car = existingMap[row.id];
-      if (!car) continue;
-
-      const { fieldChanges, updateData } = buildCarDiff(row, car);
-
-      if (fieldChanges.length > 0) {
-        changes.push({
-          id: car.id,
-          make: car.make,
-          model: car.model,
-          year: car.year,
-          fieldChanges,
-        });
-        toUpdate.push({ id: car.id, data: updateData });
-      }
-    }
+    const { changes, toUpdate } = compareImportRows(rows, existing);
 
     return { success: true, changes, toUpdate };
   } catch (error) {

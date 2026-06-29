@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/dialog";
 
 import useFetch from "@/hooks/use-fetch";
-import { applyCarImport, compareCarImport, deleteCars, exportCars, getCars, updateCarStatus } from "@/actions/cars";
+import { applyCarImport, deleteCars, exportCars, getCars, updateCarStatus } from "@/actions/cars";
+import { compareImportRows } from "@/lib/car-import-diff";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -82,6 +83,21 @@ const EXCEL_COLUMNS = {
 const EXCEL_COLUMNS_REVERSE = Object.fromEntries(
   Object.entries(EXCEL_COLUMNS).map(([en, ar]) => [ar, en])
 );
+
+const APPLY_BATCH_SIZE = 25;
+
+async function applyCarImportBatched(toUpdate) {
+  let updated = 0;
+
+  for (let i = 0; i < toUpdate.length; i += APPLY_BATCH_SIZE) {
+    const chunk = toUpdate.slice(i, i + APPLY_BATCH_SIZE);
+    const result = await applyCarImport(chunk);
+    if (!result.success) return result;
+    updated += result.updated || 0;
+  }
+
+  return { success: true, updated };
+}
 
 const FIELD_LABELS = {
   make:               "الشركة المصنعة",
@@ -288,13 +304,20 @@ const CarList = () => {
         )
       );
 
-      const result = await compareCarImport(rows);
-      if (!result.success) {
-        toast.error(result.error || "فشل في معالجة الملف");
+      const exportResult = await exportCars();
+      if (!exportResult.success) {
+        toast.error(exportResult.error || "فشل في جلب بيانات السيارات");
         return;
       }
 
-      setDiffResult(result);
+      const { changes, toUpdate } = compareImportRows(rows, exportResult.data);
+
+      if (changes.length === 0) {
+        toast.info("لا توجد تغييرات في الملف مقارنة بالبيانات الحالية");
+        return;
+      }
+
+      setDiffResult({ changes, toUpdate });
       setImportStep("review");
     } catch {
       toast.error("فشل في قراءة الملف");
@@ -309,7 +332,7 @@ const CarList = () => {
     if (!diffResult?.toUpdate?.length) return;
     setApplyLoading(true);
     try {
-      const result = await applyCarImport(diffResult.toUpdate);
+      const result = await applyCarImportBatched(diffResult.toUpdate);
       if (!result.success) {
         toast.error(result.error || "فشل في تطبيق التحديثات");
         return;

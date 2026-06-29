@@ -44,9 +44,9 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals, static files, AND upload API routes
-    "/((?!_next|api/upload|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Run for API routes EXCEPT /api/upload to avoid body size limitations
-    "/((?!api/upload)api|trpc)(.*)",
+    "/((?!_next|api/upload|api/cars/import|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Run for API routes EXCEPT large-body endpoints (avoids middleware body buffering)
+    "/((?!api/upload|api/cars/import)api|trpc)(.*)",
   ],
 };
 
