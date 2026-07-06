@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,22 +38,78 @@ const getAgeBracketFromBirthYear = (birthYear, birthDateType = "hijri") => {
   return "61+";
 };
 
-/** Top N offers by sort, skipping duplicates on distinctKey. */
-const pickTopDistinctOffers = (offers, compareFn, distinctKeyFn, limit = 5) => {
-  const sorted = [...offers].sort(compareFn);
-  const picked = [];
-  const seen = new Set();
-  for (const offer of sorted) {
-    const key = distinctKeyFn(offer);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    picked.push(offer);
-    if (picked.length >= limit) break;
-  }
-  return picked;
+const MAX_OFFERS_PER_BANK = 5;
+const MAX_DOWN_PAYMENT_PCT = LOAN_CALCULATOR_META.maxDownPaymentPct;
+const TERM_MONTHS = 60; // 5 years
+
+const OFFER_CATEGORIES = [
+  {
+    id: "lowestDown",
+    title: "أقل دفعة اولى",
+    compareFn: (a, b) => a.downPayment - b.downPayment,
+  },
+  {
+    id: "lowestMonthly",
+    title: "أقل قسط شهري",
+    compareFn: (a, b) => a.monthlyPayment - b.monthlyPayment,
+  },
+  {
+    id: "highestFinal",
+    title: "أعلى دفعة اخيرة",
+    compareFn: (a, b) => b.lastMonthPayment - a.lastMonthPayment,
+    filter: (o) => o.lastMonthPayment > 0,
+  },
+  {
+    id: "lowestTotal",
+    title: "أقل تكلفة إجمالية",
+    compareFn: (a, b) => (a.totalPayment ?? 0) - (b.totalPayment ?? 0),
+  },
+  {
+    id: "lowestDownPct",
+    title: "أقل نسبة دفعة اولى",
+    compareFn: (a, b) => a.downPaymentPct - b.downPaymentPct,
+  },
+];
+
+/** Best offer first: lowest monthly, then down payment, then total cost. */
+const compareOffersBestFirst = (a, b) => {
+  if (a.monthlyPayment !== b.monthlyPayment) return a.monthlyPayment - b.monthlyPayment;
+  if (a.downPayment !== b.downPayment) return a.downPayment - b.downPayment;
+  return (a.totalPayment ?? 0) - (b.totalPayment ?? 0);
 };
 
-const generateIslamicOffers = ({ banks, formData, car }) => {
+/** Deterministic shuffle so random offers stay stable until inputs change. */
+const seededShuffle = (array, seed) => {
+  const copy = [...array];
+  let s = 0;
+  for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
+
+/** Pick 5 random offers per bank and assign each to a shuffled category. */
+const pickRandomBankOffersWithCategories = (candidates, seed) => {
+  const picked = seededShuffle(candidates, seed).slice(0, MAX_OFFERS_PER_BANK);
+  const shuffledCategories = seededShuffle([...OFFER_CATEGORIES], `${seed}-categories`);
+
+  return picked.map((offer, index) => {
+    const category = shuffledCategories[index % shuffledCategories.length];
+    return {
+      ...offer,
+      categoryId: category.id,
+      categoryTitle: category.title,
+    };
+  });
+};
+
+const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
   const carPrice = Number(car.price) || 0;
   if (carPrice <= 0) {
     return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "لم يتم تحديد سعر لهذه السيارة. يرجى التواصل مع الإدارة لتحديث سعر السيارة." };
@@ -75,53 +131,64 @@ const generateIslamicOffers = ({ banks, formData, car }) => {
     };
   }
 
-  const selectedBank =
-    banks.find((b) => b.id.toString() === formData.salaryTransferBank) || banks[0];
-  const bankConfig = createBankConfigFromBank(selectedBank);
-  const bankBrandMap = parseBrandSegmentMap(selectedBank?.brandSegmentMap, bankConfig.brand_segment_map);
+  const eligibleBanks = banks.filter((bank) => {
+    const bankConfig = createBankConfigFromBank(bank);
+    const bankBrandMap = parseBrandSegmentMap(bank?.brandSegmentMap, bankConfig.brand_segment_map);
+    return isBrandInSegmentMap(bankBrandMap, car.make);
+  });
 
-  if (!isBrandInSegmentMap(bankBrandMap, car.make)) {
+  if (!eligibleBanks.length) {
     return {
       offers: [],
       scenarioInputs: null,
       pricingBlocked: true,
-      pricingBlockReason: `ماركة "${car.make}" غير موجودة في جدول فئات بنك "${selectedBank?.name}". يلزم مراجعة يدوية أو تحديث جدول الفئات.`,
+      pricingBlockReason: `ماركة "${car.make}" غير موجودة في جداول فئات أي بنك شريك. يلزم مراجعة يدوية أو تحديث جداول الفئات.`,
     };
   }
+
+  const selectedBank =
+    banks.find((b) => b.id.toString() === formData.salaryTransferBank) || eligibleBanks[0];
+  const selectedBankConfig = createBankConfigFromBank(selectedBank);
   const profitRate = getProfitRateForSector(selectedBank, formData.employerSector);
-  const adminPct = bankConfig.default_admin_fees_pct ?? 0.01;
+  const adminPct = selectedBankConfig.default_admin_fees_pct ?? 0.01;
   const ageBracket = getAgeBracketFromBirthYear(formData.birthYear, formData.birthDateType);
   const gender = formData.gender || "male";
 
-  const { financingTerms, downPaymentOptions } = LOAN_CALCULATOR_META;
-  const balloonOptions = getBalloonOptionsForBank(selectedBank);
-
-  const offers = [];
-  let offerId = 1;
+  const { downPaymentOptions } = LOAN_CALCULATOR_META;
+  const allowedDownPayments = downPaymentOptions.filter((pct) => pct <= MAX_DOWN_PAYMENT_PCT);
 
   const scenarioInputs = buildFinancingScenarioInputs({
     car,
     formData,
     selectedBank,
-    bankConfig,
+    bankConfig: selectedBankConfig,
     profitRate,
     adminPct,
     ageBracket,
     gender,
   });
 
-  for (const termMonths of financingTerms) {
-    for (const downPct of downPaymentOptions) {
+  const offers = [];
+  let offerId = 1;
+
+  for (const bank of eligibleBanks) {
+    const bankConfig = createBankConfigFromBank(bank);
+    const bankProfitRate = getProfitRateForSector(bank, formData.employerSector);
+    const bankAdminPct = bankConfig.default_admin_fees_pct ?? 0.01;
+    const balloonOptions = getBalloonOptionsForBank(bank);
+
+    const bankCandidates = [];
+    for (const downPct of allowedDownPayments) {
       for (const balloonPct of balloonOptions) {
-        offers.push(
+        bankCandidates.push(
           buildCustomerFinancingOffer(
             bankConfig,
             {
               car_price: carPrice,
               down_payment_pct: downPct,
-              term_months: termMonths,
-              profit_rate: profitRate,
-              admin_fees_pct: adminPct,
+              term_months: TERM_MONTHS,
+              profit_rate: bankProfitRate,
+              admin_fees_pct: bankAdminPct,
               balloon_payment_pct: balloonPct,
               gender,
               age_bracket: ageBracket,
@@ -129,21 +196,96 @@ const generateIslamicOffers = ({ banks, formData, car }) => {
               rebate: 0,
             },
             {
-              id: offerId,
-              bankName: selectedBank?.name || "بنك افتراضي",
+              id: 0,
+              bankName: bank?.name || "بنك افتراضي",
+              bankId: bank.id,
             }
           )
         );
-
-        offerId += 1;
       }
+    }
+
+    const pricedCandidates = bankCandidates
+      .filter((offer) => offer.pricingAvailable !== false)
+      .filter((offer) => offer.downPaymentPct <= MAX_DOWN_PAYMENT_PCT * 100);
+    const picked = pickRandomBankOffersWithCategories(
+      pricedCandidates,
+      `${offerSeed}-${bank.id}`
+    );
+
+    for (const offer of picked) {
+      offers.push({ ...offer, id: offerId });
+      offerId += 1;
     }
   }
 
-  const pricedOffers = offers.filter((offer) => offer.pricingAvailable !== false);
-
-  return { offers: pricedOffers, scenarioInputs, pricingBlocked: false };
+  return { offers, scenarioInputs, pricingBlocked: false };
 };
+
+const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
+  <div
+    key={offer.id}
+    className={`relative border-2 rounded-lg p-4 ${
+      recommended
+        ? "border-green-500 ring-2 ring-green-500/30 bg-gradient-to-br from-green-950/50 to-black md:col-span-2"
+        : "border-yellow-700 bg-black"
+    }`}
+  >
+    {recommended ? (
+      <span className="absolute top-3 left-3 inline-flex items-center gap-1 bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+        <Star className="h-3 w-3 fill-current" />
+        موصى
+      </span>
+    ) : null}
+
+    <div className="text-center mb-4">
+      <p className={`text-lg font-bold ${recommended ? "text-green-400" : "text-yellow-800"}`}>
+        {offer.categoryId === "highestFinal" ? (
+          <>
+            عرض قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))} و دفعة اخيرة{" "}
+            {formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}
+          </>
+        ) : (
+          <>
+            عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط{" "}
+            {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
+          </>
+        )}
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 gap-2 mb-4 text-center">
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">قسط شهري</p>
+        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
+      </div>
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">مدة القسط</p>
+        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
+      </div>
+      {offer.categoryId === "highestFinal" ? (
+        <div className="bg-black p-2 rounded">
+          <p className="text-xs text-white">الدفعة الاخيرة (شهر أخير)</p>
+          <p className="font-semibold">{formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}</p>
+        </div>
+      ) : (
+        <div className="bg-black p-2 rounded">
+          <p className="text-xs text-white">الدفعة الاولى</p>
+          <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
+        </div>
+      )}
+    </div>
+
+    <Button
+      className={`w-full text-sm text-white ${
+        recommended ? "bg-green-600 hover:bg-green-700" : "bg-yellow-700 hover:bg-yellow-800"
+      }`}
+      onClick={() => onSelect(offer)}
+    >
+      {recommended ? "اختر العرض الموصى به" : "اختر العرض"}
+    </Button>
+  </div>
+);
 
 const LoanRequestForm = ({ car }) => {
   const initialFormData = {
@@ -188,6 +330,13 @@ const LoanRequestForm = ({ car }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
+
+  const financingOfferSeed = `${car.id}-${formData.employerSector}-${formData.birthYear}-${formData.birthMonth}-${formData.gender}-${formData.salaryTransferBank}-${formData.birthDateType}`;
+
+  const offerResult = useMemo(
+    () => generateIslamicOffers({ banks, formData, car, offerSeed: financingOfferSeed }),
+    [banks, formData, car, financingOfferSeed]
+  );
 
 
 
@@ -822,7 +971,6 @@ const LoanRequestForm = ({ car }) => {
           );
         }
 
-        const offerResult = generateIslamicOffers({ banks, formData, car });
         const allOffers = offerResult.offers;
         const scenarioInputs = offerResult.scenarioInputs;
 
@@ -843,201 +991,66 @@ const LoanRequestForm = ({ car }) => {
           );
         }
 
-        // Group offers by term
-        const offersByTerm = {};
-        allOffers.forEach(offer => {
-          if (!offersByTerm[offer.termMonths]) offersByTerm[offer.termMonths] = [];
-          offersByTerm[offer.termMonths].push(offer);
-        });
+        const recommendedOffer = [...allOffers].sort(compareOffersBestFirst)[0] ?? null;
 
-        const allOffersFlat = allOffers;
-
-        const lowestDownOffers = pickTopDistinctOffers(
-          allOffersFlat,
-          (a, b) => a.downPayment - b.downPayment,
-          (o) => `${Math.round(o.downPayment)}-${o.termMonths}`
-        );
-
-        const lowestMonthlyOffers = pickTopDistinctOffers(
-          allOffersFlat,
-          (a, b) => a.monthlyPayment - b.monthlyPayment,
-          (o) => `${Math.round(o.monthlyPayment)}-${o.termMonths}`
-        );
-
-        // أعلى دفعة أخيرة = إجمالي دفعة الشهر الأخير (قسط + ربح + أصل بالون + تأمين)
-        const highestFinalOffers = pickTopDistinctOffers(
-          allOffersFlat.filter((o) => o.lastMonthPayment > 0),
-          (a, b) => b.lastMonthPayment - a.lastMonthPayment,
-          (o) => `${Math.round(o.lastMonthPayment)}-${o.termMonths}-${Math.round(o.balloonPaymentPct)}`
-        );
+        const offersByCategory = OFFER_CATEGORIES.map((category) => ({
+          ...category,
+          offers: allOffers
+            .filter((offer) => offer.categoryId === category.id)
+            .sort(category.compareFn),
+        })).filter((section) => section.offers.length > 0);
 
         logFinancingOfferScenario({
           inputs: scenarioInputs,
           offers: allOffers,
           displayed: {
-            lowestDownOffers,
-            lowestMonthlyOffers,
-            highestFinalOffers,
+            recommendedOffer: recommendedOffer ? [recommendedOffer] : [],
+            byCategory: offersByCategory.map((section) => ({
+              categoryId: section.id,
+              title: section.title,
+              offers: section.offers,
+            })),
           },
           label: "offers-generated",
         });
 
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Banknote className="h-5 w-5" />
-              العروض التمويلية
-            </h3>
-
-            {/* Category: Lowest Initial Payment */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-yellow-700">أقل دفعة اولى</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {lowestDownOffers.map((offer) => (
-                  <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
-                    <div className="text-center mb-4">
-                      <p className="text-xs text-white/60">{offer.bankName}</p>
-                      <p className="text-lg font-bold text-yellow-800">
-                        عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 mb-4 text-center">
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">قسط شهري</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">مدة القسط</p>
-                        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">الدفعة الاولى</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 bg-yellow-700 hover:bg-yellow-800 text-white text-sm"
-                        onClick={() => selectOfferAndProceed(offer)}
-                      >
-                        اختر العرض
-                      </Button>
-                      {/* <Button
-                        variant="outline"
-                        className="flex-1 text-sm"
-                        onClick={() => addToComparison(offer)}
-                      >
-                        اضف للمقارنة
-                      </Button> */}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Banknote className="h-5 w-5" />
+                العروض التمويلية
+              </h3>
+              <p className="text-sm text-white/60">{allOffers.length} عرض متاح</p>
             </div>
 
-            {/* Category: Lowest Monthly Installment */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-yellow-700">أقل قسط شهري</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {lowestMonthlyOffers.map((offer) => (
-                  <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
-                    <div className="text-center mb-4">
-                      <p className="text-xs text-white/60">{offer.bankName}</p>
-                      <p className="text-lg font-bold text-yellow-800">
-                        عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 mb-4 text-center">
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">قسط شهري</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">مدة القسط</p>
-                        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">الدفعة الاولى</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 bg-yellow-700 hover:bg-yellow-800 text-white text-sm"
-                        onClick={() => selectOfferAndProceed(offer)}
-                      >
-                        سجل طلبك
-                      </Button>
-                      {/* <Button
-                        variant="outline"
-                        className="flex-1 text-sm"
-                        onClick={() => addToComparison(offer)}
-                      >
-                        اضف للمقارنة
-                      </Button> */}
-                    </div>
-                  </div>
-                ))}
+            {recommendedOffer ? (
+              <div className="space-y-3">
+                <h4 className="text-md font-semibold text-green-500">العرض الموصى به</h4>
+                <div className="grid grid-cols-1 gap-4">
+                  {renderFinancingOfferCard(recommendedOffer, {
+                    recommended: true,
+                    onSelect: selectOfferAndProceed,
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            {/* Category: Highest Final Payment */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-yellow-700">أعلى دفعة اخيرة</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {highestFinalOffers.map((offer) => (
-                  <div key={offer.id} className="border-2 rounded-lg p-4 border-yellow-700 bg-black">
-                    <div className="text-center mb-4">
-                      <p className="text-xs text-white/60">{offer.bankName}</p>
-                      <p className="text-lg font-bold text-yellow-800">
-                        عرض قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))} و دفعة اخيرة {formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 mb-4 text-center">
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">قسط شهري</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">مدة القسط</p>
-                        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
-                      </div>
-                      <div className="bg-black p-2 rounded">
-                        <p className="text-xs text-white">الدفعة الاخيرة (شهر أخير)</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}</p>
-                      </div>
-                      {offer.balloonPayment > 0 ? (
-                        <div className="bg-black p-2 rounded">
-                          <p className="text-xs text-white">مكون البالون</p>
-                          <p className="font-semibold">{formatSaudiRiyalReact(offer.balloonPayment.toFixed(0))}</p>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 bg-yellow-700 hover:bg-yellow-800 text-white text-sm"
-                        onClick={() => selectOfferAndProceed(offer)}
-                      >
-                        اختر العرض
-                      </Button>
-                      {/* <Button
-                        variant="outline"
-                        className="flex-1 text-sm"
-                        onClick={() => addToComparison(offer)}
-                      >
-                        اضف للمقارنة
-                      </Button> */}
-                    </div>
-                  </div>
-                ))}
+            {offersByCategory.map((section) => (
+              <div key={section.id} className="space-y-4">
+                <h4 className="text-md font-semibold text-yellow-700">{section.title}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {section.offers
+                    .filter((offer) => offer.id !== recommendedOffer?.id)
+                    .map((offer) =>
+                    renderFinancingOfferCard(offer, {
+                      recommended: false,
+                      onSelect: selectOfferAndProceed,
+                    })
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
 
             {/* Selected Offers for Comparison */}
             {selectedOffers.length > 0 && (
@@ -1047,7 +1060,6 @@ const LoanRequestForm = ({ car }) => {
                   {selectedOffers.map((offer) => (
                     <div key={offer.id} className="border-2 rounded-lg p-4 border-green-500 bg-white">
                       <div className="text-center mb-4">
-                        <p className="text-xs text-gray-600">{offer.bankName}</p>
                         <p className="text-lg font-bold text-green-800">
                           عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
                         </p>

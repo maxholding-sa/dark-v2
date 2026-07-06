@@ -18,6 +18,6 @@ export const getBanks = unstable_cache(
       return getBanksSupabase();
     }
   },
-  ["home-banks-v2"],
+  ["home-banks-v3"],
   { revalidate: 3600, tags: ["banks"] }
 );

@@ -822,7 +822,8 @@ export const LOAN_CALCULATOR_META = {
     { value: "female", label: "أنثى" },
   ],
   financingTerms: [60],
-  downPaymentOptions: [0.1, 0.2, 0.3, 0.4, 0.5],
+  maxDownPaymentPct: 0.45,
+  downPaymentOptions: [0.1, 0.2, 0.3, 0.4, 0.45],
   balloonOptions: [0, 0.1, 0.2],
 };
 

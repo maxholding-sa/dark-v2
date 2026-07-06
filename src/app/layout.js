@@ -12,6 +12,9 @@ import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
   weight: ["400", "600", "700"],
+  variable: "--font-cairo",
+  display: "swap",
+  fallback: ["Tahoma", "Arial", "sans-serif"],
 });
 
 export const metadata = {
@@ -97,17 +100,22 @@ export default async function RootLayout({ children }) {
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       localization={arSA}
     >
-      <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <html lang="ar" dir="rtl" className="dark" suppressHydrationWarning>
         <head>
           <meta name="theme-color" content="#000000" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link
+            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+            rel="stylesheet"
+          />
           <link rel="preconnect" href="https://zafndavpzgpcbqgvosbt.supabase.co" />
         </head>
         <body
-          className={cairo.className}
+          className={`${cairo.variable} ${cairo.className} dark text-white antialiased`}
           style={{
             backgroundColor: "black",
+            fontFamily: "var(--font-cairo), Cairo, Tahoma, Arial, sans-serif",
           }}
           suppressHydrationWarning
         >

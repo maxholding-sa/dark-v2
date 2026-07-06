@@ -288,7 +288,7 @@ export default async function Home() {
       <section className="py-20 px-6 md:px-40 bg-zinc-950 text-white">
         <div className="container mx-auto text-right">
           <ScrollAnimate variant="up">
-            <h2 className="text-3xl font-bold mb-12">الأسئلة الشائعة</h2>
+            <h2 className="text-3xl font-bold mb-12 text-white">الأسئلة الشائعة</h2>
           </ScrollAnimate>
           <ScrollAnimate>
             <div className="w-full" dir="rtl">

@@ -193,18 +193,25 @@ export const serializeBankRecord = (bank) => {
           Object.entries(bank.sectorInterestRates).map(([k, v]) => [k, parseFloat(String(v))])
         )
       : null;
+
   return {
-    ...bank,
-    interestRate: bank.interestRate ? parseFloat(bank.interestRate.toString()) : 0,
+    id: bank.id,
+    name: bank.name,
+    logoImage: bank.logoImage,
+    interestRate: bank.interestRate != null ? parseFloat(bank.interestRate.toString()) : 0,
     sectorInterestRates,
     defaultBalloonPaymentPct: decimal(bank.defaultBalloonPaymentPct),
+    loanPolicy: bank.loanPolicy ?? null,
     adminFeesCap: decimal(bank.adminFeesCap),
     defaultAdminFeesPct: decimal(bank.defaultAdminFeesPct),
     minInsurancePremium: decimal(bank.minInsurancePremium),
     assetDepreciationRate: decimal(bank.assetDepreciationRate),
+    ftpAnchors: bank.ftpAnchors ?? null,
     cor: decimal(bank.cor),
     opex: decimal(bank.opex),
     irrTarget: decimal(bank.irrTarget),
+    brandSegmentMap: bank.brandSegmentMap ?? null,
+    insuranceTable: bank.insuranceTable ?? null,
     createdAt: bank.createdAt instanceof Date ? bank.createdAt.toISOString() : bank.createdAt,
     updatedAt: bank.updatedAt instanceof Date ? bank.updatedAt.toISOString() : bank.updatedAt,
   };

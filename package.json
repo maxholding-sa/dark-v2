@@ -10,6 +10,8 @@
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:add-birth-date-type": "node scripts/add-birth-date-type-column.mjs",
     "db:studio": "prisma studio",
     "db:seed-about-features": "node scripts/seed-about-features.mjs",
     "verify-setup": "node verify-setup.js",

@@ -1,4 +1,5 @@
 import React from "react";
+import { serializeBankRecord } from "@/lib/bank-finance";
 
 export const serializedCarsData = (car, wishlisted = false) => {
   if (!car) return null;
@@ -36,25 +37,7 @@ export const serializeLoanRequest = (request) => {
     updatedAt: request.updatedAt?.toISOString ? request.updatedAt.toISOString() : request.updatedAt,
     car: request.car ? serializedCarsData(request.car) : null,
     salaryTransferBank: request.salaryTransferBank
-      ? {
-          ...request.salaryTransferBank,
-          interestRate: request.salaryTransferBank.interestRate
-            ? parseFloat(request.salaryTransferBank.interestRate.toString())
-            : 0,
-          adminFeesCap: decimal(request.salaryTransferBank.adminFeesCap),
-          defaultAdminFeesPct: decimal(request.salaryTransferBank.defaultAdminFeesPct),
-          minInsurancePremium: decimal(request.salaryTransferBank.minInsurancePremium),
-          assetDepreciationRate: decimal(request.salaryTransferBank.assetDepreciationRate),
-          cor: decimal(request.salaryTransferBank.cor),
-          opex: decimal(request.salaryTransferBank.opex),
-          irrTarget: decimal(request.salaryTransferBank.irrTarget),
-          createdAt: request.salaryTransferBank.createdAt?.toISOString
-            ? request.salaryTransferBank.createdAt.toISOString()
-            : request.salaryTransferBank.createdAt,
-          updatedAt: request.salaryTransferBank.updatedAt?.toISOString
-            ? request.salaryTransferBank.updatedAt.toISOString()
-            : request.salaryTransferBank.updatedAt,
-        }
+      ? serializeBankRecord(request.salaryTransferBank)
       : null,
   };
 };

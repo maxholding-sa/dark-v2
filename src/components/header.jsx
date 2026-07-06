@@ -196,7 +196,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium hover:bg-zinc-800 rounded-md transition-colors"
+                      className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium text-white hover:bg-zinc-800 rounded-md transition-colors"
                       onClick={() => {
                         setOpen(false);
                         window.dispatchEvent(new CustomEvent('startLoading'));
@@ -214,7 +214,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
                     ) : isAdmin ? (
                       <Link
                         href="/admin"
-                        className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium hover:bg-zinc-800 rounded-md transition-colors"
+                        className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium text-white hover:bg-zinc-800 rounded-md transition-colors"
                         onClick={() => {
                           setOpen(false);
                           window.dispatchEvent(new CustomEvent('startLoading'));
@@ -227,7 +227,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
                       <>
                         <Link
                           href="/saved-cars"
-                          className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium hover:bg-zinc-800 rounded-md transition-colors"
+                          className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium text-white hover:bg-zinc-800 rounded-md transition-colors"
                           onClick={() => {
                             setOpen(false);
                             window.dispatchEvent(new CustomEvent('startLoading'));
@@ -238,7 +238,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
                         </Link>
                         <Link
                           href="/reservations"
-                          className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium hover:bg-zinc-800 rounded-md transition-colors"
+                          className="inline-flex items-center justify-start h-10 px-4 py-2 text-lg font-medium text-white hover:bg-zinc-800 rounded-md transition-colors"
                           onClick={() => {
                             setOpen(false);
                             window.dispatchEvent(new CustomEvent('startLoading'));
@@ -259,7 +259,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
             {isAdminPage ? (
               <Link
                 href="/"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-zinc-700 hover:bg-zinc-800 transition-colors gap-2"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-zinc-700 text-white hover:bg-zinc-800 transition-colors gap-2"
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('startLoading'));
                 }}
@@ -288,7 +288,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
                   <>
                     <Link
                       href="/saved-cars"
-                      className="hidden md:flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-md font-medium text-sm transition-colors"
+                      className="hidden md:flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-md font-medium text-sm text-white transition-colors"
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('startLoading'));
                       }}
@@ -299,7 +299,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
 
                     <Link
                       href="/reservations"
-                      className="hidden md:flex items-center gap-2 border border-zinc-700 hover:bg-zinc-800 px-4 py-2 rounded-md font-medium text-sm transition-colors ml-4"
+                      className="hidden md:flex items-center gap-2 border border-zinc-700 hover:bg-zinc-800 px-4 py-2 rounded-md font-medium text-sm text-white transition-colors ml-4"
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('startLoading'));
                       }}
@@ -323,7 +323,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
 
           <SignedOut>
             <SignInButton>
-              <Button variant="outline" onClick={() => {
+              <Button variant="outline" className="text-white border-white/30" onClick={() => {
                 // Dispatch custom event to show loading immediately
                 window.dispatchEvent(new CustomEvent('startLoading'));
               }}>تسجيل الدخول</Button>

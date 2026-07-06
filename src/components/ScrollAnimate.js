@@ -37,36 +37,34 @@ const ScrollAnimate = ({
       el.style.transitionDelay = `${delay}ms`;
     }
 
-    // Pre-style children for stagger so they start hidden
+    // Pre-style children for stagger (transform only — keep text visible)
     if (stagger) {
       const kids = Array.from(el.children);
       kids.forEach((child) => {
-        child.style.opacity = "0";
         child.style.transform = "translateY(24px)";
         child.style.transition =
-          "opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)";
+          "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)";
       });
     }
+
+    const reveal = (target) => {
+      target.classList.add("animate-in");
+      target.style.transform = "";
+
+      if (stagger) {
+        const kids = Array.from(target.children);
+        kids.forEach((child, i) => {
+          child.style.transitionDelay = `${i * 80}ms`;
+          child.style.transform = "translateY(0)";
+        });
+      }
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("animate-in");
-            // Clear the inline transform so the CSS `transform: none` from
-            // .animate-in can actually take effect (inline styles beat classes).
-            entry.target.style.transform = "";
-
-            if (stagger) {
-              const kids = Array.from(entry.target.children);
-              kids.forEach((child, i) => {
-                child.style.transitionDelay = `${i * 80}ms`;
-                child.style.opacity = "1";
-                child.style.transform = "translateY(0)";
-              });
-            }
-
-            // Unobserve after first trigger so it doesn't re-reset
+            reveal(entry.target);
             observer.unobserve(entry.target);
           }
         });
@@ -79,7 +77,29 @@ const ScrollAnimate = ({
 
     observer.observe(el);
 
+    // Reveal immediately if already in the viewport (avoids stuck opacity:0)
+    const rect = el.getBoundingClientRect();
+    const inView =
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0;
+
+    if (inView) {
+      reveal(el);
+      observer.unobserve(el);
+    }
+
+    // Safety net: never leave content hidden if the observer never fires
+    const fallbackTimer = window.setTimeout(() => {
+      if (!el.classList.contains("animate-in")) {
+        reveal(el);
+      }
+      observer.unobserve(el);
+    }, 1500);
+
     return () => {
+      window.clearTimeout(fallbackTimer);
       observer.unobserve(el);
     };
   }, [stagger, delay, variant]);
