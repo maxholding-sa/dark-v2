@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import ChatBot from "@/components/ChatBot";
-import { Building2, Car, Users, CheckCircle2, MessageCircle } from "lucide-react";
+import { Car, Users, CheckCircle2, MessageCircle } from "lucide-react";
 import { getStoreInfo } from "@/actions/site-management";
 
 export default function CompanyRequests() {
@@ -169,7 +168,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                                     placeholder="مثال: شركة النور للتجارة"
                                     value={formData.companyName}
                                     onChange={handleChange}
-                                    className="bg-black/40 border-white/10"
+                                    className="bg-black/40 border-white/10 text-white placeholder:text-gray-500"
                                     required
                                 />
                             </div>
@@ -185,7 +184,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                                     placeholder="اسم الشخص المسؤول عن التواصل"
                                     value={formData.contactPerson}
                                     onChange={handleChange}
-                                    className="bg-black/40 border-white/10"
+                                    className="bg-black/40 border-white/10 text-white placeholder:text-gray-500"
                                 />
                             </div>
 
@@ -200,7 +199,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                                     placeholder="عدد السيارات المطلوبة، نوع السيارات، أي تفاصيل أخرى..."
                                     value={formData.notes}
                                     onChange={handleChange}
-                                    className="resize-none bg-black/40 border-white/10"
+                                    className="resize-none bg-black/40 border-white/10 text-white placeholder:text-gray-500"
                                 />
                             </div>
 
@@ -221,8 +220,6 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                     </div>
                 </div>
             </section>
-
-            <ChatBot />
         </div>
     );
 }

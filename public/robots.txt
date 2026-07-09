@@ -1,27 +1,36 @@
 # MaxMotors - ماكس موتورز - SEO Configuration
 # Market: Saudi Arabia
 
-# All search engines
 User-agent: *
 Allow: /
-Allow: /cars
-Allow: /api/sitemap.xml
 Disallow: /api/
-Disallow: /admin
-Disallow: /_next
-Disallow: /private
-Disallow: /search?*
-Crawl-delay: 1
+Allow: /api/sitemap.xml
+Disallow: /admin/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /saved-cars/
+Disallow: /reservations/
+Disallow: /private/
 
-# Google-specific rules
 User-agent: Googlebot
 Allow: /
-Crawl-delay: 0
+Disallow: /api/
+Allow: /api/sitemap.xml
+Disallow: /admin/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /saved-cars/
+Disallow: /reservations/
 
-# Bing-specific rules
 User-agent: Bingbot
 Allow: /
-Crawl-delay: 1
+Disallow: /api/
+Allow: /api/sitemap.xml
+Disallow: /admin/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /saved-cars/
+Disallow: /reservations/
 
 # Block low-quality crawlers
 User-agent: MJ12bot
@@ -34,8 +43,5 @@ User-agent: SemrushBot
 Disallow: /
 
 # Sitemaps
-Sitemap: https://maxmotors.sa/api/sitemap.xml
 Sitemap: https://maxmotors.sa/sitemap.xml
-
-# Additional sitemap for mobile
-Sitemap: https://maxmotors.sa/api/sitemap.xml?type=mobile
+Sitemap: https://maxmotors.sa/api/sitemap.xml

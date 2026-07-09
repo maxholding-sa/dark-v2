@@ -6,6 +6,7 @@ import { X, Send, ExternalLink, Car } from "lucide-react";
 import { getChatbotResponse } from "@/actions/chatbot";
 import Link from "next/link";
 import Image from "next/image";
+import { formatSaudiRiyalText } from "@/lib/helper";
 
 const PROACTIVE_GREETING =
   "👋 أهلاً، أنا مساعد MAX AI\nأقدر أرشح لك سيارة حسب راتبك أو ميزانيتك";
@@ -373,7 +374,7 @@ export default function ChatBot({ onOpenChange }) {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-96 h-[80vh] md:h-[600px] bg-white/10 backdrop-blur-md md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-black-300 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-96 h-[80vh] md:h-[600px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
           <div className="bg-yellow-600 text-white rounded-t-2xl md:rounded-t-2xl p-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="bg-black-500 rounded-full p-4">
@@ -399,7 +400,7 @@ export default function ChatBot({ onOpenChange }) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-transparent backdrop-blur-md">
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-zinc-900">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -410,11 +411,11 @@ export default function ChatBot({ onOpenChange }) {
                 <div
                   className={`max-w-[80%] md:max-w-[75%] rounded-2xl p-2.5 md:p-3 ${
                     message.sender === "user"
-                      ? "bg-black text-white rounded-bl-none"
-                      : "bg-white text-gray-800 rounded-br-none shadow-md border border-gray-200"
+                      ? "bg-yellow-600 text-white rounded-bl-none"
+                      : "bg-white text-gray-900 rounded-br-none shadow-md border border-gray-200"
                   }`}
                 >
-                  <div className="text-xs md:text-sm leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere">
+                  <div className="text-sm leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere">
                     {formatMessageText(message.text)}
                   </div>
                   <p
@@ -463,7 +464,7 @@ export default function ChatBot({ onOpenChange }) {
                               {car.year} • {car.bodyType}
                             </p>
                             <p className="text-sm font-bold text-green-600 mt-1">
-                              ${Number(car.price).toLocaleString()}
+                              {formatSaudiRiyalText(car.price)}
                             </p>
                             {car.featured && (
                               <span className="inline-block text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full mt-1">
@@ -486,7 +487,7 @@ export default function ChatBot({ onOpenChange }) {
             {/* Starter Messages - Show only at the beginning */}
             {showStarterMessages && messages.length === 1 && (
               <div className="space-y-2 animate-in fade-in-50 duration-500">
-                <p className="text-xs text-black text-center mb-3">
+                <p className="text-sm text-white text-center mb-3">
                   اختر أحد الخيارات للبدء:
                 </p>
                 {starterMessages.map((starter) => (
@@ -534,7 +535,7 @@ export default function ChatBot({ onOpenChange }) {
 
           <form
             onSubmit={handleSendMessage}
-            className="p-3 md:p-4 bg-black border-t border-gray-700 md:rounded-b-2xl rounded-b-none"
+            className="p-3 md:p-4 bg-zinc-950 border-t border-white/10 md:rounded-b-2xl rounded-b-none"
           >
             <div className="flex gap-2">
               <Input
@@ -542,13 +543,13 @@ export default function ChatBot({ onOpenChange }) {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="اكتب رسالتك هنا..."
-                className="flex-1 rounded-full border-gray-600 focus:border-white text-white placeholder-gray-400 text-sm md:text-base"
+                className="flex-1 rounded-full border-gray-600 bg-zinc-900 focus:border-white text-base text-white placeholder:text-gray-400"
                 disabled={isTyping}
               />
               <Button
                 type="submit"
                 size="icon"
-                className="rounded-full bg-black hover:bg-gray-800 text-white transition-all duration-300 hover:scale-105 h-10 w-10 md:h-11 md:w-11"
+                className="rounded-full bg-yellow-600 hover:bg-yellow-700 text-white transition-all duration-300 hover:scale-105 h-10 w-10 md:h-11 md:w-11"
                 disabled={isTyping || !inputMessage.trim()}
               >
                 <Send className="h-4 w-4" />

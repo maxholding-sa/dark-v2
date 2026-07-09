@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { NextResponse } from "next/server";
 import Busboy from "busboy";
+import { logger } from "@/lib/logger";
 
 export const dynamic = 'force-dynamic';
 export const config = {
@@ -25,7 +26,7 @@ async function verifyClerkSession() {
     // For now, just check that the session exists
     return sessionToken;
   } catch (error) {
-    console.error("[API Upload] Session verification error:", error.message);
+    logger.error("[API Upload] Session verification error", error);
     return null;
   }
 }
@@ -42,7 +43,7 @@ export async function POST(request) {
       );
     }
 
-    console.log(`[API Upload] Authenticated, processing upload...`);
+    logger.debug("[API Upload] Authenticated, processing upload");
 
     const contentType = request.headers.get('content-type');
     if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -68,7 +69,10 @@ export async function POST(request) {
       let folder = 'site-data';
 
       bb.on('file', (fieldname, file, info) => {
-        console.log(`[API Upload] Received file: ${info.filename}, mime: ${info.mimeType}`);
+        logger.debug("[API Upload] Received file", {
+          filename: info.filename,
+          mimeType: info.mimeType,
+        });
         fileName = info.filename;
         fileMimeType = info.mimeType;
 
@@ -79,17 +83,21 @@ export async function POST(request) {
           chunks.push(data);
           totalSize += data.length;
           if (totalSize % (10 * 1024 * 1024) === 0) { // Log every 10MB
-            console.log(`[API Upload] Received: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+            logger.debug("[API Upload] Upload stream progress", {
+              receivedMb: (totalSize / 1024 / 1024).toFixed(2),
+            });
           }
         });
 
         file.on('end', () => {
           fileBuffer = Buffer.concat(chunks);
-          console.log(`[API Upload] File complete: ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+          logger.debug("[API Upload] File stream complete", {
+            sizeMb: (fileBuffer.length / 1024 / 1024).toFixed(2),
+          });
         });
 
         file.on('error', (err) => {
-          console.error(`[API Upload] File stream error:`, err.message);
+          logger.error("[API Upload] File stream error", err);
           reject(err);
         });
       });
@@ -101,7 +109,7 @@ export async function POST(request) {
       });
 
       bb.on('error', (err) => {
-        console.error(`[API Upload] Busboy parse error:`, err.message);
+        logger.error("[API Upload] Busboy parse error", err);
         reject(err);
       });
 
@@ -130,7 +138,7 @@ export async function POST(request) {
           const newFileName = `${folder}-${Date.now()}-${uuidv4()}.${fileExtension}`;
           const filePath = `${folder}/${newFileName}`;
 
-          console.log(`[API Upload] Uploading to Supabase: ${newFileName}`);
+          logger.debug("[API Upload] Uploading to Supabase", { fileName: newFileName });
 
           const { data, error: uploadError } = await supabase.storage
             .from("car-images")
@@ -141,7 +149,7 @@ export async function POST(request) {
             });
 
           if (uploadError) {
-            console.error("[API Upload] Supabase error:", uploadError.message);
+            logger.error("[API Upload] Supabase error", uploadError);
             return resolve(NextResponse.json(
               { success: false, error: `Upload error: ${uploadError.message}` },
               { status: 500 }
@@ -149,7 +157,7 @@ export async function POST(request) {
           }
 
           if (!data || !data.path) {
-            console.error("[API Upload] No path returned from upload");
+            logger.error("[API Upload] No path returned from upload");
             return resolve(NextResponse.json(
               { success: false, error: "Upload failed" },
               { status: 500 }
@@ -158,14 +166,14 @@ export async function POST(request) {
 
           const fileUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${data.path}`;
           
-          console.log(`[API Upload] Success: ${newFileName}`);
+          logger.info("[API Upload] Upload completed", { fileName: newFileName });
           resolve(NextResponse.json({ 
             success: true, 
             url: fileUrl, 
             filePath: data.path 
           }));
         } catch (error) {
-          console.error("[API Upload] Upload processing error:", error.message);
+          logger.error("[API Upload] Upload processing error", error);
           reject(error);
         }
       });
@@ -181,18 +189,18 @@ export async function POST(request) {
               bb.end();
             },
             abort(err) {
-              console.error("[API Upload] Request aborted:", err?.message);
+              logger.error("[API Upload] Request aborted", err);
               bb.destroy();
             },
           })
         ).catch((err) => {
-          console.error("[API Upload] Pipe error:", err.message);
+          logger.error("[API Upload] Pipe error", err);
           reject(err);
         });
       }
     });
   } catch (error) {
-    console.error("[API Upload] Exception:", error.message);
+    logger.error("[API Upload] Exception", error);
     return NextResponse.json(
       { success: false, error: `Error: ${error.message}` },
       { status: 500 }

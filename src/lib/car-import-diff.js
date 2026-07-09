@@ -4,7 +4,7 @@ const UPDATABLE_FIELDS = [
   "category", "videoUrl", "status", "description",
 ];
 
-const BOOL_FIELDS = ["isLuxury", "featured", "testDriveAvailable"];
+const BOOL_FIELDS = ["isLuxury", "isEconomic", "isCommercial", "featured", "testDriveAvailable"];
 
 export function normalizeStr(val) {
   if (val == null) return "";

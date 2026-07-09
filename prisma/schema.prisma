@@ -37,6 +37,8 @@ model Car {
   transmission      String
   bodyType          String
   isLuxury          Boolean            @default(false)
+  isEconomic        Boolean            @default(false)
+  isCommercial      Boolean            @default(false)
   insuranceSegment  String?            // A–G for finance/insurance lookup
   driveType         String?
   seats             Int?
@@ -61,6 +63,8 @@ model Car {
   @@index([status])
   @@index([fuelType])
   @@index([featured])
+  @@index([isEconomic])
+  @@index([isCommercial])
 }
 
 model DealershipInfo {

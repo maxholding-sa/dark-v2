@@ -2,37 +2,128 @@
 
 import { db } from "@/lib/prisma";
 
-// Get all chat logs with pagination
-export async function getChatLogs({ page = 1, limit = 20, language, dateFrom, dateTo }) {
-  try {
-    const skip = (page - 1) * limit;
-    
-    const where = {};
-    if (language) {
-      where.language = language;
-    }
-    if (dateFrom || dateTo) {
+const normalizePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseDateFilter = (value, endOfDay = false) => {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  }
+
+  return date;
+};
+
+const buildChatLogWhere = ({ language, dateFrom, dateTo, search, resultStatus } = {}) => {
+  const where = {};
+  const andConditions = [];
+
+  if (language && language !== "all") {
+    where.language = language;
+  }
+
+  if (dateFrom || dateTo) {
+    const from = parseDateFilter(dateFrom);
+    const to = parseDateFilter(dateTo, true);
+
+    if (from || to) {
       where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
-      if (dateTo) where.createdAt.lte = new Date(dateTo);
+      if (from) where.createdAt.gte = from;
+      if (to) where.createdAt.lte = to;
     }
+  }
+
+  if (search?.trim()) {
+    const query = search.trim();
+    andConditions.push({
+      OR: [
+        { userMessage: { contains: query, mode: "insensitive" } },
+        { correctedMessage: { contains: query, mode: "insensitive" } },
+        { aiResponse: { contains: query, mode: "insensitive" } },
+        { sessionId: { contains: query, mode: "insensitive" } },
+        { userId: { contains: query, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (resultStatus === "with-results") {
+    andConditions.push({
+      OR: [
+        { carsShown: { gt: 0 } },
+        { carsFound: { gt: 0 } },
+      ],
+    });
+  }
+
+  if (resultStatus === "no-results") {
+    andConditions.push({ carsShown: 0 }, { carsFound: 0 });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
+  }
+
+  return where;
+};
+
+// Get all chat logs with pagination
+export async function getChatLogs({
+  page = 1,
+  limit = 20,
+  language,
+  dateFrom,
+  dateTo,
+  search,
+  resultStatus,
+} = {}) {
+  try {
+    const currentPage = normalizePositiveInt(page, 1);
+    const pageSize = Math.min(normalizePositiveInt(limit, 20), 100);
+    const skip = (currentPage - 1) * pageSize;
+    const where = buildChatLogWhere({ language, dateFrom, dateTo, search, resultStatus });
 
     const [logs, total] = await Promise.all([
       db.chatLog.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip,
-        take: limit,
+        take: pageSize,
       }),
       db.chatLog.count({ where }),
     ]);
 
+    const carIds = [...new Set(logs.flatMap((log) => log.carIds || []))];
+    const cars = carIds.length
+      ? await db.car.findMany({
+          where: { id: { in: carIds } },
+          select: {
+            id: true,
+            make: true,
+            model: true,
+            year: true,
+            images: true,
+          },
+        })
+      : [];
+
+    const carsById = new Map(cars.map((car) => [car.id, car]));
+    const logsWithCars = logs.map((log) => ({
+      ...log,
+      cars: (log.carIds || []).map((carId) => carsById.get(carId)).filter(Boolean),
+    }));
+
     return {
       success: true,
-      logs,
+      logs: logsWithCars,
       total,
-      pages: Math.ceil(total / limit),
-      currentPage: page,
+      pages: Math.ceil(total / pageSize),
+      currentPage,
     };
   } catch (error) {
     console.error("Error fetching chat logs:", error);
@@ -42,6 +133,7 @@ export async function getChatLogs({ page = 1, limit = 20, language, dateFrom, da
       logs: [],
       total: 0,
       pages: 0,
+      currentPage: 1,
     };
   }
 }
@@ -62,7 +154,12 @@ export async function getChatAnalytics() {
       
       // Chats with results
       db.chatLog.count({
-        where: { carsShown: { gt: 0 } },
+        where: {
+          OR: [
+            { carsShown: { gt: 0 } },
+            { carsFound: { gt: 0 } },
+          ],
+        },
       }),
       
       // Language distribution

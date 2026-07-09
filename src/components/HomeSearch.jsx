@@ -11,7 +11,7 @@ import { processAiImageSearch } from "@/actions/home";
 import LoadingBar from "@/components/LoadingBar";
 
 const HomeSearch = () => {
-  const [serachTerm, setSerachTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isImageSearchActive, setIsImageSearchActive] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
@@ -39,14 +39,17 @@ const HomeSearch = () => {
   // Fetch suggestions from database/API
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (serachTerm.trim().length > 0) {
+      const query = searchTerm.trim();
+      if (query.length > 0) {
         setLoadingSuggestions(true);
         try {
-          // Replace this URL with your actual API endpoint
-          const response = await fetch(`/api/search-suggestions?q=${encodeURIComponent(serachTerm)}`);
+          const response = await fetch(
+            `/api/search-suggestions?q=${encodeURIComponent(query)}`
+          );
+          if (!response.ok) throw new Error("Failed to fetch suggestions");
+
           const data = await response.json();
 
-          // Assuming API returns { suggestions: [...] }
           setSuggestions(data.suggestions || []);
           setShowSuggestions(data.suggestions && data.suggestions.length > 0);
         } catch (error) {
@@ -69,7 +72,7 @@ const HomeSearch = () => {
     }, 300); // Wait 300ms after user stops typing
 
     return () => clearTimeout(timeoutId);
-  }, [serachTerm]);
+  }, [searchTerm]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -89,6 +92,8 @@ const HomeSearch = () => {
       toast.error(
         aiImageSearchError.message || "فشل تحليل الصورة"
       );
+      setIsSearching(false);
+      window.dispatchEvent(new CustomEvent('stopLoading'));
     }
   }, [aiImageSearchError]);
 
@@ -98,6 +103,8 @@ const HomeSearch = () => {
       // Handle error response from server
       if (!aiImageSearchData.success) {
         toast.error(aiImageSearchData.error || "فشل تحليل الصورة");
+        setIsSearching(false);
+        window.dispatchEvent(new CustomEvent('stopLoading'));
         return;
       }
 
@@ -112,10 +119,18 @@ const HomeSearch = () => {
         if (aiImageSearchData.data.color)
           params.set("color", aiImageSearchData.data.color);
 
+        if (!params.toString()) {
+          toast.error("لم نتمكن من استخراج بيانات بحث واضحة من الصورة");
+          setIsSearching(false);
+          window.dispatchEvent(new CustomEvent('stopLoading'));
+          return;
+        }
+
+        params.set("page", "1");
         router.push(`/cars?${params.toString()}`);
       }
     }
-  }, [aiImageSearchData]);
+  }, [aiImageSearchData, router]);
 
   // handling image input
   const onDrop = (acceptedFiles) => {
@@ -155,7 +170,8 @@ const HomeSearch = () => {
 
   const handleTextSubmit = (e) => {
     e.preventDefault();
-    if (!serachTerm.trim()) {
+    const query = searchTerm.trim();
+    if (!query) {
       toast.info("يرجى إدخال مصطلح البحث");
       return;
     }
@@ -164,28 +180,20 @@ const HomeSearch = () => {
     setIsSearching(true);
     // Dispatch custom event to show loading immediately
     window.dispatchEvent(new CustomEvent('startLoading'));
-    router.push(`/cars?search=${encodeURIComponent(serachTerm)}`);
+    router.push(`/cars?search=${encodeURIComponent(query)}&page=1`);
   };
 
   const handleSuggestionClick = async (suggestion) => {
-    setSerachTerm(suggestion);
+    setSearchTerm(suggestion);
     setShowSuggestions(false);
 
-    // Parse the suggestion to extract make and model
-    // Assuming suggestion format is like "Toyota Camry" or just "Toyota"
-    const parts = suggestion.trim().split(/\s+/);
+    const params = new URLSearchParams();
+    params.set("search", suggestion.trim());
+    params.set("page", "1");
 
-    // Only proceed if both make AND model are present
-    if (parts.length > 1) {
-      const params = new URLSearchParams();
-      params.set("make", parts[0]); // First word is the make
-      params.set("model", parts.slice(1).join(" ")); // Rest is the model
-
-      setIsSearching(true);
-      window.dispatchEvent(new CustomEvent('startLoading'));
-      router.push(`/cars?${params.toString()}`);
-    }
-    // If only make exists (parts.length === 1), do nothing - just update search term
+    setIsSearching(true);
+    window.dispatchEvent(new CustomEvent('startLoading'));
+    router.push(`/cars?${params.toString()}`);
   };
 
   const handleKeyDown = (e) => {
@@ -230,11 +238,11 @@ const HomeSearch = () => {
         {/* Desktop Search */}
         <div className="hidden md:flex relative z-30 items-center overflow-visible" ref={searchRef} suppressHydrationWarning>
           <Input
-            value={serachTerm}
-            onChange={(e) => setSerachTerm(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => {
               setIsInputFocused(true);
-              if (serachTerm.trim() && suggestions.length > 0) {
+              if (searchTerm.trim() && suggestions.length > 0) {
                 setShowSuggestions(true);
               }
             }}
@@ -299,11 +307,11 @@ const HomeSearch = () => {
         <div className="md:hidden flex flex-col gap-2 px-4 items-center" suppressHydrationWarning>
           <div className="relative z-30 w-full overflow-visible" ref={searchRef}>
             <Input
-              value={serachTerm}
-              onChange={(e) => setSerachTerm(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => {
                 setIsInputFocused(true);
-                if (serachTerm.trim() && suggestions.length > 0) {
+                if (searchTerm.trim() && suggestions.length > 0) {
                   setShowSuggestions(true);
                 }
               }}

@@ -1,27 +1,24 @@
-import { getCarById } from "@/actions/car-details";
+import { getCarById, getSimilarCars } from "@/actions/car-details";
 import { notFound } from "next/navigation";
 import CarDetails from "./_components/CarDetails";
+import { generateCarMetadata, generateJsonLd, SITE_CONFIG, truncate } from "@/lib/seo";
 
-export async function generateMetaData({ params }) {
+export async function generateMetadata({ params }) {
   const { id } = await params;
   const result = await getCarById(id);
 
   if (!result.success) {
     return {
-      title: "السيارة غير موجودة | Click Car",
+      title: "السيارة غير موجودة | ماكس موتورز",
       description: "لم يتم العثور على السيارة المطلوبة",
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
-  const car = result.data;
-
-  return {
-    title: `${car.year} ${car.make} ${car.model} | Click Car`,
-    description: car.description.substring(0, 160),
-    openGraph: {
-      images: car.images?.[0] ? [car.images[0]] : [],
-    },
-  };
+  return generateCarMetadata(result.data);
 }
 
 const CarPage = async ({ params }) => {
@@ -34,14 +31,37 @@ const CarPage = async ({ params }) => {
     notFound();
   }
 
+  const similarCarsResult = await getSimilarCars(id, 4);
+  const car = result.data;
+  const carName = `${car.year} ${car.make} ${car.model}`.replace(/\s+/g, " ").trim();
+
   return (
-    <div className="w-full px-4 py-6">
-      <CarDetails
-        car={result.data}
-        testDriveInfo={result?.data.testDriveInfo}
-        user={result?.user}
+    <>
+      <script
+        id="car-product-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateJsonLd("product", {
+            name: carName,
+            description: truncate(car.description, 160),
+            image: car.images?.map((image) => image.startsWith("http") ? image : `${SITE_CONFIG.url}${image}`),
+            brand: car.make,
+            year: car.year,
+            url: `${SITE_CONFIG.url}/cars/${car.id}`,
+            price: car.price,
+            availability: car.status === "AVAILABLE" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          })),
+        }}
       />
-    </div>
+      <div className="w-full px-4 py-6">
+        <CarDetails
+          car={car}
+          testDriveInfo={result?.data.testDriveInfo}
+          user={result?.user}
+          similarCars={similarCarsResult?.data || []}
+        />
+      </div>
+    </>
   );
 };
 

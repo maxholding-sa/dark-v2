@@ -42,34 +42,11 @@ const MAX_OFFERS_PER_BANK = 5;
 const MAX_DOWN_PAYMENT_PCT = LOAN_CALCULATOR_META.maxDownPaymentPct;
 const TERM_MONTHS = 60; // 5 years
 
-const OFFER_CATEGORIES = [
-  {
-    id: "lowestDown",
-    title: "أقل دفعة اولى",
-    compareFn: (a, b) => a.downPayment - b.downPayment,
-  },
-  {
-    id: "lowestMonthly",
-    title: "أقل قسط شهري",
-    compareFn: (a, b) => a.monthlyPayment - b.monthlyPayment,
-  },
-  {
-    id: "highestFinal",
-    title: "أعلى دفعة اخيرة",
-    compareFn: (a, b) => b.lastMonthPayment - a.lastMonthPayment,
-    filter: (o) => o.lastMonthPayment > 0,
-  },
-  {
-    id: "lowestTotal",
-    title: "أقل تكلفة إجمالية",
-    compareFn: (a, b) => (a.totalPayment ?? 0) - (b.totalPayment ?? 0),
-  },
-  {
-    id: "lowestDownPct",
-    title: "أقل نسبة دفعة اولى",
-    compareFn: (a, b) => a.downPaymentPct - b.downPaymentPct,
-  },
-];
+const formatPercent = (value, digits = 2) => `${Number(value || 0).toFixed(digits)}%`;
+const getEmployerSectorLabel = (value) =>
+  EMPLOYER_SECTORS.find((sector) => sector.value === value)?.label || value || "غير محدد";
+const formatBalloonPolicy = (offer) =>
+  offer.loanPolicy || (offer.balloonPayment > 0 ? "دفعة أخيرة حسب جهة التمويل" : "غير محدد");
 
 /** Best offer first: lowest monthly, then down payment, then total cost. */
 const compareOffersBestFirst = (a, b) => {
@@ -78,38 +55,7 @@ const compareOffersBestFirst = (a, b) => {
   return (a.totalPayment ?? 0) - (b.totalPayment ?? 0);
 };
 
-/** Deterministic shuffle so random offers stay stable until inputs change. */
-const seededShuffle = (array, seed) => {
-  const copy = [...array];
-  let s = 0;
-  for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
-  const rand = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0xffffffff;
-  };
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-};
-
-/** Pick 5 random offers per bank and assign each to a shuffled category. */
-const pickRandomBankOffersWithCategories = (candidates, seed) => {
-  const picked = seededShuffle(candidates, seed).slice(0, MAX_OFFERS_PER_BANK);
-  const shuffledCategories = seededShuffle([...OFFER_CATEGORIES], `${seed}-categories`);
-
-  return picked.map((offer, index) => {
-    const category = shuffledCategories[index % shuffledCategories.length];
-    return {
-      ...offer,
-      categoryId: category.id,
-      categoryTitle: category.title,
-    };
-  });
-};
-
-const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
+const generateIslamicOffers = ({ banks, formData, car }) => {
   const carPrice = Number(car.price) || 0;
   if (carPrice <= 0) {
     return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "لم يتم تحديد سعر لهذه السيارة. يرجى التواصل مع الإدارة لتحديث سعر السيارة." };
@@ -154,8 +100,46 @@ const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
   const ageBracket = getAgeBracketFromBirthYear(formData.birthYear, formData.birthDateType);
   const gender = formData.gender || "male";
 
-  const { downPaymentOptions } = LOAN_CALCULATOR_META;
-  const allowedDownPayments = downPaymentOptions.filter((pct) => pct <= MAX_DOWN_PAYMENT_PCT);
+  if (!formData.employerSector) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: "اختر قطاع جهة العمل أولاً حتى يتم حساب سعر الربح الصحيح لكل بنك حسب القطاع.",
+    };
+  }
+
+  const requestedDownPayment = Number(formData.downPayment);
+  const requestedDownPaymentPct = requestedDownPayment / carPrice;
+
+  if (!Number.isFinite(requestedDownPayment) || requestedDownPayment <= 0) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: "أدخل الدفعة الأولى التي تناسبك حتى تظهر عروض البنوك بناءً عليها.",
+    };
+  }
+
+  if (requestedDownPayment >= carPrice) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: "الدفعة الأولى يجب أن تكون أقل من سعر السيارة.",
+    };
+  }
+
+  if (requestedDownPaymentPct > MAX_DOWN_PAYMENT_PCT) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: `أعلى دفعة أولى متاحة حالياً هي ${formatPercent(MAX_DOWN_PAYMENT_PCT * 100, 0)} من سعر السيارة.`,
+    };
+  }
+
+  const allowedDownPayments = [requestedDownPaymentPct];
 
   const scenarioInputs = buildFinancingScenarioInputs({
     car,
@@ -199,6 +183,11 @@ const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
               id: 0,
               bankName: bank?.name || "بنك افتراضي",
               bankId: bank.id,
+              bankLogo: bank?.logoImage || "",
+              employerSector: formData.employerSector,
+              employerSectorLabel: getEmployerSectorLabel(formData.employerSector),
+              loanPolicy: bank?.loanPolicy || null,
+              bankFinalPaymentPolicyPct: bank?.defaultBalloonPaymentPct ?? null,
             }
           )
         );
@@ -208,10 +197,14 @@ const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
     const pricedCandidates = bankCandidates
       .filter((offer) => offer.pricingAvailable !== false)
       .filter((offer) => offer.downPaymentPct <= MAX_DOWN_PAYMENT_PCT * 100);
-    const picked = pickRandomBankOffersWithCategories(
-      pricedCandidates,
-      `${offerSeed}-${bank.id}`
-    );
+    const picked = pricedCandidates
+      .sort(compareOffersBestFirst)
+      .slice(0, MAX_OFFERS_PER_BANK)
+      .map((offer) => ({
+        ...offer,
+        categoryId: `bank-${bank.id}`,
+        categoryTitle: bank?.name || "بنك افتراضي",
+      }));
 
     for (const offer of picked) {
       offers.push({ ...offer, id: offerId });
@@ -225,9 +218,9 @@ const generateIslamicOffers = ({ banks, formData, car, offerSeed = "" }) => {
 const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
   <div
     key={offer.id}
-    className={`relative border-2 rounded-lg p-4 ${
+    className={`relative border-2 rounded-lg p-3 sm:p-4 ${
       recommended
-        ? "border-green-500 ring-2 ring-green-500/30 bg-gradient-to-br from-green-950/50 to-black md:col-span-2"
+        ? "border-green-500 ring-2 ring-green-500/30 bg-gradient-to-br from-green-950/50 to-black"
         : "border-yellow-700 bg-black"
     }`}
   >
@@ -238,23 +231,45 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
       </span>
     ) : null}
 
-    <div className="text-center mb-4">
-      <p className={`text-lg font-bold ${recommended ? "text-green-400" : "text-yellow-800"}`}>
-        {offer.categoryId === "highestFinal" ? (
-          <>
-            عرض قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))} و دفعة اخيرة{" "}
-            {formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}
-          </>
-        ) : (
-          <>
-            عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط{" "}
-            {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
-          </>
-        )}
+    <div className="mb-4 space-y-3 text-right">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          {offer.bankLogo ? (
+            <img
+              src={offer.bankLogo}
+              alt={`شعار ${offer.bankName || "البنك"}`}
+              className="h-7 w-7 rounded-md object-contain bg-white/10 p-1 sm:h-8 sm:w-8"
+            />
+          ) : null}
+          <span className="inline-flex items-center rounded-full border border-yellow-700/70 bg-yellow-950/50 px-2 py-1 text-[10px] font-semibold text-yellow-200 sm:px-3 sm:text-xs">
+            مقدم من {offer.bankName || "البنك"}
+          </span>
+        </div>
+        <span className="text-[10px] text-white/60 sm:text-xs">
+          {offer.categoryTitle ? `عرض ${offer.categoryTitle}` : "عرض تمويلي"}
+        </span>
+      </div>
+      <p className={`text-sm font-bold sm:text-lg ${recommended ? "text-green-400" : "text-yellow-800"}`}>
+        قسطك الشهري المتوقع يبدأ من {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
+      </p>
+      <p className="hidden text-xs leading-relaxed text-white/60 sm:block">
+        يشمل التمويل والتأمين التقديري، والرقم قابل للتغيير حسب موافقة البنك وشركة التأمين.
       </p>
     </div>
 
-    <div className="grid grid-cols-1 gap-2 mb-4 text-center">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-center">
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">البنك</p>
+        <p className="font-semibold">{offer.bankName || "غير محدد"}</p>
+      </div>
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">قطاع العميل</p>
+        <p className="font-semibold">{offer.employerSectorLabel || "غير محدد"}</p>
+      </div>
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">سياسة القرض</p>
+        <p className="font-semibold">{formatBalloonPolicy(offer)}</p>
+      </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">قسط شهري</p>
         <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
@@ -263,21 +278,27 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
         <p className="text-xs text-white">مدة القسط</p>
         <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
       </div>
-      {offer.categoryId === "highestFinal" ? (
-        <div className="bg-black p-2 rounded">
-          <p className="text-xs text-white">الدفعة الاخيرة (شهر أخير)</p>
-          <p className="font-semibold">{formatSaudiRiyalReact(offer.lastMonthPayment.toFixed(0))}</p>
-        </div>
-      ) : (
-        <div className="bg-black p-2 rounded">
-          <p className="text-xs text-white">الدفعة الاولى</p>
-          <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
-        </div>
-      )}
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">الدفعة الاولى</p>
+        <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
+      </div>
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">نسبة الدفعة الأولى</p>
+        <p className="font-semibold">{formatPercent(offer.downPaymentPct)}</p>
+      </div>
+      <div className="bg-black p-2 rounded">
+        <p className="text-xs text-white">الدفعة الأخيرة</p>
+        <p className="font-semibold">{formatSaudiRiyalReact((offer.balloonPayment || 0).toFixed(0))}</p>
+      </div>
     </div>
 
+    <p className="mt-2 text-center text-[10px] leading-relaxed text-white/50 sm:text-xs">
+      ملاحظة الشروط والأحكام:
+      <br />
+      هذه النسب والأقساط تقريبية وليست نهائية، وتخضع لشروط وأحكام جهة التمويل والموافقة النهائية.
+    </p>
     <Button
-      className={`w-full text-sm text-white ${
+      className={`mt-3 w-full text-xs text-white sm:text-sm ${
         recommended ? "bg-green-600 hover:bg-green-700" : "bg-yellow-700 hover:bg-yellow-800"
       }`}
       onClick={() => onSelect(offer)}
@@ -331,14 +352,10 @@ const LoanRequestForm = ({ car }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
 
-  const financingOfferSeed = `${car.id}-${formData.employerSector}-${formData.birthYear}-${formData.birthMonth}-${formData.gender}-${formData.salaryTransferBank}-${formData.birthDateType}`;
-
   const offerResult = useMemo(
-    () => generateIslamicOffers({ banks, formData, car, offerSeed: financingOfferSeed }),
-    [banks, formData, car, financingOfferSeed]
+    () => generateIslamicOffers({ banks, formData, car }),
+    [banks, formData, car]
   );
-
-
 
 
   const selectOfferAndProceed = (offer) => {
@@ -482,7 +499,10 @@ const LoanRequestForm = ({ car }) => {
         }
         break;
       case 3:
-        // Credit data fields are optional, no validation needed
+        if (!formData.employerSector) {
+          toast.error("يرجى اختيار قطاع جهة العمل حتى تظهر أسعار الربح حسب القطاع");
+          return false;
+        }
         break;
       case 4:
         // Financing offers step, validation handled separately
@@ -836,7 +856,7 @@ const LoanRequestForm = ({ car }) => {
 
             <div className="space-y-4">
               <div>
-                <Label className="mb-2">جهة العمل (قطاع صاحب العمل)</Label>
+                <Label className="mb-2">جهة العمل (قطاع صاحب العمل) *</Label>
                 <Select value={formData.employerSector} onValueChange={(value) => handleInputChange('employerSector', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر جهة العمل" />
@@ -973,40 +993,116 @@ const LoanRequestForm = ({ car }) => {
 
         const allOffers = offerResult.offers;
         const scenarioInputs = offerResult.scenarioInputs;
+        const enteredDownPayment = Number(formData.downPayment) || 0;
+        const carPrice = Number(car.price) || 0;
+        const enteredDownPaymentPct = carPrice > 0 ? (enteredDownPayment / carPrice) * 100 : 0;
+        const remainingLoanAmount = Math.max(0, carPrice - enteredDownPayment);
+        const downPaymentEditor = (
+          <div className="rounded-xl border border-yellow-700/60 bg-yellow-950/30 p-4 space-y-4 text-right">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Banknote className="h-5 w-5" />
+                اختر دفعتك الأولى
+              </h3>
+              <p className="text-sm text-white/60">
+                اكتب الدفعة الأولى التي تناسبك، وتظهر عروض البنوك بناءً على نفس الدفعة.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="downPayment" className="mb-2">الدفعة الأولى *</Label>
+              <Input
+                id="downPayment"
+                type="number"
+                min="1"
+                max={Math.max(1, Math.floor(carPrice * MAX_DOWN_PAYMENT_PCT))}
+                value={formData.downPayment}
+                onChange={(e) => handleInputChange("downPayment", e.target.value)}
+                placeholder="أدخل الدفعة الأولى"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-black p-3">
+                <p className="text-xs text-white/60">سعر السيارة</p>
+                <p className="font-semibold">{formatSaudiRiyalReact(carPrice)}</p>
+              </div>
+              <div className="rounded-lg bg-black p-3">
+                <p className="text-xs text-white/60">نسبة الدفعة</p>
+                <p className="font-semibold">{formatPercent(enteredDownPaymentPct)}</p>
+              </div>
+              <div className="rounded-lg bg-black p-3">
+                <p className="text-xs text-white/60">المبلغ الممول تقريباً</p>
+                <p className="font-semibold">{formatSaudiRiyalReact(remainingLoanAmount)}</p>
+              </div>
+            </div>
+            <div className="rounded-lg bg-black p-3 text-center">
+              <p className="text-xs text-white/60">العروض تُحسب حسب القطاع المختار</p>
+              <p className="font-semibold">{getEmployerSectorLabel(formData.employerSector)}</p>
+            </div>
+            <p className="text-xs text-white/50">
+              الحد الأعلى الحالي للدفعة الأولى {formatPercent(MAX_DOWN_PAYMENT_PCT * 100, 0)} من سعر السيارة.
+            </p>
+          </div>
+        );
 
         if (offerResult.pricingBlocked) {
           return (
-            <div className="space-y-4 rounded-lg border border-amber-600/60 bg-amber-950/40 p-6 text-right">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-amber-200">
-                <AlertTriangle className="h-5 w-5" />
-                العروض التمويلية — مراجعة مطلوبة
-              </h3>
-              <p className="text-sm text-amber-100/90 leading-relaxed">
-                {offerResult.pricingBlockReason}
-              </p>
-              <p className="text-xs text-white/60">
-                ماركة السيارة: {car.make} · فئة التأمين المحفوظة: {car.insuranceSegment || "غير محددة"}
-              </p>
+            <div className="space-y-6">
+              {downPaymentEditor}
+              <div className="space-y-4 rounded-lg border border-amber-600/60 bg-amber-950/40 p-6 text-right">
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-amber-200">
+                  <AlertTriangle className="h-5 w-5" />
+                  العروض التمويلية — مراجعة مطلوبة
+                </h3>
+                <p className="text-sm text-amber-100/90 leading-relaxed">
+                  {offerResult.pricingBlockReason}
+                </p>
+                <p className="text-xs text-white/60">
+                  ماركة السيارة: {car.make} · فئة التأمين المحفوظة: {car.insuranceSegment || "غير محددة"}
+                </p>
+              </div>
+              <div className="flex justify-start pt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  السابق
+                </Button>
+              </div>
             </div>
           );
         }
 
         const recommendedOffer = [...allOffers].sort(compareOffersBestFirst)[0] ?? null;
 
-        const offersByCategory = OFFER_CATEGORIES.map((category) => ({
-          ...category,
-          offers: allOffers
-            .filter((offer) => offer.categoryId === category.id)
-            .sort(category.compareFn),
-        })).filter((section) => section.offers.length > 0);
+        const offersByBank = Array.from(
+          allOffers.reduce((map, offer) => {
+            const key = offer.bankId || offer.bankName || "unknown";
+            if (!map.has(key)) {
+              map.set(key, {
+                id: key,
+                title: offer.bankName || "بنك غير محدد",
+                offers: [],
+              });
+            }
+            map.get(key).offers.push(offer);
+            return map;
+          }, new Map()).values()
+        ).map((section) => ({
+          ...section,
+          offers: section.offers.sort(compareOffersBestFirst),
+        }));
 
         logFinancingOfferScenario({
           inputs: scenarioInputs,
           offers: allOffers,
           displayed: {
             recommendedOffer: recommendedOffer ? [recommendedOffer] : [],
-            byCategory: offersByCategory.map((section) => ({
-              categoryId: section.id,
+            byBank: offersByBank.map((section) => ({
+              bankId: section.id,
               title: section.title,
               offers: section.offers,
             })),
@@ -1016,10 +1112,12 @@ const LoanRequestForm = ({ car }) => {
 
         return (
           <div className="space-y-6">
+            {downPaymentEditor}
+
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Banknote className="h-5 w-5" />
-                العروض التمويلية
+                عروض البنوك المتاحة
               </h3>
               <p className="text-sm text-white/60">{allOffers.length} عرض متاح</p>
             </div>
@@ -1027,7 +1125,7 @@ const LoanRequestForm = ({ car }) => {
             {recommendedOffer ? (
               <div className="space-y-3">
                 <h4 className="text-md font-semibold text-green-500">العرض الموصى به</h4>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   {renderFinancingOfferCard(recommendedOffer, {
                     recommended: true,
                     onSelect: selectOfferAndProceed,
@@ -1036,10 +1134,10 @@ const LoanRequestForm = ({ car }) => {
               </div>
             ) : null}
 
-            {offersByCategory.map((section) => (
+            {offersByBank.map((section) => (
               <div key={section.id} className="space-y-4">
-                <h4 className="text-md font-semibold text-yellow-700">{section.title}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-md font-semibold text-yellow-700">عروض {section.title}</h4>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   {section.offers
                     .filter((offer) => offer.id !== recommendedOffer?.id)
                     .map((offer) =>
@@ -1305,7 +1403,9 @@ const LoanRequestForm = ({ car }) => {
                 <Label htmlFor="email" className="mb-2">البريد الإلكتروني *</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   required

@@ -13,6 +13,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
+import { logger } from "@/lib/logger";
 
 // ==================== FILE UPLOAD HELPERS ====================
 
@@ -38,7 +39,11 @@ export async function uploadFile(file, folder = "site-data") {
     const fileName = `${folder}-${Date.now()}-${uuidv4()}.${fileExtension}`;
     const filePath = `${folder}/${fileName}`;
 
-    console.log(`[uploadFile] Starting upload for ${fileName}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB, type: ${file.type}`);
+    logger.debug("[uploadFile] Starting upload", {
+      fileName,
+      sizeMb: (file.size / 1024 / 1024).toFixed(2),
+      type: file.type,
+    });
 
     // Convert file to buffer - this handles the file properly
     const fileBuffer = await file.arrayBuffer();
@@ -74,7 +79,7 @@ export async function uploadFile(file, folder = "site-data") {
 
     const fileUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${data.path}`;
 
-    console.log(`[uploadFile] Successfully uploaded: ${fileName} to ${data.path}`);
+    logger.info("[uploadFile] Upload completed", { fileName });
     return { success: true, url: fileUrl, filePath: data.path };
   } catch (error) {
     console.error("[uploadFile] Exception:", error);
@@ -890,11 +895,16 @@ export async function updatePixelSettings(data) {
 
     // Safety check for admin role
     if (!user || user.role !== "ADMIN") {
-      console.warn(`[updatePixelSettings] Unauthorized attempt by user: ${user?.email || 'Anonymous'}`);
+      logger.warn("[updatePixelSettings] Unauthorized attempt", {
+        hasUser: Boolean(user),
+        role: user?.role,
+      });
       return { success: false, error: "غير مصرح لك بالقيام بهذا الإجراء" };
     }
 
-    console.log("[updatePixelSettings] Updating with data:", data);
+    logger.debug("[updatePixelSettings] Updating pixel settings", {
+      fields: Object.keys(data || {}),
+    });
 
     let pixelSettings = await db.pixelSettings.findFirst();
 
@@ -923,7 +933,7 @@ export async function updatePixelSettings(data) {
       });
     }
 
-    console.log("[updatePixelSettings] Successfully updated record:", pixelSettings.id);
+    logger.info("[updatePixelSettings] Pixel settings updated", { id: pixelSettings.id });
 
     revalidateTag("pixels");
     revalidateTag("site-settings");

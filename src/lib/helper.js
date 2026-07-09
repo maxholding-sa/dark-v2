@@ -50,6 +50,10 @@ export const serializeLoanRequests = (requests) => {
 export const formatSaudiRiyalReact = (amount) => {
   const value = Number(amount) || 0;
 
+  if (value <= 0) {
+    return <span>متوفر عند الطلب</span>;
+  }
+
   // You can switch to "ar-SA" if you want Arabic digits
   const formattedNumber = new Intl.NumberFormat("en-EN").format(value);
 
@@ -68,6 +72,8 @@ export const formatSaudiRiyalReact = (amount) => {
 
 export const formatSaudiRiyalText = (amount) => {
   const value = Number(amount) || 0;
+  if (value <= 0) return "متوفر عند الطلب";
+
   const formattedNumber = new Intl.NumberFormat("en-EN").format(value);
   return `${formattedNumber} ريال سعودي`;
 };

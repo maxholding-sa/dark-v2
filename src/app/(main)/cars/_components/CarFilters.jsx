@@ -92,7 +92,6 @@ const CarFilters = ({ filters }) => {
 
   // handle filter change
   const handleFilterChange = (filterName, value) => {
-    console.log(value);
     switch (filterName) {
       case "make":
         setMake(value);

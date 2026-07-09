@@ -2,7 +2,6 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import ChatBot from "@/components/ChatBot";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { getStoreInfo } from "@/actions/site-management";
@@ -99,6 +98,7 @@ export default function Contact() {
                     id="email"
                     name="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="أدخل بريدك الإلكتروني"
                     value={formData.email}
                     onChange={handleChange}
@@ -242,9 +242,6 @@ export default function Contact() {
           </div>
         </div>
       </section>
-
-      {/* ChatBot Component */}
-      <ChatBot />
     </div>
   );
 }

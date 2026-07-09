@@ -1,9 +1,7 @@
 "use server";
 
-import aj from "@/lib/arcjet";
 import { serializedCarsData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
-import { request } from "@arcjet/next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Function to convert File to base64
@@ -15,7 +13,38 @@ async function fileToBase64(file) {
 
 import { unstable_cache } from "next/cache";
 import { carDisplayPriorityOrderBy } from "@/lib/data";
-import { getFeaturedCarsSupabase } from "@/lib/supabaseReads";
+import { getFeaturedCarsSupabase, getHomeCarsByQuerySupabase } from "@/lib/supabaseReads";
+import { logger } from "@/lib/logger";
+
+const IMAGE_SEARCH_BODY_TYPES = [
+  "دفع رباعي",
+  "سيدان",
+  "هاتشباك",
+  "كشف",
+  "كوبيه",
+  "ستيشن",
+  "بيك أب",
+  "رياضية",
+];
+
+function parseAiJsonResponse(text) {
+  const cleanedText = text.replace(/```(?:json)?\n?/g, "").replace(/```/g, "").trim();
+  const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+  return JSON.parse(jsonMatch ? jsonMatch[0] : cleanedText);
+}
+
+function cleanImageSearchData(data) {
+  const bodyType = IMAGE_SEARCH_BODY_TYPES.find(
+    (type) => type === String(data?.bodyType || "").trim()
+  );
+
+  return {
+    make: String(data?.make || "").trim(),
+    bodyType: bodyType || "",
+    color: String(data?.color || "").trim(),
+    confidence: Number(data?.confidence) || 0,
+  };
+}
 
 export const getFeaturedCars = unstable_cache(
   async (limit = 4) => {
@@ -44,6 +73,157 @@ export const getFeaturedCars = unstable_cache(
     }
   },
   ["home-featured-cars-v2"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getOfferCars = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          featured: true,
+        },
+        take: limit,
+        orderBy: [...carDisplayPriorityOrderBy, { createdAt: "desc" }],
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getOfferCars] Prisma failed, using Supabase:", error.message);
+      return getHomeCarsByQuerySupabase({ limit, featured: true });
+    }
+  },
+  ["home-offer-cars-v1"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getLuxuryCars = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          isLuxury: true,
+        },
+        take: limit,
+        orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getLuxuryCars] Prisma failed, using Supabase:", error.message);
+      return getHomeCarsByQuerySupabase({ limit, isLuxury: true });
+    }
+  },
+  ["home-luxury-cars-v1"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getEconomicCars = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          isEconomic: true,
+        },
+        take: limit,
+        orderBy: [...carDisplayPriorityOrderBy, { createdAt: "desc" }],
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getEconomicCars] Prisma failed, using Supabase:", error.message);
+      return getHomeCarsByQuerySupabase({ limit, isEconomic: true });
+    }
+  },
+  ["home-economic-cars-v1"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getCommercialCars = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          isCommercial: true,
+        },
+        take: limit,
+        orderBy: [...carDisplayPriorityOrderBy, { createdAt: "desc" }],
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getCommercialCars] Prisma failed, using Supabase:", error.message);
+      return getHomeCarsByQuerySupabase({ limit, isCommercial: true });
+    }
+  },
+  ["home-commercial-cars-v1"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getCarsByBodyType = unstable_cache(
+  async (bodyType, limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          bodyType,
+        },
+        take: limit,
+        orderBy: [...carDisplayPriorityOrderBy, { createdAt: "desc" }],
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getCarsByBodyType] Prisma failed, using Supabase:", error.message);
+      return getHomeCarsByQuerySupabase({ limit, bodyType });
+    }
+  },
+  ["home-cars-by-body-type-v1"],
+  { revalidate: 3600, tags: ["cars"] }
+);
+
+export const getRegularCars = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const cars = await db.car.findMany({
+        where: {
+          status: "AVAILABLE",
+          isLuxury: false,
+          featured: false,
+        },
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return {
+        success: true,
+        data: cars.map((car) => serializedCarsData(car)),
+      };
+    } catch (error) {
+      console.warn("[getRegularCars] Prisma failed:", error.message);
+      return { success: false, data: [] };
+    }
+  },
+  ["home-regular-cars-v1"],
   { revalidate: 3600, tags: ["cars"] }
 );
 
@@ -134,9 +314,7 @@ export async function processAiImageSearch(formData) {
         const result = await model.generateContent([imagePart, prompt]); // generate a result
         const response = result.response;
         const text = response.text(); // take the text from the response
-        const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim(); // clean the response text
-
-        const carDetails = JSON.parse(cleanedText);
+        const carDetails = cleanImageSearchData(parseAiJsonResponse(text));
         return {
           success: true,
           data: carDetails,
@@ -146,7 +324,10 @@ export async function processAiImageSearch(formData) {
 
         // Check if it's a 503 error and retry
         if (error.message?.includes("503") || error.message?.includes("overloaded")) {
-          console.log(`Retry attempt ${i + 1}/${retries} after model overload...`);
+          logger.info("[home-actions] Retrying after model overload", {
+            attempt: i + 1,
+            retries,
+          });
           if (i < retries - 1) {
             // Wait before retrying (exponential backoff: 1s, 2s, 4s)
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));

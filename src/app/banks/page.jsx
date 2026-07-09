@@ -1,6 +1,14 @@
 import React from "react";
 import BankCard from "@/components/BankCard";
 import { getBanks } from "@/actions/banks";
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "العروض التمويلية للسيارات | ماكس موتورز",
+  description: "قارن عروض التمويل البنكي المتاحة لشراء سيارتك من ماكس موتورز واختر العرض المناسب لك في السعودية.",
+  keywords: ["تمويل سيارات", "عروض بنكية للسيارات", "قرض سيارة", "تقسيط سيارات"],
+  canonicalUrl: "/banks",
+});
 
 export default async function BanksPage() {
   const banksRes = await getBanks();

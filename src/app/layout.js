@@ -3,7 +3,7 @@ import "./globals.css";
 import { Cairo } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { arSA } from "@clerk/localizations";
-import { SITE_CONFIG } from "@/lib/seo";
+import { generateJsonLd, SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 import { headers } from "next/headers";
@@ -24,10 +24,19 @@ export const metadata = {
   },
   description: SITE_CONFIG.description,
   metadataBase: new URL(SITE_CONFIG.url),
+  keywords: [
+    "ماكس موتورز",
+    "maxmotors",
+    "سيارات للبيع السعودية",
+    "شراء سيارة",
+    "تمويل سيارات",
+    "حجز تجربة قيادة",
+  ],
   alternates: {
     canonical: "/",
     languages: {
       "ar-SA": "/",
+      "x-default": "/",
     },
   },
   openGraph: {
@@ -53,6 +62,17 @@ export const metadata = {
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
   appleWebApp: {
     capable: true,
@@ -103,16 +123,10 @@ export default async function RootLayout({ children }) {
       <html lang="ar" dir="rtl" className="dark" suppressHydrationWarning>
         <head>
           <meta name="theme-color" content="#000000" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
-            rel="stylesheet"
-          />
           <link rel="preconnect" href="https://zafndavpzgpcbqgvosbt.supabase.co" />
         </head>
         <body
-          className={`${cairo.variable} ${cairo.className} dark text-white antialiased`}
+          className={`${cairo.variable} ${cairo.className} dark overflow-x-hidden text-white antialiased`}
           style={{
             backgroundColor: "black",
             fontFamily: "var(--font-cairo), Cairo, Tahoma, Arial, sans-serif",
@@ -127,6 +141,23 @@ export default async function RootLayout({ children }) {
           >
             {children}
           </ClientWrapper>
+
+          <Script
+            id="maxmotors-organization-jsonld"
+            type="application/ld+json"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(generateJsonLd("organization")),
+            }}
+          />
+          <Script
+            id="maxmotors-website-jsonld"
+            type="application/ld+json"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(generateJsonLd("searchAction")),
+            }}
+          />
 
           {/* Tracking Pixels & Analytics */}
 
@@ -180,9 +211,11 @@ export default async function RootLayout({ children }) {
                 }}
               />
               <noscript>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   height="1"
                   width="1"
+                  alt=""
                   style={{ display: "none" }}
                   src={`https://www.facebook.com/tr?id=${pixels.facebookPixel}&ev=PageView&noscript=1`}
                 />

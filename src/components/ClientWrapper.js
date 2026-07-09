@@ -6,6 +6,7 @@ import LoadingBar from "@/components/LoadingBar";
 import Header from "@/components/header";
 import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
+import ChatBot from "@/components/ChatBot";
 
 export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNavLabel, footerData }) {
     const [theme, setTheme] = useState("dark");
@@ -34,12 +35,18 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNa
             if (timeoutId) clearTimeout(timeoutId);
         };
 
+        const handleStopLoading = () => {
+            setIsLoading(false);
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+
         const handleRouteChange = () => {
             // Hide the loader immediately when the route changes
             setIsLoading(false);
         };
 
         window.addEventListener('startLoading', handleStartLoading);
+        window.addEventListener('stopLoading', handleStopLoading);
 
         if (pathname) {
             handleRouteChange();
@@ -47,6 +54,7 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNa
 
         return () => {
             window.removeEventListener('startLoading', handleStartLoading);
+            window.removeEventListener('stopLoading', handleStopLoading);
             if (timeoutId) clearTimeout(timeoutId);
         };
     }, [pathname]);
@@ -57,6 +65,7 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNa
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
             {!isAuthPage && !isAdminPage && <Footer initialData={footerData} />}
+            {!isAuthPage && !isAdminPage && <ChatBot />}
             {isLoading && <LoadingBar />}
         </>
     );

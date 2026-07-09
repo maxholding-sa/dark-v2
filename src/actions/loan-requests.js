@@ -195,7 +195,6 @@ export async function exportLoanRequests(ids = null, search = "") {
       "النسبة الفعلية APR %": offer?.apr != null ? parseFloat(offer.apr.toString()) : "",
       "الدفعة الأخيرة": request.finalPayment ? parseFloat(request.finalPayment.toString()) : "",
       "دفعة البالون": request.balloonPayment ? parseFloat(request.balloonPayment.toString()) : "",
-      "نسبة البالون %": request.balloonPaymentPct ? parseFloat(request.balloonPaymentPct.toString()) : "",
       "الرسوم الإدارية": request.adminFees ? parseFloat(request.adminFees.toString()) : "",
       "إجمالي التأمين": request.totalInsurance ? parseFloat(request.totalInsurance.toString()) : "",
       "إجمالي الربح": request.totalProfit ? parseFloat(request.totalProfit.toString()) : "",

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar, User, ArrowRight, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import ChatBot from "@/components/ChatBot";
 import LoadingBar from "@/components/LoadingBar";
 
 export default function ArticleDetailPage() {
@@ -194,9 +193,6 @@ export default function ArticleDetailPage() {
           </Card>
         </div>
       </section>
-
-      {/* ChatBot Component */}
-      <ChatBot />
     </div>
   );
 }

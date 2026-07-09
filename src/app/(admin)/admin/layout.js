@@ -5,8 +5,13 @@ import React from "react";
 import Sidebar from "./_components/Sidebar";
 import PermissionGuard from "./_components/PermissionGuard";
 import { getLogoByType, getAboutPage } from "@/actions/site-management";
+import { NOINDEX_ROBOTS } from "@/lib/seo";
 
 export const dynamic = 'force-dynamic';
+export const metadata = {
+  title: "لوحة الإدارة",
+  robots: NOINDEX_ROBOTS,
+};
 
 const AdminLayout = async ({ children }) => {
   const [admin, navLogoRes, aboutPageRes] = await Promise.all([

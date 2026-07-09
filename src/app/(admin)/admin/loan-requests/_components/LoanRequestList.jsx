@@ -405,7 +405,6 @@ const LoanRequestList = () => {
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
-                              onClick={() => console.log("Trigger clicked for loan request:", loanRequest.id)}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </DropdownMenuTrigger>

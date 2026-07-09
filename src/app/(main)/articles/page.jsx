@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar, User, ArrowRight, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import ChatBot from "@/components/ChatBot";
 import LoadingBar from "@/components/LoadingBar";
 
 export default function ArticlesPage() {
@@ -85,7 +84,7 @@ export default function ArticlesPage() {
                     <div className="flex items-center text-sm text-gray-300 mb-4 space-x-4 rtl:space-x-reverse">
                       <div className="flex items-center">
                         <User className="h-4 w-4 ml-1" />
-                        <span>{article.author?.name || 'فريق Click Car'}</span>
+                        <span>{article.author?.name || 'فريق ماكس موتورز'}</span>
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 ml-1 mr-4" />
@@ -105,9 +104,6 @@ export default function ArticlesPage() {
           )}
         </div>
       </section>
-
-      {/* ChatBot Component */}
-      <ChatBot />
     </div>
   );
 }

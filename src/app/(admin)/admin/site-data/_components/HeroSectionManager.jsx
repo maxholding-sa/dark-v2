@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Upload, X } from "lucide-react";
 import { updateHeroSection } from "@/actions/site-management";
 import LoadingBar from "@/components/LoadingBar";
+import { logger } from "@/lib/logger";
 
 export default function HeroSectionManager({ initialData }) {
   const [formData, setFormData] = useState(
@@ -69,7 +70,10 @@ export default function HeroSectionManager({ initialData }) {
 
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
     try {
-      console.log("[HeroSection] Uploading video:", file.name, `Size: ${fileSizeMB}MB`);
+      logger.debug("[HeroSection] Uploading video", {
+        fileName: file.name,
+        sizeMb: fileSizeMB,
+      });
       
       // Use the new API route for large file uploads
       const formData = new FormData();
@@ -82,7 +86,7 @@ export default function HeroSectionManager({ initialData }) {
       });
 
       const result = await response.json();
-      console.log("[HeroSection] Upload result:", result);
+      logger.debug("[HeroSection] Upload result", { success: result.success });
 
       if (result.success) {
         setFormData((prev) => ({
@@ -140,7 +144,7 @@ export default function HeroSectionManager({ initialData }) {
     setMessage(null);
 
     try {
-      console.log("[HeroSectionManager] Starting poster upload...", file.name);
+      logger.debug("[HeroSectionManager] Starting poster upload", { fileName: file.name });
       
       // Use the new API route
       const formData = new FormData();

@@ -16,6 +16,7 @@ import {
   BrandSegmentNotFoundError,
   resolveInsuranceSegmentForCar,
 } from "@/lib/brand-segment";
+import { logger } from "@/lib/logger";
 import { DEFAULT_BRAND_SEGMENT_MAP } from "@/lib/loan-calculator";
 
 // function to convert File to Base64
@@ -121,7 +122,10 @@ export async function processCarImageWithAI(formData) {
 
         // Check if it's a 503 error and retry
         if (error.message?.includes("503") || error.message?.includes("overloaded")) {
-          console.log(`Retry attempt ${i + 1}/${retries} after model overload...`);
+          logger.info("[cars-actions] Retrying after model overload", {
+            attempt: i + 1,
+            retries,
+          });
           if (i < retries - 1) {
             // Wait before retrying (exponential backoff: 1s, 2s, 4s)
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
@@ -283,6 +287,8 @@ export async function addCarToDB({ carData, images }) {
         status: carData.status,
         featured: carData.featured,
         isLuxury: carData.isLuxury,
+        isEconomic: carData.isEconomic,
+        isCommercial: carData.isCommercial,
         driveType: carData.driveType,
         testDriveAvailable: carData.testDriveAvailable,
         insuranceSegment,
@@ -550,6 +556,8 @@ export async function updateCar(id, carData, newImages = []) {
         status: carData.status,
         featured: carData.featured,
         isLuxury: carData.isLuxury,
+        isEconomic: carData.isEconomic,
+        isCommercial: carData.isCommercial,
         driveType: carData.driveType,
         testDriveAvailable: carData.testDriveAvailable,
         insuranceSegment,
@@ -596,6 +604,8 @@ export async function exportCars() {
       transmission: car.transmission,
       bodyType: car.bodyType,
       isLuxury: car.isLuxury ? "نعم" : "لا",
+      isEconomic: car.isEconomic ? "نعم" : "لا",
+      isCommercial: car.isCommercial ? "نعم" : "لا",
       insuranceSegment: car.insuranceSegment ?? "",
       driveType: car.driveType ?? "",
       seats: car.seats ?? "",

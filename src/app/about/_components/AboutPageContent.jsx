@@ -14,7 +14,6 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { SignedOut } from "@clerk/nextjs";
-import ChatBot from "@/components/ChatBot";
 import { useEffect, useRef } from "react";
 
 const ICON_MAP = {
@@ -27,6 +26,18 @@ const ICON_MAP = {
   Star,
   Zap,
 };
+
+function cleanText(value = "") {
+  return String(value)
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/\s*p\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+}
 
 function SectionImage({ src, alt, fallback, glowClass = "bg-yellow-500/10" }) {
   const imageSrc = src || fallback;
@@ -96,7 +107,7 @@ export default function AboutPageContent({ page }) {
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-bold mb-8 text-white">{page.title}</h1>
             <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed whitespace-pre-line">
-              {page.introText}
+              {cleanText(page.introText)}
             </p>
           </div>
         </div>
@@ -109,10 +120,10 @@ export default function AboutPageContent({ page }) {
             <div className="order-2 md:order-1 text-right">
               <SectionHeading title={page.visionTitle} />
               <p className="text-gray-400 text-lg mb-6 leading-relaxed whitespace-pre-line">
-                {page.visionParagraph1}
+                {cleanText(page.visionParagraph1)}
               </p>
               <p className="text-gray-400 text-lg leading-relaxed whitespace-pre-line">
-                {page.visionParagraph2}
+                {cleanText(page.visionParagraph2)}
               </p>
             </div>
             <div className="order-1 md:order-2">
@@ -141,10 +152,10 @@ export default function AboutPageContent({ page }) {
             <div className="order-1 md:order-2 text-right">
               <SectionHeading title={page.missionTitle} />
               <p className="text-gray-400 text-lg mb-6 leading-relaxed whitespace-pre-line">
-                {page.missionParagraph1}
+                {cleanText(page.missionParagraph1)}
               </p>
               <p className="text-gray-400 text-lg leading-relaxed whitespace-pre-line">
-                {page.missionParagraph2}
+                {cleanText(page.missionParagraph2)}
               </p>
             </div>
           </div>
@@ -169,7 +180,7 @@ export default function AboutPageContent({ page }) {
                     </div>
                     <h3 className="text-xl font-bold mb-4 text-white">{feature.title}</h3>
                     <p className="text-gray-400 leading-relaxed whitespace-pre-line">
-                      {feature.description}
+                      {cleanText(feature.description)}
                     </p>
                   </div>
                 );
@@ -185,7 +196,7 @@ export default function AboutPageContent({ page }) {
         <div className="container mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">{page.ctaTitle}</h2>
           <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto whitespace-pre-line">
-            {page.ctaText}
+            {cleanText(page.ctaText)}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Button
@@ -208,8 +219,6 @@ export default function AboutPageContent({ page }) {
           </div>
         </div>
       </section>
-
-      <ChatBot />
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
+import { serializedCarsData } from "@/lib/helper";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -427,11 +429,16 @@ function correctArabicSpelling(text) {
 // Helper function to search cars in database based on user query
 async function searchCarsInDatabase(query, conversationHistory = []) {
   try {
-    console.log('🔍 searchCarsInDatabase called with query:', query);
+    logger.debug("[chatbot] Searching cars", {
+      queryLength: query?.length || 0,
+      historyLength: conversationHistory.length,
+    });
     
     // تصحيح الأخطاء الإملائية في النص المدخل
     const correctedQuery = correctArabicSpelling(query);
-    console.log('✏️ Corrected query:', correctedQuery !== query ? `"${query}" -> "${correctedQuery}"` : 'No corrections needed');
+    logger.debug("[chatbot] Spell correction result", {
+      changed: correctedQuery !== query,
+    });
     
     // Extract potential search terms from the corrected query
     const searchTerms = correctedQuery.toLowerCase();
@@ -463,16 +470,16 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       
       // If current query is general but previous queries had specific filters, maintain those filters
       if (isGeneralFollowUp && recentUserMessages.length > 0) {
-        console.log('🎯 General follow-up detected, maintaining context from previous search');
+        logger.debug("[chatbot] General follow-up detected");
         contextualSearchTerms = `${recentUserMessages} ${searchTerms}`.toLowerCase();
         maintainPreviousFilters = true;
       } else {
         contextualSearchTerms = `${recentUserMessages} ${searchTerms}`.toLowerCase();
       }
       
-      console.log('📚 Using contextual search terms from conversation history (with spelling correction)');
+      logger.debug("[chatbot] Using contextual search terms from conversation history");
       if (maintainPreviousFilters) {
-        console.log('🔒 Maintaining previous search filters from context');
+        logger.debug("[chatbot] Maintaining previous search filters from context");
       }
     }
     
@@ -518,7 +525,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       const matchesEnglish = contextualSearchTerms.includes(en.toLowerCase());
       
       if (matchesArabic || matchesEnglish) {
-        console.log(`✅ Matched car make: ${en} (from contextual search)`);
+        logger.debug("[chatbot] Matched car make", { make: en });
         // Add make condition (will be combined with other filters using AND)
         makeConditions.push(
           { make: { contains: en, mode: "insensitive" } }, // English version
@@ -539,7 +546,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     if (makeConditions.length > 0) {
       // Add make conditions to OR (search for this brand)
       whereConditions.OR.push(...makeConditions);
-      console.log(`📌 Added ${makeConditions.length} make search conditions (will search for brand alone)`);
+      logger.debug("[chatbot] Added make search conditions", { count: makeConditions.length });
     }
 
     // Common car models in Arabic and English
@@ -587,7 +594,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       const matchesEnglish = contextualSearchTerms.includes(en.toLowerCase());
       
       if (matchesArabic || matchesEnglish) {
-        console.log(`✅ Matched car model: ${en} (from contextual search)`);
+        logger.debug("[chatbot] Matched car model", { model: en });
         // Add model condition - search for this model
         modelConditions.push(
           { model: { contains: en, mode: "insensitive" } }, // English version
@@ -600,7 +607,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     if (modelConditions.length > 0) {
       // Don't use AND - use OR so we can find the model even without make
       whereConditions.OR.push(...modelConditions);
-      console.log(`📌 Added ${modelConditions.length} model search conditions (will search for model alone)`);
+      logger.debug("[chatbot] Added model search conditions", { count: modelConditions.length });
     }
 
     // Search by body type
@@ -624,7 +631,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       const matchesEnglish = search.some(englishName => termsForBodyColorFuel.includes(englishName));
       
       if (matchesArabic || matchesEnglish) {
-        console.log(`✅ Matched body type: ${en}`);
+        logger.debug("[chatbot] Matched body type", { bodyType: en });
         bodyTypeConditions.push({
           bodyType: { contains: en, mode: "insensitive" }
         });
@@ -634,17 +641,17 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     if (bodyTypeConditions.length > 0) {
       // Add body type to OR
       whereConditions.OR.push(...bodyTypeConditions);
-      console.log(`📌 Added ${bodyTypeConditions.length} body type search conditions`);
+      logger.debug("[chatbot] Added body type search conditions", { count: bodyTypeConditions.length });
     }
 
     // Search by fuel type
     let fuelTypeConditions = [];
     if (termsForBodyColorFuel.includes("كهربائي") || termsForBodyColorFuel.includes("كهربائى") || termsForBodyColorFuel.includes("electric")) {
-      console.log(`✅ Matched fuel type: electric`);
+      logger.debug("[chatbot] Matched fuel type", { fuelType: "electric" });
       fuelTypeConditions.push({ fuelType: "كهربائي" });
     }
     if (termsForBodyColorFuel.includes("هجين") || termsForBodyColorFuel.includes("هايبرد") || termsForBodyColorFuel.includes("hybrid")) {
-      console.log(`✅ Matched fuel type: hybrid`);
+      logger.debug("[chatbot] Matched fuel type", { fuelType: "hybrid" });
       fuelTypeConditions.push({ 
         fuelType: { in: ["هجين", "هجين قابل للشحن"] }
       });
@@ -653,7 +660,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     if (fuelTypeConditions.length > 0) {
       // Add fuel type to OR
       whereConditions.OR.push(...fuelTypeConditions);
-      console.log(`📌 Added ${fuelTypeConditions.length} fuel type search conditions`);
+      logger.debug("[chatbot] Added fuel type search conditions", { count: fuelTypeConditions.length });
     }
 
     // Search by color
@@ -678,7 +685,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       const matchesEnglish = en.some(englishName => termsForBodyColorFuel.includes(englishName.toLowerCase()));
       
       if (matchesArabic || matchesEnglish) {
-        console.log(`✅ Matched color: ${en[en.length - 1]}`);
+        logger.debug("[chatbot] Matched color", { color: en[en.length - 1] });
         // Search for both Arabic and English color names
         colorConditions.push(
           ...en.map(colorName => ({ color: { contains: colorName, mode: "insensitive" } })),
@@ -690,10 +697,10 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     if (colorConditions.length > 0) {
       // Add color to OR
       whereConditions.OR.push(...colorConditions);
-      console.log(`📌 Added ${colorConditions.length} color search conditions`);
+      logger.debug("[chatbot] Added color search conditions", { count: colorConditions.length });
     }
 
-    // Luxury cars: Car.isLuxury === true ⇔ وسم «فارهة» في الموقع/لوحة التحكم (same field)
+    // Luxury cars: Car.isLuxury === true ⇔ وسم «فاخرة» في الموقع/لوحة التحكم (same field)
     const luxuryKeywords = [
       "فاخر",
       "فاخرة",
@@ -719,7 +726,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       contextualSearchTerms.includes(kw.toLowerCase())
     );
     if (wantsLuxuryCars) {
-      console.log("✅ Luxury intent detected — filtering by isLuxury = true");
+      logger.debug("[chatbot] Luxury intent detected");
       whereConditions.AND.push({ isLuxury: true });
     }
 
@@ -734,17 +741,16 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     
     // If no specific search terms found, search broadly or show all available
     if (whereConditions.AND.length === 0 && whereConditions.OR.length === 0) {
-      console.log('⚠️ No specific filters matched, using broad search');
+      logger.debug("[chatbot] No specific filters matched, using broad search");
       
       // IMPORTANT: If this is a general follow-up and we should maintain filters
       // but no filters were extracted, it means the context was too vague
       // In this case, show featured cars but log the issue
       if (maintainPreviousFilters && isGeneralQuery) {
-        console.log('⚠️ Tried to maintain context but no clear filters found in conversation history');
-        console.log('📋 Falling back to showing featured/recent cars');
+        logger.debug("[chatbot] Context filters were too vague, falling back to featured cars");
       } else if (isGeneralQuery && !maintainPreviousFilters) {
         // For very general queries with no context, just show featured cars first
-        console.log('📋 General query detected - will show featured/recent cars');
+        logger.debug("[chatbot] General query detected, showing featured cars");
         // Don't add AND/OR conditions, the query will just use status: AVAILABLE
       } else {
         // For specific text search - search with BOTH original and corrected queries
@@ -752,7 +758,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
         const correctedSearchQuery = correctArabicSpelling(query);
         const queryWords = query.split(/\s+/).filter(word => word.length > 1);
         
-        console.log('🔍 Searching in all fields: make, model, color, bodyType, fuelType, description');
+        logger.debug("[chatbot] Searching in all car text fields");
         
         whereConditions.OR.push(
           // Search with original query in ALL relevant fields
@@ -783,14 +789,21 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     } else {
       // Filters were found - log what we're searching for
       const totalFilters = whereConditions.AND.length + whereConditions.OR.length;
-      console.log(`✅ ${totalFilters} filter(s) applied to search (AND: ${whereConditions.AND.length}, OR: ${whereConditions.OR.length})`);
+      logger.debug("[chatbot] Filters applied to search", {
+        totalFilters,
+        andCount: whereConditions.AND.length,
+        orCount: whereConditions.OR.length,
+      });
       if (maintainPreviousFilters) {
-        console.log('🎯 Successfully maintained context filters from previous conversation');
+        logger.debug("[chatbot] Maintained context filters from previous conversation");
       }
     }
 
     // Execute the search
-    console.log('📊 Executing database query with conditions:', JSON.stringify(whereConditions, null, 2));
+    logger.debug("[chatbot] Executing database query", {
+      andCount: whereConditions.AND.length,
+      orCount: whereConditions.OR.length,
+    });
     
     // Build the final where clause
     const finalWhereConditions = { status: "AVAILABLE" };
@@ -846,9 +859,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
 
     // فخامة + شروط OR (لون/هيكل/…) قد تُصفّر النتائج رغم وجود سيارات فارهة — أعد المحاولة بفلتر isLuxury فقط
     if (cars.length === 0 && wantsLuxuryCars) {
-      console.log(
-        "⚠️ Luxury search returned 0 rows — retrying with status AVAILABLE + isLuxury only"
-      );
+      logger.debug("[chatbot] Luxury search returned no rows, retrying with luxury-only filter");
       cars = await db.car.findMany({
         where: { status: "AVAILABLE", isLuxury: true },
         take: 5,
@@ -857,12 +868,15 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       });
     }
 
-    console.log(`✅ Database returned ${cars.length} cars`);
+    logger.debug("[chatbot] Database returned cars", { count: cars.length });
     if (cars.length > 0) {
-      console.log('Sample car:', cars[0].make, cars[0].model);
+      logger.debug("[chatbot] Sample result available", {
+        make: cars[0].make,
+        model: cars[0].model,
+      });
     }
     
-    return cars;
+    return cars.map((car) => serializedCarsData(car));
   } catch (error) {
     console.error("Error searching cars in database:", error);
     return [];
@@ -923,7 +937,7 @@ function formatCarsForAI(cars) {
 رابط السيارة: ${carUrl}
 ${mainImage ? `الصورة الرئيسية: ${mainImage}` : ''}
 ${car.featured ? 'تصنيف: ⭐ سيارة مميزة' : ''}
-${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فارهة» (isLuxury)' : ''}`;
+${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)' : ''}`;
   }).join('\n\n');
 }
 
@@ -971,21 +985,25 @@ function detectChatIntents(text) {
 }
 
 async function fetchLatestOfferCars() {
-  return db.car.findMany({
+  const cars = await db.car.findMany({
     where: { status: "AVAILABLE" },
     take: 8,
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
     select: CAR_SELECT_CHATBOT,
   });
+
+  return cars.map((car) => serializedCarsData(car));
 }
 
 async function fetchEconomicalCars() {
-  return db.car.findMany({
+  const cars = await db.car.findMany({
     where: { status: "AVAILABLE" },
     take: 8,
     orderBy: [{ price: "asc" }, { mileage: "asc" }],
     select: CAR_SELECT_CHATBOT,
   });
+
+  return cars.map((car) => serializedCarsData(car));
 }
 
 async function fetchBanksForChatbot() {
@@ -1041,12 +1059,15 @@ function formatStoreForAI(store) {
 
 export async function getChatbotResponse(message, conversationHistory = []) {
   try {
-    console.log('🤖 Chatbot received message:', message);
+    logger.debug("[chatbot] Received message", {
+      messageLength: message?.length || 0,
+      historyLength: conversationHistory.length,
+    });
     
     // تصحيح الأخطاء الإملائية في رسالة المستخدم
     const correctedMessage = correctArabicSpelling(message);
     const shouldShowCorrection = correctedMessage !== message;
-    console.log('✏️ Spell check result:', shouldShowCorrection ? `"${message}" -> "${correctedMessage}"` : 'No corrections needed');
+    logger.debug("[chatbot] Spell check result", { corrected: shouldShowCorrection });
     
     // Initialize the model - using gemini-1.5-flash
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -1065,24 +1086,24 @@ export async function getChatbotResponse(message, conversationHistory = []) {
       const lastBotMessage = [...conversationHistory].reverse().find(msg => msg.sender === "bot");
       if (lastBotMessage && lastBotMessage.cars && lastBotMessage.cars.length > 0) {
         previousCarsContext = `\n\nالسيارات المعروضة في الرد السابق:\n${formatCarsForAI(lastBotMessage.cars)}`;
-        console.log(`📚 Using ${lastBotMessage.cars.length} cars from previous context`);
+        logger.debug("[chatbot] Using cars from previous context", {
+          count: lastBotMessage.cars.length,
+        });
       }
     }
 
     const intents = detectChatIntents(correctedMessage);
-    console.log("🎯 Chat intents:", intents);
+    logger.debug("[chatbot] Detected intents", intents);
 
     let relevantCars = [];
     if (intents.economical) {
       relevantCars = await fetchEconomicalCars();
-      console.log("🔍 Using economical (low price) car set");
+      logger.debug("[chatbot] Using economical car set");
     } else if (intents.latestOffers) {
       relevantCars = await fetchLatestOfferCars();
-      console.log("🔍 Using latest offers / newest arrivals car set");
+      logger.debug("[chatbot] Using latest offers car set");
     } else {
-      console.log(
-        "🔍 Searching database for cars with conversation context..."
-      );
+      logger.debug("[chatbot] Searching database with conversation context");
       relevantCars = await searchCarsInDatabase(
         correctedMessage,
         conversationHistory
@@ -1093,7 +1114,7 @@ export async function getChatbotResponse(message, conversationHistory = []) {
       const sample = await fetchLatestOfferCars();
       if (sample.length >= 2) {
         relevantCars = sample;
-        console.log("🔍 Compare intent: using diverse latest cars for comparison");
+        logger.debug("[chatbot] Compare intent using latest cars");
       }
     }
 
@@ -1102,10 +1123,10 @@ export async function getChatbotResponse(message, conversationHistory = []) {
       relevantCars.length === 0
     ) {
       relevantCars = await fetchLatestOfferCars();
-      console.log("🔍 Added sample cars for financing/corporate context");
+      logger.debug("[chatbot] Added sample cars for financing/corporate context");
     }
 
-    console.log(`✅ Found ${relevantCars.length} cars in database`);
+    logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
 
     const banks = intents.financing ? await fetchBanksForChatbot() : [];
     const storeInfo =
@@ -1161,7 +1182,7 @@ export async function getChatbotResponse(message, conversationHistory = []) {
 
     // Format car data for the AI
     const carsContext = formatCarsForAI(relevantCars);
-    console.log("📝 Formatted cars context for AI");
+    logger.debug("[chatbot] Formatted cars context for AI");
 
     // Enhanced price query detection and handling
     let priceContext = "";
@@ -1207,7 +1228,7 @@ ${intentInstructions}
 - نوفر آلاف السيارات الجديدة والمستعملة المفحوصة
 - يمكن للمستخدمين حجز اختبار قيادة بسهولة عبر الإنترنت
 - لدينا علامات تجارية مميزة مثل: تويوتا، BMW، مرسيدس، هيونداي، كيا، نيسان، فورد، شيفروليه
-- **سيارة فاخرة (luxury)** = أي سيارة عليها وسم **«فارهة»** في الموقع؛ هذا يطابق الحقل isLuxury في قاعدة البيانات. لا تُسمِّ سيارة «فاخرة» إلا إذا وردت في النتائج أدناه مع سطر يذكر وسم الفارهة أو isLuxury
+- **سيارة فاخرة (luxury)** = أي سيارة عليها وسم **«فاخرة»** في الموقع؛ هذا يطابق الحقل isLuxury في قاعدة البيانات. لا تُسمِّ سيارة «فاخرة» إلا إذا وردت في النتائج أدناه مع سطر يذكر وسم الفاخرة أو isLuxury
 - نوفر سيارات كهربائية وهجينة
 - جميع السيارات تأتي مع تقرير فحص شامل
 - عملية شراء آمنة ومضمونة
@@ -1253,7 +1274,7 @@ ${priceContext}
     const prompt = `${systemContext}${conversationText}\n\nرسالة العميل الحالية: ${correctedMessage}${shouldShowCorrection ? ` (تم تصحيح من: ${message})` : ''}`;
 
     // Generate response with retry logic for 503 errors
-    console.log('🤖 Sending to Gemini AI...');
+    logger.debug("[chatbot] Sending prompt to Gemini AI");
 
     let result;
     let lastError;
@@ -1264,21 +1285,29 @@ ${priceContext}
         result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-        console.log('✅ AI Response received');
+        logger.debug("[chatbot] AI response received", { responseLength: text.length });
         break; // Success, exit retry loop
       } catch (error) {
         lastError = error;
-        console.error(`❌ Gemini AI Error (attempt ${attempt + 1}/${maxRetries + 1}):`, error.message);
+        logger.error("[chatbot] Gemini AI error", {
+          attempt: attempt + 1,
+          maxAttempts: maxRetries + 1,
+          message: error.message,
+        });
 
         // Check if it's a 503 Service Unavailable error
         if (error.status === 503 || error.message?.includes('503') || error.message?.includes('Service Unavailable')) {
           if (attempt < maxRetries) {
             const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
-            console.log(`⏳ Model overloaded, retrying in ${delayMs}ms... (attempt ${attempt + 2}/${maxRetries + 1})`);
+            logger.info("[chatbot] Model overloaded, retrying", {
+              delayMs,
+              nextAttempt: attempt + 2,
+              maxAttempts: maxRetries + 1,
+            });
             await new Promise(resolve => setTimeout(resolve, delayMs));
             continue;
           } else {
-            console.log('❌ Max retries reached for 503 error');
+            logger.warn("[chatbot] Max retries reached for model overload");
           }
         } else {
           // Not a 503 error, don't retry
@@ -1309,7 +1338,9 @@ ${priceContext}
       
       if (carIndices.length > 0) {
         carsToShow = carIndices.map(index => relevantCars[index]);
-        console.log(`🎯 AI selected ${carsToShow.length} specific cars to display`);
+        logger.debug("[chatbot] AI selected specific cars to display", {
+          count: carsToShow.length,
+        });
       }
       
       // Remove the marker from the displayed text
@@ -1331,9 +1362,9 @@ ${priceContext}
           language: /[\u0600-\u06FF]/.test(message) ? "ar" : "en", // Detect Arabic script
         }
       });
-      console.log('📊 Chat log saved to database');
+      logger.debug("[chatbot] Chat log saved to database");
     } catch (logError) {
-      console.error('❌ Failed to save chat log:', logError);
+      logger.error("[chatbot] Failed to save chat log", logError);
       // Don't throw error - logging failure shouldn't break the chat
     }
 

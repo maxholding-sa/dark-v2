@@ -17,6 +17,7 @@ import {
 import { Trash2, Edit2, Plus, X, Upload } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
+import { logger } from "@/lib/logger";
 
 const LogoManager = ({ data, onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
@@ -73,7 +74,7 @@ const LogoManager = ({ data, onRefresh }) => {
     setMessage(null);
 
     try {
-      console.log("[LogoManager] Uploading logo:", file.name);
+      logger.debug("[LogoManager] Uploading logo", { fileName: file.name });
       
       // Use the new API route
       const formData = new FormData();
@@ -86,7 +87,7 @@ const LogoManager = ({ data, onRefresh }) => {
       });
 
       const result = await response.json();
-      console.log("[LogoManager] Upload result:", result);
+      logger.debug("[LogoManager] Upload result", { success: result.success });
 
       if (result.success) {
         setFormData((prev) => ({

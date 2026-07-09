@@ -4,6 +4,7 @@ import {
   LOAN_CALCULATOR_META,
 } from "@/lib/loan-calculator";
 import { isBankAprConfigured, getBalloonOptionsForBank, getProfitRateForSector } from "@/lib/bank-finance";
+import { logger } from "@/lib/logger";
 
 let lastLoggedScenarioKey = null;
 
@@ -180,10 +181,8 @@ export function logFinancingOfferScenario({
 
   window.__lastFinancingScenario = payload;
 
-  console.group("[financing-scenario] COPY JSON BELOW — verify against your spreadsheet");
-  console.log(JSON.stringify(payload, null, 2));
-  console.groupEnd();
-  console.info(
-    "[financing-scenario] Also available as window.__lastFinancingScenario — paste JSON.stringify(window.__lastFinancingScenario, null, 2) in console to copy again."
+  logger.debug("[financing-scenario] Scenario payload generated", payload);
+  logger.info(
+    "[financing-scenario] Latest payload is available as window.__lastFinancingScenario"
   );
 }

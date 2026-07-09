@@ -236,7 +236,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
           <Eye className="h-5 w-5" />
           عرض التفاصيل
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" dir="ltr">
           <button
             type="button"
             onClick={mobilePrev}

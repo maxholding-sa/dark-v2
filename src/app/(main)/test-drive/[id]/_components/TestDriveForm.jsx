@@ -271,7 +271,7 @@ const TestDriveForm = ({ car, testDriveInfo }) => {
             <h2 className="text-xl font-bold mb-4">معلومات الوكالة</h2>
             <div className="text-sm">
               <p className="font-medium">
-                {dealership?.name || "Click Car Motors"}
+                {dealership?.name || "ماكس موتورز"}
               </p>
               <p className="text-gray-600 mt-1">
                 {dealership?.address || "العنوان غير متوفر"}
@@ -482,7 +482,7 @@ className={cn(
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">الوكالة:</span>
-                  <span>{dealership?.name || "Click Car Motors"}</span>
+                  <span>{dealership?.name || "ماكس موتورز"}</span>
                 </div>
               </div>
 

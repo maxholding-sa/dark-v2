@@ -52,9 +52,7 @@ const AddCarForm = () => {
     fuelType: z.string().min(1, "نوع الوقود مطلوب"),
     transmission: z.string().min(1, "ناقل الحركة مطلوب"),
     bodyType: z.enum([
-      "إقتصادية",
       "سيدان",
-      "مركبة تجارية",
       "بيك اب",
       "كروس أوفر",
       "هاتشباك",
@@ -75,6 +73,8 @@ const AddCarForm = () => {
     status: z.enum(["AVAILABLE", "UNAVAILABLE", "SOLD"]),
     featured: z.boolean().default(false),
     isLuxury: z.boolean().default(false),
+    isEconomic: z.boolean().default(false),
+    isCommercial: z.boolean().default(false),
     testDriveAvailable: z.boolean().default(true),
     // Images are handled separately
   });
@@ -106,6 +106,8 @@ const AddCarForm = () => {
       status: "AVAILABLE",
       featured: false,
       isLuxury: false,
+      isEconomic: false,
+      isCommercial: false,
       testDriveAvailable: true,
     },
   });
@@ -140,7 +142,6 @@ const AddCarForm = () => {
       setImageError("يرجى رفع صورة واحدة على الأقل");
       return;
     }
-    console.log(data);
 
     //restructure the carData
     const carData = {
@@ -637,7 +638,7 @@ const AddCarForm = () => {
                       id="featured"
                       checked={watch("featured")}
                       onCheckedChange={(checked) => {
-                        setValue("featured", checked);
+                        setValue("featured", checked === true);
                       }}
                     />
                     <div className="space-y-1 leading-none text-right">
@@ -654,13 +655,47 @@ const AddCarForm = () => {
                       id="isLuxury"
                       checked={watch("isLuxury")}
                       onCheckedChange={(checked) => {
-                        setValue("isLuxury", checked);
+                        setValue("isLuxury", checked === true);
                       }}
                     />
                     <div className="space-y-1 leading-none text-right">
-                      <Label htmlFor="isLuxury">سيارة فارهة</Label>
+                      <Label htmlFor="isLuxury">سيارة فاخرة</Label>
                       <p className="text-sm text-gray-500">
-                        سيتم عرض وسم "فارهة" على هذه السيارة
+                        سيتم عرض وسم "فاخرة" على هذه السيارة
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Economic */}
+                  <div className="flex items-start space-x-reverse space-x-3 space-y-0 rounded-md border p-4" dir="rtl">
+                    <Checkbox
+                      id="isEconomic"
+                      checked={watch("isEconomic")}
+                      onCheckedChange={(checked) => {
+                        setValue("isEconomic", checked === true);
+                      }}
+                    />
+                    <div className="space-y-1 leading-none text-right">
+                      <Label htmlFor="isEconomic">سيارة اقتصادية</Label>
+                      <p className="text-sm text-gray-500">
+                        تظهر ضمن قسم السيارات الاقتصادية في الصفحة الرئيسية بدون وسم
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Commercial */}
+                  <div className="flex items-start space-x-reverse space-x-3 space-y-0 rounded-md border p-4" dir="rtl">
+                    <Checkbox
+                      id="isCommercial"
+                      checked={watch("isCommercial")}
+                      onCheckedChange={(checked) => {
+                        setValue("isCommercial", checked === true);
+                      }}
+                    />
+                    <div className="space-y-1 leading-none text-right">
+                      <Label htmlFor="isCommercial">مركبة تجارية</Label>
+                      <p className="text-sm text-gray-500">
+                        تظهر ضمن قسم السيارات التجارية في الصفحة الرئيسية بدون وسم
                       </p>
                     </div>
                   </div>

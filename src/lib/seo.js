@@ -6,12 +6,33 @@
 export const SITE_CONFIG = {
   name: "ماكس موتورز",
   englishName: "maxmotors",
-  description: "ماكس موتورز - أفضل منصة لشراء وبيع السيارات في السعودية. تصفح آلاف السيارات الجديدة والمستعملة بأفضل الأسعار.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa",
+  description: "ماكس موتورز - منصة سعودية لشراء السيارات الجديدة والمستعملة، حجز تجربة القيادة، ومقارنة العروض التمويلية بثقة وسهولة.",
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa").replace(/\/$/, ""),
   locale: "ar-SA",
   lang: "ar",
   defaultOgImage: "/logo.JPG",
   twitterHandle: "@maxmotors_sa",
+};
+
+export const INDEX_ROBOTS = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    "max-snippet": -1,
+    "max-image-preview": "large",
+    "max-video-preview": -1,
+  },
+};
+
+export const NOINDEX_ROBOTS = {
+  index: false,
+  follow: false,
+  googleBot: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const SAUDI_MARKET_KEYWORDS = {
@@ -56,6 +77,34 @@ export const SAUDI_MARKET_KEYWORDS = {
   ],
 };
 
+export const absoluteUrl = (path = "/") => {
+  if (!path) return SITE_CONFIG.url;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${SITE_CONFIG.url}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
+const compact = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(compact).filter((item) => item !== undefined && item !== null);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([key, item]) => [key, compact(item)])
+        .filter(([, item]) => item !== undefined && item !== null && item !== "")
+    );
+  }
+
+  return value;
+};
+
+export const truncate = (text = "", maxLength = 160) => {
+  const normalized = String(text).replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trim()}…`;
+};
+
 export const generateMetadata = ({
   title,
   description,
@@ -64,19 +113,18 @@ export const generateMetadata = ({
   ogType = "website",
   canonicalUrl = SITE_CONFIG.url,
   author = SITE_CONFIG.name,
-  robots = "index, follow",
-  viewport = "width=device-width, initial-scale=1",
-  charset = "UTF-8",
+  robots = INDEX_ROBOTS,
   ogLocale = SITE_CONFIG.locale,
 } = {}) => {
+  const canonical = absoluteUrl(canonicalUrl);
   const allKeywords = [
     ...SAUDI_MARKET_KEYWORDS.primary,
     ...keywords,
   ].join(", ");
 
-  return {
-    title,
-    description,
+  return compact({
+    title: title || SITE_CONFIG.name,
+    description: description || SITE_CONFIG.description,
     keywords: allKeywords,
     authors: [{ name: author }],
     creator: SITE_CONFIG.name,
@@ -95,33 +143,31 @@ export const generateMetadata = ({
     robots,
     metadataBase: new URL(SITE_CONFIG.url),
     alternates: {
-      canonical: canonicalUrl,
+      canonical,
       languages: {
-        "ar-SA": new URL(SITE_CONFIG.url),
-        "en-US": new URL(`https://en.${new URL(SITE_CONFIG.url).hostname}`),
+        "ar-SA": canonical,
+        "x-default": canonical,
       },
     },
     openGraph: {
       type: ogType,
-      url: canonicalUrl,
-      title,
-      description,
+      url: canonical,
+      title: title || SITE_CONFIG.name,
+      description: description || SITE_CONFIG.description,
       siteName: SITE_CONFIG.name,
       locale: ogLocale,
       images: [
         {
-          url: ogImage,
+          url: absoluteUrl(ogImage),
           width: 1200,
           height: 630,
-          alt: title,
-          type: "image/png",
+          alt: title || SITE_CONFIG.name,
         },
         {
-          url: ogImage,
+          url: absoluteUrl(ogImage),
           width: 800,
           height: 600,
-          alt: title,
-          type: "image/png",
+          alt: title || SITE_CONFIG.name,
         },
       ],
     },
@@ -129,14 +175,14 @@ export const generateMetadata = ({
       card: "summary_large_image",
       site: SITE_CONFIG.twitterHandle,
       creator: SITE_CONFIG.twitterHandle,
-      title,
-      description,
-      images: [ogImage],
+      title: title || SITE_CONFIG.name,
+      description: description || SITE_CONFIG.description,
+      images: [absoluteUrl(ogImage)],
     },
     verification: {
       google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
     },
-  };
+  });
 };
 
 /**
@@ -177,7 +223,7 @@ export const generateJsonLd = (type, data = {}) => {
     },
     localBusiness: {
       ...baseStructure,
-      "@type": "LocalBusiness",
+      "@type": "AutoDealer",
       name: SITE_CONFIG.name,
       image: `${SITE_CONFIG.url}/logo.JPG`,
       description: SITE_CONFIG.description,
@@ -200,10 +246,11 @@ export const generateJsonLd = (type, data = {}) => {
     },
     product: {
       ...baseStructure,
-      "@type": "Product",
+      "@type": "Car",
       name: data.name || "سيارة",
       description: data.description,
       image: data.image,
+      vehicleModelDate: data.year,
       brand: {
         "@type": "Brand",
         name: data.brand || "Unknown",
@@ -224,6 +271,8 @@ export const generateJsonLd = (type, data = {}) => {
     searchAction: {
       ...baseStructure,
       "@type": "WebSite",
+      name: SITE_CONFIG.name,
+      alternateName: SITE_CONFIG.englishName,
       url: SITE_CONFIG.url,
       potentialAction: {
         "@type": "SearchAction",
@@ -244,9 +293,31 @@ export const generateJsonLd = (type, data = {}) => {
         item: item.url,
       })),
     },
+    article: {
+      ...baseStructure,
+      "@type": "Article",
+      headline: data.title,
+      description: data.description,
+      image: data.image,
+      datePublished: data.datePublished,
+      dateModified: data.dateModified,
+      author: {
+        "@type": "Person",
+        name: data.author || SITE_CONFIG.name,
+      },
+      publisher: {
+        "@type": "Organization",
+        name: SITE_CONFIG.name,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_CONFIG.url}/logo.JPG`,
+        },
+      },
+      mainEntityOfPage: data.url,
+    },
   };
 
-  return schemas[type] || baseStructure;
+  return compact(schemas[type] || baseStructure);
 };
 
 /**
@@ -265,19 +336,24 @@ export const generateSlug = (text) => {
  * Generate car listing meta tags
  */
 export const generateCarMetadata = (car) => {
+  const make = car.make || car.brand || "";
+  const model = car.model || "";
+  const year = car.year || "";
+  const title = `${year} ${make} ${model}`.replace(/\s+/g, " ").trim();
   const keywords = [
-    `${car.brand} ${car.model}`,
-    `${car.brand} ${car.model} ${car.year}`,
-    `سيارة ${car.brand}`,
-    `${car.brand} ${car.model} السعودية`,
-    car.price && `${car.brand} ${car.model} ${car.price}`,
+    title,
+    `سيارة ${make}`,
+    `${make} ${model} السعودية`,
+    car.bodyType,
+    car.fuelType,
+    car.price && `${title} ${car.price} ريال`,
   ].filter(Boolean);
 
   return generateMetadata({
-    title: `${car.brand} ${car.model} ${car.year} | ماكس موتورز`,
-    description: `${car.brand} ${car.model} ${car.year} - ${car.description || "سيارة"}. السعر: ${car.price} ريال سعودي. اشتر الآن من ماكس موتورز.`,
+    title: `${title} للبيع | ماكس موتورز`,
+    description: truncate(`${title} - ${car.description || "سيارة متاحة لدى ماكس موتورز"}. السعر: ${car.price} ريال سعودي. احجز تجربة القيادة أو اطلب التمويل الآن.`, 160),
     keywords,
-    ogImage: car.image,
+    ogImage: car.images?.[0] || car.image || SITE_CONFIG.defaultOgImage,
     canonicalUrl: `${SITE_CONFIG.url}/cars/${car.id}`,
     ogType: "product",
   });

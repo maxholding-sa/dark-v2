@@ -6,6 +6,7 @@ import {
   transmissions as predefinedTransmissions,
   bodyTypeOptions as predefinedBodyTypes,
 } from "@/lib/data";
+import { buildSupabaseCarSearchGroups } from "@/lib/car-search";
 
 /** Public Supabase client (anon key). Used when Prisma / DATABASE_URL is unavailable. */
 export function getSupabasePublic() {
@@ -36,6 +37,9 @@ export async function getCarsByFiltersSupabase({
   search = "",
   make = "",
   bodyType = "",
+  isEconomic,
+  isCommercial,
+  color = "",
   fuelType = "",
   transmission = "",
   minPrice = 0,
@@ -49,15 +53,15 @@ export async function getCarsByFiltersSupabase({
 
   let query = sb.from("Car").select("*", { count: "exact" }).eq("status", "AVAILABLE");
 
-  const term = search?.trim();
-  if (term) {
-    const pattern = `%${term}%`;
-    query = query.or(
-      `make.ilike.${pattern},model.ilike.${pattern},description.ilike.${pattern}`
-    );
+  const searchGroups = buildSupabaseCarSearchGroups(search);
+  for (const group of searchGroups) {
+    query = query.or(group);
   }
-  if (make) query = query.ilike("make", make);
+  if (make) query = query.ilike("make", `%${make}%`);
   if (bodyType) query = query.eq("bodyType", bodyType);
+  if (typeof isEconomic === "boolean") query = query.eq("isEconomic", isEconomic);
+  if (typeof isCommercial === "boolean") query = query.eq("isCommercial", isCommercial);
+  if (color) query = query.ilike("color", `%${color}%`);
   if (fuelType) query = query.eq("fuelType", fuelType);
   if (transmission) query = query.eq("transmission", transmission);
   if (minPrice) query = query.gte("price", minPrice);
@@ -147,6 +151,38 @@ export async function getFeaturedCarsSupabase(limit = 4) {
     .from("Car")
     .select("*")
     .eq("status", "AVAILABLE")
+    .order("isLuxury", { ascending: false })
+    .order("featured", { ascending: false })
+    .order("createdAt", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+
+  return {
+    success: true,
+    data: (data ?? []).map((c) => serializedCarsData(normalizeCarRow(c))),
+  };
+}
+
+export async function getHomeCarsByQuerySupabase({
+  limit = 8,
+  featured,
+  isLuxury,
+  isEconomic,
+  isCommercial,
+  bodyType,
+} = {}) {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  let query = sb.from("Car").select("*").eq("status", "AVAILABLE");
+
+  if (typeof featured === "boolean") query = query.eq("featured", featured);
+  if (typeof isLuxury === "boolean") query = query.eq("isLuxury", isLuxury);
+  if (typeof isEconomic === "boolean") query = query.eq("isEconomic", isEconomic);
+  if (typeof isCommercial === "boolean") query = query.eq("isCommercial", isCommercial);
+  if (bodyType) query = query.eq("bodyType", bodyType);
+
+  const { data, error } = await query
     .order("isLuxury", { ascending: false })
     .order("featured", { ascending: false })
     .order("createdAt", { ascending: false })

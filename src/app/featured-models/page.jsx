@@ -2,11 +2,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import FeaturedModelCard from "@/components/FeaturedModelCard";
 import { getFeaturedModels } from "@/actions/featured-models";
+import { generateMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "الموديلات المميزة",
+export const metadata = generateMetadata({
+  title: "الموديلات المميزة | ماكس موتورز",
   description: "تصفح جميع فئات وموديلات السيارات المميزة على منصة ماكس موتورز",
-};
+  keywords: ["موديلات السيارات", "فئات السيارات", "سيارات SUV", "سيارات سيدان", "سيارات تجارية"],
+  canonicalUrl: "/featured-models",
+});
 
 export default async function FeaturedModelsPage() {
   const res = await getFeaturedModels();

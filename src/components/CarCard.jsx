@@ -19,6 +19,7 @@ const CarCard = ({ car, isFeatured }) => {
   const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
   const { isSignedIn } = useAuth();
+  const priorityLabel = car.isLuxury ? "فاخرة" : car.featured ? "مميزة" : null;
 
   useEffect(() => {
     setIsSaved(car.wishliseted);
@@ -119,6 +120,7 @@ const CarCard = ({ car, isFeatured }) => {
         <div className={`flex flex-col ${isFeatured ? "mb-1.5 md:mb-2" : "mb-1.5 md:mb-2"}`}>
           <h3 className={`font-bold line-clamp-1 ${isFeatured ? "text-base sm:text-base md:text-lg" : "text-base sm:text-base md:text-lg"}`}>
             {car.make} {car.model}
+            {car.category ? ` - ${car.category}` : ""}
           </h3>
           <span className={`font-bold text-white ${isFeatured ? "text-lg sm:text-lg md:text-xl" : "text-lg sm:text-lg md:text-xl"}`}>
             {formatSaudiRiyalReact(car.price)}
@@ -135,9 +137,9 @@ const CarCard = ({ car, isFeatured }) => {
         </div>
 
         <div className={`flex flex-wrap gap-1 ${isFeatured ? "mb-2 md:mb-3" : "mb-3 md:mb-4"}`}>
-          {car.isLuxury && (
+          {priorityLabel && (
             <Badge className="bg-yellow-500 text-black border-yellow-500 hover:bg-yellow-600">
-              فارهة
+              {priorityLabel}
             </Badge>
           )}
 

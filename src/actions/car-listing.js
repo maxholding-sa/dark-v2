@@ -16,13 +16,14 @@ import {
   getCarFiltersSupabase,
   getCarsByFiltersSupabase,
 } from "@/lib/supabaseReads";
+import { buildPrismaCarSearchConditions } from "@/lib/car-search";
 
 // creating filter on the basis of cars in db
 export const getCarFilters = unstable_cache(
   async () => {
     try {
       // get unique makes
-      const makes = await db.Car.findMany({
+      const makes = await db.car.findMany({
         where: { status: "AVAILABLE" },
         select: { make: true },
         distinct: ["make"],
@@ -30,7 +31,7 @@ export const getCarFilters = unstable_cache(
       });
 
       // get unique bodyTypes
-      const bodyTypes_db = await db.Car.findMany({
+      const bodyTypes_db = await db.car.findMany({
         where: { status: "AVAILABLE" },
         select: { bodyType: true },
         distinct: ["bodyType"],
@@ -38,7 +39,7 @@ export const getCarFilters = unstable_cache(
       });
 
       // get unique fuelTypes
-      const fuelTypes_db = await db.Car.findMany({
+      const fuelTypes_db = await db.car.findMany({
         where: { status: "AVAILABLE" },
         select: { fuelType: true },
         distinct: ["fuelType"],
@@ -46,7 +47,7 @@ export const getCarFilters = unstable_cache(
       });
 
       // get unique transmissions
-      const transmissions_db = await db.Car.findMany({
+      const transmissions_db = await db.car.findMany({
         where: { status: "AVAILABLE" },
         select: { transmission: true },
         distinct: ["transmission"],
@@ -54,7 +55,7 @@ export const getCarFilters = unstable_cache(
       });
 
       //   get min and max prices using Prisma Aggregations
-      const priceAggregations = await db.Car.aggregate({
+      const priceAggregations = await db.car.aggregate({
         where: { status: "AVAILABLE" },
         _min: { price: true },
         _max: { price: true },
@@ -102,6 +103,9 @@ export async function getCarsByFilters({
   search = "",
   make = "",
   bodyType = "",
+  isEconomic,
+  isCommercial,
+  color = "",
   fuelType = "",
   transmission = "",
   minPrice = 0,
@@ -118,16 +122,16 @@ export async function getCarsByFilters({
       status: "AVAILABLE",
     };
 
-    if (search) {
-      where.OR = [
-        { make: { contains: search, mode: "insensitive" } },
-        { model: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
+    const searchConditions = buildPrismaCarSearchConditions(search);
+    if (searchConditions.length > 0) {
+      where.AND = searchConditions;
     }
 
-    if (make) where.make = { equals: make, mode: "insensitive" };
+    if (make) where.make = { contains: make, mode: "insensitive" };
     if (bodyType) where.bodyType = { equals: bodyType, mode: "insensitive" };
+    if (typeof isEconomic === "boolean") where.isEconomic = isEconomic;
+    if (typeof isCommercial === "boolean") where.isCommercial = isCommercial;
+    if (color) where.color = { contains: color, mode: "insensitive" };
     if (fuelType) where.fuelType = { equals: fuelType, mode: "insensitive" };
     if (transmission)
       where.transmission = { equals: transmission, mode: "insensitive" };
@@ -143,7 +147,7 @@ export async function getCarsByFilters({
 
     const skip = (page - 1) * limit;
 
-    // Determine sort order (فارهة → featured → normal, then price or date)
+    // Determine sort order (فاخرة → featured → normal, then price or date)
     let orderBy = [];
     switch (sortBy) {
       case "priceAsc":
@@ -160,10 +164,10 @@ export async function getCarsByFilters({
         break;
     }
 
-    const totalCarsCount = await db.Car.count({ where });
+    const totalCarsCount = await db.car.count({ where });
 
     // execute the main query
-    const cars = await db.Car.findMany({
+    const cars = await db.car.findMany({
       where,
       take: limit,
       skip,
@@ -174,7 +178,7 @@ export async function getCarsByFilters({
 
     //if user is logged in show wishlisted cars
     if (user) {
-      const savedCars = await db.UserSavedCar.findMany({
+      const savedCars = await db.userSavedCar.findMany({
         where: { userId: user.id },
         select: { carId: true },
       });
@@ -217,6 +221,9 @@ export async function getCarsByFilters({
       search,
       make,
       bodyType,
+      isEconomic,
+      isCommercial,
+      color,
       fuelType,
       transmission,
       minPrice,
@@ -235,7 +242,7 @@ export async function toggleSavedCars(carId) {
     if (!user) throw new Error("User not found");
 
     // check if car exits
-    const car = await db.Car.findUnique({ where: { id: carId } });
+    const car = await db.car.findUnique({ where: { id: carId } });
     if (!car) {
       return {
         succes: false,
@@ -244,7 +251,7 @@ export async function toggleSavedCars(carId) {
     }
 
     // check if car  is already saved
-    const existingCar = await db.UserSavedCar.findUnique({
+    const existingCar = await db.userSavedCar.findUnique({
       where: {
         userId_carId: {
           userId: user.id,
@@ -255,7 +262,7 @@ export async function toggleSavedCars(carId) {
 
     // if   car is already saved ,then remove the car
     if (existingCar) {
-      await db.UserSavedCar.delete({
+      await db.userSavedCar.delete({
         where: {
           userId_carId: {
             userId: user.id,
@@ -272,7 +279,7 @@ export async function toggleSavedCars(carId) {
     }
 
     // if car is not saved ,then save the car
-    await db.UserSavedCar.create({
+    await db.userSavedCar.create({
       data: {
         userId: user.id,
         carId,
@@ -298,9 +305,7 @@ export async function getSavedCars() {
         message: "User not found",
       };
 
-    console.log(user.id);
-
-    const savedCars = await db.UserSavedCar.findMany({
+    const savedCars = await db.userSavedCar.findMany({
       where: { userId: user.id },
       include: { car: true },
       orderBy: { savedAt: "desc" },

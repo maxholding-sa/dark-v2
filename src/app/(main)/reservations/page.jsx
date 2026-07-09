@@ -3,10 +3,12 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import React from "react";
 import ReservationsList from "./_components/ReservationsList";
+import { NOINDEX_ROBOTS } from "@/lib/seo";
 
 export const metadata = {
-  title: "حجوزاتي | Click Car",
+  title: "حجوزاتي | ماكس موتورز",
   description: "إدارة حجوزات اختبار القيادة الخاصة بك",
+  robots: NOINDEX_ROBOTS,
 };
 
 const ReservationsPage = async () => {
@@ -16,7 +18,6 @@ const ReservationsPage = async () => {
   }
 
   const reservationsResult = await getUserTestDrives();
-  console.log(reservationsResult);
 
   return (
     <div className="w-full px-0 py-12">

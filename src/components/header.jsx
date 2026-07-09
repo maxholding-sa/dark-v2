@@ -10,6 +10,7 @@ import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/n
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "./ui/sheet";
 import { getLogoByType } from "@/actions/site-management";
 import LoadingBar from "./LoadingBar";
+import { logger } from "@/lib/logger";
 
 
 const baseNavItems = [
@@ -60,7 +61,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
           setNavLogo(result.data);
         }
       } catch (error) {
-        console.error("Error fetching nav logo:", error);
+        logger.error("Error fetching nav logo:", error);
       }
     };
     fetchNavLogo();
@@ -69,20 +70,14 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
   useEffect(() => {
     const fetchRole = async () => {
       if (!isLoaded) {
-        console.log("⏳ Clerk not loaded yet...");
         return;
       }
 
       if (!clerkUser) {
-        console.log("❌ No user logged in");
         setIsAdmin(false);
         setRoleLoading(false);
         return;
       }
-
-      console.log("====== FETCHING ROLE ======");
-      console.log("User ID:", clerkUser.id);
-      console.log("Email:", clerkUser.primaryEmailAddress?.emailAddress);
 
       setRoleLoading(true);
 
@@ -102,17 +97,17 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
 
         if (response.ok) {
           const data = await response.json();
-          console.log("✅ Role from API:", data.role);
+          logger.debug("[header] Role resolved from API", { role: data.role });
           const isApiAdmin = data.role === "ADMIN" || data.role === "EDITOR";
 
           // Trust BOTH sources - if either says Admin, they see the dashboard button
           setIsAdmin(isApiAdmin || isClerkAdmin);
         } else {
-          console.log("⚠️ API call failed, checking Clerk metadata");
+          logger.warn("[header] Role API failed, using Clerk metadata");
           setIsAdmin(isClerkAdmin);
         }
       } catch (error) {
-        console.error("❌ Error fetching role:", error);
+        logger.error("[header] Error fetching role", error);
         // Fallback to Clerk metadata
         const clerkRole = clerkUser.publicMetadata?.role;
         setIsAdmin(clerkRole === "ADMIN" || clerkRole === "EDITOR");
@@ -123,14 +118,6 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
 
     fetchRole();
   }, [clerkUser, isLoaded]);
-
-  // Debug log
-  console.log("====== HEADER STATE ======");
-  console.log("isLoaded:", isLoaded);
-  console.log("clerkUser exists:", !!clerkUser);
-  console.log("roleLoading:", roleLoading);
-  console.log("isAdmin:", isAdmin);
-  console.log("=========================");
 
   return (
     <header className="fixed top-0 w-full bg-[#000000] backdrop-blur-none z-50 border-b">

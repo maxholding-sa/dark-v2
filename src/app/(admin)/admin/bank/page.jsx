@@ -333,7 +333,6 @@ const BankCRUDPage = () => {
               <TableHead className="font-semibold text-center">الشعار</TableHead>
               <TableHead className="font-semibold text-center">الاسم</TableHead>
               <TableHead className="font-semibold text-center">سعر الفائدة (حسب القطاع)</TableHead>
-              <TableHead className="font-semibold text-center">الدفعة الآخيرة</TableHead>
               <TableHead className="font-semibold text-center">سياسة القرض</TableHead>
               <TableHead className="font-semibold text-center">الترتيب</TableHead>
               <TableHead className="font-semibold text-center">الإجراءات</TableHead>
@@ -342,13 +341,13 @@ const BankCRUDPage = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-20">
+                <TableCell colSpan={6} className="text-center py-20">
                   <LoadingBar fullScreen={false} />
                 </TableCell>
               </TableRow>
             ) : banks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   لا توجد بنوك للعرض
                 </TableCell>
               </TableRow>
@@ -388,13 +387,6 @@ const BankCRUDPage = () => {
                         </span>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {bank.defaultBalloonPaymentPct != null ? (
-                      <span className="text-sm font-medium">{Number(bank.defaultBalloonPaymentPct).toFixed(0)}%</span>
-                    ) : (
-                      <span className="text-sm text-gray-500">افتراضي</span>
-                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bank.loanPolicy
@@ -472,7 +464,7 @@ const BankCRUDPage = () => {
                 <section className="space-y-4">
                   <div>
                     <h3 className="text-base font-semibold text-white">البيانات الأساسية</h3>
-                    <p className="text-xs text-white/50">الاسم، الشعار، سعر الفائدة حسب القطاع، والدفعة الآخيرة</p>
+                    <p className="text-xs text-white/50">الاسم، الشعار، وسعر الفائدة حسب القطاع</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -551,29 +543,6 @@ const BankCRUDPage = () => {
                         ))}
                       </div>
                     </div>
-
-                    <div>
-                      <Label htmlFor="defaultBalloonPaymentPct" className="text-sm font-medium">
-                        الدفعة الآخيرة (%)
-                      </Label>
-                      <Input
-                        id="defaultBalloonPaymentPct"
-                        name="defaultBalloonPaymentPct"
-                        type="number"
-                        step="1"
-                        min="0"
-                        max="100"
-                        value={formState.defaultBalloonPaymentPct}
-                        onChange={handleInputChange}
-                        placeholder="مثال: 20 (اتركه فارغاً للخيارات الافتراضية)"
-                        className="mt-1.5"
-                      />
-                      <p className="mt-1 text-xs text-white/50">
-                        نسبة الدفعة الأخيرة من سعر السيارة — تُستخدم في حساب العروض التمويلية
-                      </p>
-                    </div>
-
-                    <div className="hidden sm:block" aria-hidden="true" />
 
                     <div className="sm:col-span-2">
                       <Label htmlFor="loanPolicy" className="text-sm font-medium">

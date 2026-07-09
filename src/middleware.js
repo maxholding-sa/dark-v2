@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { applyCorsHeaders, applySecurityHeaders, getCorsHeaders } from "@/lib/security";
 
 // protected routes (but NOT /api/upload)
 const isProtectedRoute = createRouteMatcher([
@@ -8,24 +9,16 @@ const isProtectedRoute = createRouteMatcher([
   "/reservations(.*)",
 ]);
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-function withCors(response) {
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-  return response;
-}
-
 export default clerkMiddleware(async (auth, req) => {
   const isApi = req.nextUrl.pathname.startsWith("/api/");
+  const origin = req.headers.get("origin");
 
   if (isApi && req.method === "OPTIONS") {
-    return new NextResponse(null, { status: 204, headers: corsHeaders });
+    const response = new NextResponse(null, {
+      status: 204,
+      headers: getCorsHeaders(origin),
+    });
+    return applySecurityHeaders(response);
   }
 
   const { userId } = await auth();
@@ -33,12 +26,12 @@ export default clerkMiddleware(async (auth, req) => {
   // If userid is not found on a protected page, user will return to sign in page
   if (!userId && isProtectedRoute(req)) {
     const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+    return applySecurityHeaders(redirectToSignIn());
   }
 
   const response = NextResponse.next();
-  if (isApi) return withCors(response);
-  return response;
+  if (isApi) applyCorsHeaders(response, origin);
+  return applySecurityHeaders(response);
 });
 
 export const config = {

@@ -50,9 +50,7 @@ const EditCarForm = ({ carId }) => {
     fuelType: z.string().min(1, "نوع الوقود مطلوب"),
     transmission: z.string().min(1, "ناقل الحركة مطلوب"),
     bodyType: z.enum([
-      "إقتصادية",
       "سيدان",
-      "مركبة تجارية",
       "بيك اب",
       "كروس أوفر",
       "هاتشباك",
@@ -72,6 +70,8 @@ const EditCarForm = ({ carId }) => {
     status: z.enum(["AVAILABLE", "UNAVAILABLE", "SOLD"]),
     featured: z.boolean().default(false),
     isLuxury: z.boolean().default(false),
+    isEconomic: z.boolean().default(false),
+    isCommercial: z.boolean().default(false),
     driveType: z.string().min(1, "نوع الدفع مطلوب"),
     testDriveAvailable: z.boolean().default(true),
     // Images are handled separately
@@ -104,6 +104,8 @@ const EditCarForm = ({ carId }) => {
       status: "AVAILABLE",
       featured: false,
       isLuxury: false,
+      isEconomic: false,
+      isCommercial: false,
       driveType: "",
       testDriveAvailable: true,
     },
@@ -155,7 +157,7 @@ const EditCarForm = ({ carId }) => {
         color: car.color,
         fuelType: car.fuelType,
         transmission: car.transmission,
-        bodyType: car.bodyType,
+        bodyType: bodyTypeOptions.includes(car.bodyType) ? car.bodyType : "",
         seats: car.seats ? car.seats.toString() : "",
         description: car.description,
         category: car.category || "",
@@ -163,6 +165,8 @@ const EditCarForm = ({ carId }) => {
         status: car.status,
         featured: car.featured,
         isLuxury: car.isLuxury || false,
+        isEconomic: car.isEconomic || car.bodyType === "إقتصادية" || car.bodyType === "اقتصادية",
+        isCommercial: car.isCommercial || car.bodyType === "مركبة تجارية",
         driveType: car.driveType || "",
         testDriveAvailable: car.testDriveAvailable,
       });
@@ -603,7 +607,7 @@ const EditCarForm = ({ carId }) => {
                   id="featured"
                   checked={watch("featured")}
                   onCheckedChange={(checked) => {
-                    setValue("featured", checked);
+                    setValue("featured", checked === true);
                   }}
                 />
                 <div className="space-y-1 leading-none text-right">
@@ -620,13 +624,47 @@ const EditCarForm = ({ carId }) => {
                   id="isLuxury"
                   checked={watch("isLuxury")}
                   onCheckedChange={(checked) => {
-                    setValue("isLuxury", checked);
+                    setValue("isLuxury", checked === true);
                   }}
                 />
                 <div className="space-y-1 leading-none text-right">
-                  <Label htmlFor="isLuxury">سيارة فارهة</Label>
+                  <Label htmlFor="isLuxury">سيارة فاخرة</Label>
                   <p className="text-sm text-gray-500">
-                    سيتم عرض وسم "فارهة" على هذه السيارة
+                    سيتم عرض وسم "فاخرة" على هذه السيارة
+                  </p>
+                </div>
+              </div>
+
+              {/* Economic */}
+              <div className="flex items-start space-x-reverse space-x-3 space-y-0 rounded-md border p-4" dir="rtl">
+                <Checkbox
+                  id="isEconomic"
+                  checked={watch("isEconomic")}
+                  onCheckedChange={(checked) => {
+                    setValue("isEconomic", checked === true);
+                  }}
+                />
+                <div className="space-y-1 leading-none text-right">
+                  <Label htmlFor="isEconomic">سيارة اقتصادية</Label>
+                  <p className="text-sm text-gray-500">
+                    تظهر ضمن قسم السيارات الاقتصادية في الصفحة الرئيسية بدون وسم
+                  </p>
+                </div>
+              </div>
+
+              {/* Commercial */}
+              <div className="flex items-start space-x-reverse space-x-3 space-y-0 rounded-md border p-4" dir="rtl">
+                <Checkbox
+                  id="isCommercial"
+                  checked={watch("isCommercial")}
+                  onCheckedChange={(checked) => {
+                    setValue("isCommercial", checked === true);
+                  }}
+                />
+                <div className="space-y-1 leading-none text-right">
+                  <Label htmlFor="isCommercial">مركبة تجارية</Label>
+                  <p className="text-sm text-gray-500">
+                    تظهر ضمن قسم السيارات التجارية في الصفحة الرئيسية بدون وسم
                   </p>
                 </div>
               </div>

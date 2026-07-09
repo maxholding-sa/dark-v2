@@ -115,7 +115,9 @@ export default function AdPopup() {
             </Label>
             <Input
               id="email"
+              name="email"
               type="email"
+              autoComplete="email"
               placeholder="أدخل بريدك الإلكتروني"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
+import { logger } from "@/lib/logger";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -16,8 +17,6 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-
-    console.log("DEBUG: API called, DB URL:", process.env.DATABASE_URL?.substring(0, 50) + "...");
 
     let where = {};
 
@@ -35,14 +34,14 @@ export async function GET(request) {
       orderBy: { createdAt: "desc" },
     });
 
-    console.log("DEBUG: Found", reviews.length, "reviews");
+    logger.debug("[reviews-api] Reviews fetched", { count: reviews.length });
 
     return NextResponse.json({
       success: true,
       data: reviews,
     });
   } catch (error) {
-    console.error(`Error while getting reviews: ${error}`);
+    logger.error("[reviews-api] Error while getting reviews", error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -93,7 +92,7 @@ export async function POST(request) {
         });
 
       if (videoError) {
-        console.error("Error uploading video:", videoError);
+        logger.error("[reviews-api] Error uploading video", videoError);
         return NextResponse.json(
           { error: `Failed to upload video: ${videoError.message}` },
           { status: 500 }
@@ -118,7 +117,7 @@ export async function POST(request) {
         });
 
       if (imageError) {
-        console.error("Error uploading image:", imageError);
+        logger.error("[reviews-api] Error uploading image", imageError);
         return NextResponse.json(
           { error: `Failed to upload image: ${imageError.message}` },
           { status: 500 }
@@ -146,7 +145,7 @@ export async function POST(request) {
       data: review,
     });
   } catch (error) {
-    console.error(`Error while adding review: ${error}`);
+    logger.error("[reviews-api] Error while adding review", error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

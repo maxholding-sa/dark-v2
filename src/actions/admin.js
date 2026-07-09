@@ -9,6 +9,7 @@ import { db } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { checkPermission } from "@/lib/permissions";
+import { logger } from "@/lib/logger";
 
 export async function getAdmin() {
   // check is a user is logged in
@@ -26,7 +27,7 @@ export async function getAdmin() {
 
   // If user is admin in Clerk but not in DB, sync it!
   if (isClerkAdmin && (!user || user.role === "USER")) {
-    console.log("Syncing admin role from Clerk to DB in getAdmin action...");
+    logger.info("[admin] Syncing Clerk admin role to database", { role: clerkRole });
     if (user) {
       user = await db.user.update({
         where: { id: user.id },
@@ -199,6 +200,60 @@ export async function updateTestDriveStatus({ bookingId, newStatus }) {
   }
 }
 
+const monthFormatter = new Intl.DateTimeFormat("ar-SA", {
+  month: "short",
+  year: "numeric",
+});
+
+const statusLabels = {
+  AVAILABLE: "متاحة",
+  UNAVAILABLE: "غير متاحة",
+  SOLD: "مباعة",
+  PENDING: "قيد الانتظار",
+  CONFIRMED: "مؤكدة",
+  COMPLETED: "مكتملة",
+  CANCELLED: "ملغاة",
+  NO_SHOW: "لم يحضر",
+  APPROVED: "موافق عليها",
+  REJECTED: "مرفوضة",
+};
+
+const toMonthKey = (date) => {
+  const value = new Date(date);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+};
+
+const getLastMonths = (count = 6) => {
+  const now = new Date();
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+    return {
+      key: toMonthKey(date),
+      label: monthFormatter.format(date),
+    };
+  });
+};
+
+const buildStatusBreakdown = (items, statuses) =>
+  statuses.map((status) => ({
+    status,
+    name: statusLabels[status] || status,
+    count: items.filter((item) => item.status === status).length,
+  }));
+
+const buildTopBreakdown = (items, field, fallbackLabel = "غير محدد", limit = 8) => {
+  const counts = items.reduce((acc, item) => {
+    const value = item[field] || fallbackLabel;
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+};
+
 export async function getDashboardData() {
   try {
     const { userId } = await auth();
@@ -269,13 +324,33 @@ export async function getDashboardData() {
     // =================================================================================================
 
     // Fetch all necessary data in single operation
-    const [cars, testDrives, loanRequests] = await Promise.all([
+    const [
+      cars,
+      testDrives,
+      loanRequests,
+      users,
+      savedCars,
+      articles,
+      reviews,
+      contacts,
+      chatLogs,
+      featuredBrands,
+      featuredModels,
+      banks,
+      mandebs,
+    ] = await Promise.all([
       // get all cars with minimal field
       db.Car.findMany({
         select: {
           id: true,
           status: true,
           featured: true,
+          make: true,
+          bodyType: true,
+          fuelType: true,
+          transmission: true,
+          price: true,
+          createdAt: true,
         },
       }),
 
@@ -285,6 +360,8 @@ export async function getDashboardData() {
           id: true,
           status: true,
           carId: true,
+          bookingDate: true,
+          createdAt: true,
         },
       }),
 
@@ -294,6 +371,89 @@ export async function getDashboardData() {
           status: true,
           loanAmount: true,
           carId: true,
+          city: true,
+          createdAt: true,
+        },
+      }),
+
+      db.user.findMany({
+        select: {
+          id: true,
+          role: true,
+          createdAt: true,
+        },
+      }),
+
+      db.UserSavedCar.findMany({
+        select: {
+          id: true,
+          carId: true,
+          savedAt: true,
+        },
+      }),
+
+      db.article.findMany({
+        select: {
+          id: true,
+          published: true,
+          createdAt: true,
+          publishedAt: true,
+        },
+      }),
+
+      db.review.findMany({
+        select: {
+          id: true,
+          rating: true,
+          createdAt: true,
+        },
+      }),
+
+      db.contact.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+        },
+      }),
+
+      db.chatLog.findMany({
+        select: {
+          id: true,
+          carsFound: true,
+          carsShown: true,
+          language: true,
+          createdAt: true,
+        },
+      }),
+
+      db.featuredBrand.findMany({
+        select: {
+          id: true,
+          isActive: true,
+          createdAt: true,
+        },
+      }),
+
+      db.featuredModel.findMany({
+        select: {
+          id: true,
+          isActive: true,
+          createdAt: true,
+        },
+      }),
+
+      db.bank.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+        },
+      }),
+
+      db.mandeb.findMany({
+        select: {
+          id: true,
+          city: true,
+          createdAt: true,
         },
       }),
     ]);
@@ -307,7 +467,7 @@ export async function getDashboardData() {
       (car) => car.status === "UNAVAILABLE"
     ).length;
     const soldCars = cars.filter((car) => car.status === "SOLD").length;
-    const featuredCars = cars.filter((car) => car.status === "FEATURED").length;
+    const featuredCars = cars.filter((car) => car.featured).length;
 
     // calculate test-drives statistics
     const totalTestDrives = testDrives.length;
@@ -383,6 +543,70 @@ export async function getDashboardData() {
         ? (soldCarsAfterLoanRequests / completedLoanRequests) * 100
         : 0;
 
+    const lastMonths = getLastMonths(6);
+    const countByMonth = (items, dateField) => {
+      const counts = items.reduce((acc, item) => {
+        const date = item[dateField];
+        if (!date) return acc;
+        const key = toMonthKey(date);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+
+      return lastMonths.map((month) => ({
+        ...month,
+        count: counts[month.key] || 0,
+      }));
+    };
+
+    const sumDecimal = (items, field) =>
+      items.reduce((sum, item) => sum + Number(item[field] || 0), 0);
+
+    const soldCarsValue = sumDecimal(
+      cars.filter((car) => car.status === "SOLD"),
+      "price"
+    );
+    const availableCarsValue = sumDecimal(
+      cars.filter((car) => car.status === "AVAILABLE"),
+      "price"
+    );
+    const averageCarPrice = totalCars > 0 ? sumDecimal(cars, "price") / totalCars : 0;
+
+    const activeFeaturedBrands = featuredBrands.filter((brand) => brand.isActive).length;
+    const activeFeaturedModels = featuredModels.filter((model) => model.isActive).length;
+    const publishedArticles = articles.filter((article) => article.published).length;
+    const averageRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+        : 0;
+
+    const carsByMonth = countByMonth(cars, "createdAt");
+    const testDrivesByMonth = countByMonth(testDrives, "createdAt");
+    const loanRequestsByMonth = countByMonth(loanRequests, "createdAt");
+    const usersByMonth = countByMonth(users, "createdAt");
+    const contactsByMonth = countByMonth(contacts, "createdAt");
+    const chatsByMonth = countByMonth(chatLogs, "createdAt");
+
+    const activityTrend = lastMonths.map((month) => ({
+      month: month.label,
+      cars: carsByMonth.find((item) => item.key === month.key)?.count || 0,
+      testDrives: testDrivesByMonth.find((item) => item.key === month.key)?.count || 0,
+      loanRequests: loanRequestsByMonth.find((item) => item.key === month.key)?.count || 0,
+      users: usersByMonth.find((item) => item.key === month.key)?.count || 0,
+      contacts: contactsByMonth.find((item) => item.key === month.key)?.count || 0,
+      chats: chatsByMonth.find((item) => item.key === month.key)?.count || 0,
+    }));
+
+    const loanStatusAmounts = ["PENDING", "APPROVED", "REJECTED", "COMPLETED"].map((status) => {
+      const requests = loanRequests.filter((request) => request.status === status);
+      return {
+        status,
+        name: statusLabels[status],
+        count: requests.length,
+        amount: parseFloat(sumDecimal(requests, "loanAmount").toFixed(2)),
+      };
+    });
+
     return {
       success: true,
       data: {
@@ -412,6 +636,110 @@ export async function getDashboardData() {
           averageLoanAmount: parseFloat(averageLoanAmount.toFixed(2)),
           approvalRate: parseFloat(approvalRate.toFixed(2)),
           conversionRate: parseFloat(loanConversionRate.toFixed(2)),
+        },
+        analytics: {
+          summary: {
+            totalUsers: users.length,
+            totalSavedCars: savedCars.length,
+            totalArticles: articles.length,
+            publishedArticles,
+            draftArticles: articles.length - publishedArticles,
+            totalReviews: reviews.length,
+            averageRating: parseFloat(averageRating.toFixed(1)),
+            totalContacts: contacts.length,
+            totalChats: chatLogs.length,
+            totalBanks: banks.length,
+            totalMandebs: mandebs.length,
+            totalFeaturedBrands: featuredBrands.length,
+            activeFeaturedBrands,
+            totalFeaturedModels: featuredModels.length,
+            activeFeaturedModels,
+          },
+          inventory: {
+            status: buildStatusBreakdown(cars, ["AVAILABLE", "SOLD", "UNAVAILABLE"]),
+            byMake: buildTopBreakdown(cars, "make", "علامة غير محددة", 10),
+            byBodyType: buildTopBreakdown(cars, "bodyType", "نوع غير محدد", 8),
+            byFuelType: buildTopBreakdown(cars, "fuelType", "وقود غير محدد", 8),
+            byTransmission: buildTopBreakdown(cars, "transmission", "ناقل غير محدد", 6),
+            featured: [
+              { name: "مميزة", count: featuredCars },
+              { name: "غير مميزة", count: Math.max(totalCars - featuredCars, 0) },
+            ],
+            values: {
+              soldCarsValue: parseFloat(soldCarsValue.toFixed(2)),
+              availableCarsValue: parseFloat(availableCarsValue.toFixed(2)),
+              averageCarPrice: parseFloat(averageCarPrice.toFixed(2)),
+            },
+          },
+          requests: {
+            testDriveStatus: buildStatusBreakdown(testDrives, [
+              "PENDING",
+              "CONFIRMED",
+              "COMPLETED",
+              "CANCELLED",
+              "NO_SHOW",
+            ]),
+            loanStatus: buildStatusBreakdown(loanRequests, [
+              "PENDING",
+              "APPROVED",
+              "COMPLETED",
+              "REJECTED",
+            ]),
+            loanStatusAmounts,
+            loanCities: buildTopBreakdown(loanRequests, "city", "مدينة غير محددة", 8),
+          },
+          content: {
+            articles: [
+              { name: "منشورة", count: publishedArticles },
+              { name: "مسودات", count: articles.length - publishedArticles },
+            ],
+            reviewsByRating: [5, 4, 3, 2, 1].map((rating) => ({
+              name: `${rating} نجوم`,
+              count: reviews.filter((review) => review.rating === rating).length,
+            })),
+            featuredContent: [
+              { name: "علامات نشطة", count: activeFeaturedBrands },
+              { name: "علامات غير نشطة", count: featuredBrands.length - activeFeaturedBrands },
+              { name: "موديلات نشطة", count: activeFeaturedModels },
+              { name: "موديلات غير نشطة", count: featuredModels.length - activeFeaturedModels },
+            ],
+          },
+          engagement: {
+            savedCarsByMonth: countByMonth(savedCars, "savedAt"),
+            chatsByLanguage: buildTopBreakdown(chatLogs, "language", "غير محدد", 4).map((item) => ({
+              ...item,
+              name: item.name === "ar" ? "العربية" : item.name === "en" ? "English" : item.name,
+            })),
+            chatResults: [
+              {
+                name: "بنتائج",
+                count: chatLogs.filter((log) => log.carsShown > 0 || log.carsFound > 0).length,
+              },
+              {
+                name: "بدون نتائج",
+                count: chatLogs.filter((log) => log.carsShown === 0 && log.carsFound === 0).length,
+              },
+            ],
+          },
+          operations: {
+            usersByRole: ["ADMIN", "EDITOR", "USER"].map((role) => ({
+              name: role === "ADMIN" ? "مدير" : role === "EDITOR" ? "محرر" : "عميل",
+              count: users.filter((user) => user.role === role).length,
+            })),
+            mandebsByCity: buildTopBreakdown(mandebs, "city", "مدينة غير محددة", 8),
+          },
+          activityTrend,
+          websiteOverview: [
+            { name: "السيارات", count: totalCars },
+            { name: "اختبارات القيادة", count: totalTestDrives },
+            { name: "طلبات القروض", count: totalLoanRequests },
+            { name: "المستخدمون", count: users.length },
+            { name: "السيارات المحفوظة", count: savedCars.length },
+            { name: "المحادثات", count: chatLogs.length },
+            { name: "المقالات", count: articles.length },
+            { name: "التقييمات", count: reviews.length },
+            { name: "الرسائل", count: contacts.length },
+          ],
         },
       },
     };

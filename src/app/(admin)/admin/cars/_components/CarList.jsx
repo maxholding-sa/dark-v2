@@ -68,6 +68,8 @@ const EXCEL_COLUMNS = {
   transmission:       "ناقل الحركة",
   bodyType:           "نوع الهيكل",
   isLuxury:           "فاخرة",
+  isEconomic:         "اقتصادية",
+  isCommercial:       "مركبة تجارية",
   insuranceSegment:   "فئة التأمين",
   driveType:          "نوع الدفع",
   seats:              "المقاعد",
@@ -110,6 +112,8 @@ const FIELD_LABELS = {
   transmission:       "ناقل الحركة",
   bodyType:           "نوع الهيكل",
   isLuxury:           "فاخرة",
+  isEconomic:         "اقتصادية",
+  isCommercial:       "مركبة تجارية",
   driveType:          "نوع الدفع",
   seats:              "المقاعد",
   category:           "الفئة",
@@ -226,7 +230,6 @@ const CarList = () => {
     }
 
     if (updatedCarData?.success) {
-      // console.log(updatedCarData);
       toast.success("تم تحديث السيارة بنجاح");
       getCarFn(searchTerm);
     }
@@ -489,7 +492,6 @@ const CarList = () => {
                           <DropdownMenu>
                             <DropdownMenuTrigger 
                               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
-                              onClick={() => console.log("Trigger clicked for car:", car.id)}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </DropdownMenuTrigger>

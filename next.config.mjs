@@ -7,6 +7,44 @@ process.env.GLOBBY_OPTIONS = JSON.stringify({
   followSymlinkedDirectories: false,
 });
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa").replace(/\/$/, "");
+
+const parseHostname = (value) => {
+  if (!value) return null;
+  try {
+    const withProtocol = value.startsWith("http") ? value : `https://${value}`;
+    return new URL(withProtocol).host;
+  } catch {
+    return null;
+  }
+};
+
+const serverActionAllowedOrigins = [
+  parseHostname(siteUrl),
+  parseHostname(process.env.VERCEL_URL),
+  ...(process.env.NODE_ENV !== "production" ? ["localhost:3000"] : []),
+  ...(process.env.SERVER_ACTION_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => parseHostname(origin.trim()))
+    .filter(Boolean),
+].filter(Boolean);
+
+const uniqueServerActionAllowedOrigins = [...new Set(serverActionAllowedOrigins)];
+
+const baselineSecurityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "on" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  },
+  ...(process.env.NODE_ENV === "production"
+    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    : []),
+];
+
 const nextConfig = {
   // Required by Next.js 16 if you want to use Webpack
   turbopack: {},
@@ -84,7 +122,7 @@ const nextConfig = {
     webpackBuildWorker: process.env.NODE_ENV === "production",
     serverActions: {
       bodySizeLimit: "1gb",
-      allowedOrigins: ["*"],
+      allowedOrigins: uniqueServerActionAllowedOrigins,
     },
     // Next.js 15.5+ internal proxy for server actions (defaults to 1MB)
     proxyClientMaxBodySize: "1gb",
@@ -92,7 +130,7 @@ const nextConfig = {
 
   serverActions: {
     bodySizeLimit: "1gb",
-    allowedOrigins: ["*"],
+    allowedOrigins: uniqueServerActionAllowedOrigins,
   },
 
   // Increase payload size limits (Pages Router API routes)
@@ -120,6 +158,10 @@ const nextConfig = {
 
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: baselineSecurityHeaders,
+      },
       {
         source: "/:path*.mp4",
         headers: [

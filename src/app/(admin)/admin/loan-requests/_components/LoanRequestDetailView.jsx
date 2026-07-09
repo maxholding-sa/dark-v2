@@ -127,7 +127,6 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
           ) : null}
           <DetailField label="الدفعة الأخيرة (شهر أخير)" value={formatOptionalMoney(loanRequest.finalPayment)} />
           <DetailField label="دفعة البالون" value={formatOptionalMoney(loanRequest.balloonPayment)} />
-          <DetailField label="نسبة البالون" value={formatPercent(loanRequest.balloonPaymentPct)} />
           <DetailField label="الرسوم الإدارية" value={formatOptionalMoney(loanRequest.adminFees)} />
           <DetailField label="إجمالي التأمين" value={formatOptionalMoney(loanRequest.totalInsurance)} />
           <DetailField label="إجمالي الربح" value={formatOptionalMoney(loanRequest.totalProfit)} />

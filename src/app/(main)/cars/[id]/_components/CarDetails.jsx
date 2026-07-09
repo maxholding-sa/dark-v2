@@ -28,8 +28,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import MandebSelector from "./MandebSelector";
 import ImageLightbox from "./ImageLightbox";
+import CarCard from "@/components/CarCard";
 
-const CarDetails = ({ car, testDriveInfo, user }) => {
+const CarDetails = ({ car, testDriveInfo, user, similarCars = [] }) => {
   const router = useRouter();
   const { isSignedIn } = useAuth();
 
@@ -39,6 +40,7 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
   const [carUrl, setCarUrl] = useState('');
   const [isMandebDialogOpen, setIsMandebDialogOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const priorityLabel = car.isLuxury ? "فاخرة" : car.featured ? "مميزة" : null;
 
   // Helper function to extract YouTube video ID and generate embed URL
   const getYouTubeEmbedUrl = (url) => {
@@ -115,11 +117,10 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
       navigator
         .share({
           title: `${car.year} ${car.make} ${car.model}`,
-          text: `Check out this ${car.year} ${car.make} ${car.model} on Click Car!`,
+          text: `شاهد ${car.year} ${car.make} ${car.model} على ماكس موتورز`,
           url: window.location.href,
         })
-        .catch((error) => {
-          console.log("Error sharing", error);
+        .catch(() => {
           copyToClipboard();
         });
     } else {
@@ -289,15 +290,16 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
         <div className="w-full lg:w-5/12 sm:mt-4 lg:mt-0 mx-0">
           <div className="flex items-center gap-2">
             <Badge className="mb-2 mt-2 sm:mt-0">{car.bodyType}</Badge>
-            {car.isLuxury && (
+            {priorityLabel && (
               <Badge className="mb-2 mt-2 sm:mt-0 bg-yellow-500 text-black hover:bg-yellow-600 font-bold">
-                سيارة فارهة
+                سيارة {priorityLabel}
               </Badge>
             )}
           </div>
 
           <h1 className="text-4xl font-bold mb-1">
             {car.year} {car.make} {car.model}
+            {car.category ? ` - ${car.category}` : ""}
           </h1>
 
           <div className="text-2xl font-bold text-yellow-600">
@@ -517,7 +519,7 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
             <div className="flex items-start gap-3">
               <LocateFixed className="h-5 w-5 text-white-600 mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-medium">{testDriveInfo.dealership?.name || "Click Car Motors"}</h4>
+                <h4 className="font-medium">{testDriveInfo.dealership?.name || "ماكس موتورز"}</h4>
                 <p className="text-white-600">
                   {testDriveInfo.dealership?.address || "غير متاح"}
                 </p>
@@ -596,6 +598,17 @@ const CarDetails = ({ car, testDriveInfo, user }) => {
           </div>
         </div>
       </div>
+
+      {similarCars.length > 0 && (
+        <div className="mt-8 p-6 bg-black rounded-lg shadow-sm">
+          <h2 className="text-2xl font-bold mb-6">سيارات مشابهة</h2>
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {similarCars.map((similarCar) => (
+              <CarCard key={similarCar.id} car={similarCar} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <MandebSelector
         isOpen={isMandebDialogOpen}

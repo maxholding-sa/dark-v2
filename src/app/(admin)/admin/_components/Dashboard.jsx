@@ -6,6 +6,7 @@ import { Info } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import TestDriveTab from "./TestDriveTab";
 import LoanRequestsTab from "./LoanRequestsTab";
+import AnalyticsTab from "./AnalyticsTab";
 
 const Dashboard = ({ initialData }) => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -22,7 +23,7 @@ const Dashboard = ({ initialData }) => {
     );
   }
 
-  const { cars, testDrives, loanRequests } = initialData.data;
+  const { cars, testDrives, loanRequests, analytics } = initialData.data;
 
   return (
     <div>
@@ -36,6 +37,7 @@ const Dashboard = ({ initialData }) => {
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="testDrives">اختبارات القيادة</TabsTrigger>
             <TabsTrigger value="loanRequests">طلبات القروض</TabsTrigger>
+            <TabsTrigger value="analytics">تحليلات</TabsTrigger>
           </TabsList>
         </div>
 
@@ -49,6 +51,10 @@ const Dashboard = ({ initialData }) => {
 
         <TabsContent value="loanRequests">
           <LoanRequestsTab loanRequests={loanRequests} />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AnalyticsTab analytics={analytics} />
         </TabsContent>
       </Tabs>
     </div>

@@ -108,6 +108,18 @@ const emptyFeature = {
   isActive: true,
 };
 
+function cleanText(value = "") {
+  return String(value)
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/\s*p\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+}
+
 function FormField({ label, htmlFor, children }) {
   return (
     <div className={rtlFieldClass} dir="rtl">
@@ -133,26 +145,32 @@ const AboutPageEditor = ({ data, onRefresh }) => {
   useEffect(() => {
     if (data) {
       setPageData({
-        title: data.title || emptyPage.title,
-        introText: data.introText || "",
-        visionTitle: data.visionTitle || emptyPage.visionTitle,
-        visionParagraph1: data.visionParagraph1 || "",
-        visionParagraph2: data.visionParagraph2 || "",
+        title: cleanText(data.title || emptyPage.title),
+        introText: cleanText(data.introText || ""),
+        visionTitle: cleanText(data.visionTitle || emptyPage.visionTitle),
+        visionParagraph1: cleanText(data.visionParagraph1 || ""),
+        visionParagraph2: cleanText(data.visionParagraph2 || ""),
         visionImage: data.visionImage || "",
-        visionImageAlt: data.visionImageAlt || "",
-        missionTitle: data.missionTitle || emptyPage.missionTitle,
-        missionParagraph1: data.missionParagraph1 || "",
-        missionParagraph2: data.missionParagraph2 || "",
+        visionImageAlt: cleanText(data.visionImageAlt || ""),
+        missionTitle: cleanText(data.missionTitle || emptyPage.missionTitle),
+        missionParagraph1: cleanText(data.missionParagraph1 || ""),
+        missionParagraph2: cleanText(data.missionParagraph2 || ""),
         missionImage: data.missionImage || "",
-        missionImageAlt: data.missionImageAlt || "",
-        whyUsTitle: data.whyUsTitle || emptyPage.whyUsTitle,
-        ctaTitle: data.ctaTitle || "",
-        ctaText: data.ctaText || "",
+        missionImageAlt: cleanText(data.missionImageAlt || ""),
+        whyUsTitle: cleanText(data.whyUsTitle || emptyPage.whyUsTitle),
+        ctaTitle: cleanText(data.ctaTitle || ""),
+        ctaText: cleanText(data.ctaText || ""),
         isPublished: data.isPublished ?? true,
-        metaDescription: data.metaDescription || "",
-        metaKeywords: data.metaKeywords || "",
+        metaDescription: cleanText(data.metaDescription || ""),
+        metaKeywords: cleanText(data.metaKeywords || ""),
       });
-      setFeatures(data.features || []);
+      setFeatures(
+        (data.features || []).map((feature) => ({
+          ...feature,
+          title: cleanText(feature.title || ""),
+          description: cleanText(feature.description || ""),
+        }))
+      );
     }
   }, [data]);
 

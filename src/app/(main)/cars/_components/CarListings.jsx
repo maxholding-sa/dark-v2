@@ -30,6 +30,9 @@ const CarListings = () => {
   const search = searchParams.get("search") || "";
   const make = searchParams.get("make") || "";
   const bodyType = searchParams.get("bodyType") || "";
+  const isEconomic = searchParams.get("isEconomic") === "true";
+  const isCommercial = searchParams.get("isCommercial") === "true";
+  const color = searchParams.get("color") || "";
   const fuelType = searchParams.get("fuelType") || "";
   const transmission = searchParams.get("transmission") || "";
   const minPrice = searchParams.get("minPrice") || 0;
@@ -51,6 +54,9 @@ const CarListings = () => {
       search,
       make,
       bodyType,
+      isEconomic: isEconomic || undefined,
+      isCommercial: isCommercial || undefined,
+      color,
       fuelType,
       transmission,
       minPrice,
@@ -63,6 +69,9 @@ const CarListings = () => {
     search,
     make,
     bodyType,
+    isEconomic,
+    isCommercial,
+    color,
     fuelType,
     transmission,
     minPrice,
@@ -115,7 +124,6 @@ const CarListings = () => {
   }
 
   const { data: cars, pagination } = carsData;
-  // console.log(carsData);
 
   // No results then show
   if (cars.length === 0) {

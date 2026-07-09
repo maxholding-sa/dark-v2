@@ -1,5 +1,6 @@
 import { db } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 export async function GET(request) {
   try {
@@ -10,11 +11,11 @@ export async function GET(request) {
         where: { isActive: true },
       });
     } catch (dbError) {
-      console.error("[Hero API] Database error:", dbError);
+      logger.error("[Hero API] Database error", dbError);
     }
 
     if (!heroSection) {
-      console.log("[Hero API] No active hero section found, creating default...");
+      logger.info("[Hero API] No active hero section found, creating default");
       // Try to create a default one if it doesn't exist
       try {
         heroSection = await db.heroSection.create({
@@ -29,9 +30,9 @@ export async function GET(request) {
             muted: true,
           },
         });
-        console.log("[Hero API] Created default hero section");
+        logger.info("[Hero API] Created default hero section");
       } catch (createError) {
-        console.error("[Hero API] Could not create default:", createError);
+        logger.error("[Hero API] Could not create default", createError);
         // Return fallback if creation fails
         return NextResponse.json(
           {
@@ -52,14 +53,14 @@ export async function GET(request) {
       }
     }
 
-    console.log("[Hero API] Returning hero section:", {
+    logger.debug("[Hero API] Returning hero section", {
       title: heroSection.title,
       videoUrl: heroSection.videoUrl,
     });
 
     return NextResponse.json({ success: true, data: heroSection }, { status: 200 });
   } catch (error) {
-    console.error("[Hero API] Unexpected error:", error);
+    logger.error("[Hero API] Unexpected error", error);
     
     // Return fallback instead of error
     return NextResponse.json(

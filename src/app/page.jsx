@@ -1,12 +1,11 @@
 import { ChevronLeft, ChevronDown, Car, Calendar, Shield } from "lucide-react";
 import Image from "next/image";
-import { getFeaturedCars } from "@/actions/home";
+import { getCommercialCars, getEconomicCars, getLuxuryCars, getOfferCars } from "@/actions/home";
 import { getFeaturedBrands } from "@/actions/featured-brands";
 import { getFeaturedModels } from "@/actions/featured-models";
 import { getBanks } from "@/actions/banks";
 import { getWhatsAppNumber, getHeroSection, getLogoByType } from "@/actions/site-management";
 import { getHomeReviews } from "@/actions/reviews";
-import { db } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { faqItems } from "@/lib/data";
 
@@ -16,26 +15,62 @@ import FeaturedCarsCarousel from "@/components/FeaturedCarsCarousel";
 import FeaturedBrandCard from "@/components/FeaturedBrandCard";
 import FeaturedModelCard from "@/components/FeaturedModelCard";
 import BankCard from "@/components/BankCard";
-import ChatBot from "@/components/ChatBot";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import LetterByLetterText from "@/components/LetterByLetterText";
 import ScrollAnimate from "@/components/ScrollAnimate";
 import SectionBackgroundVideo from "@/components/SectionBackgroundVideo";
 import HeroVideo from "@/components/HeroVideo";
+import { generateJsonLd, generateMetadata } from "@/lib/seo";
+import { logger } from "@/lib/logger";
+
+export const metadata = generateMetadata({
+  title: "ماكس موتورز | سيارات للبيع وتمويل في السعودية",
+  description: "تصفح سيارات ماكس موتورز الجديدة والمستعملة في السعودية، قارن العروض، احجز تجربة قيادة، واطلب التمويل المناسب لسيارتك.",
+  keywords: ["maxmotors", "ماكس موترز", "ماكس موتورز", "سيارات للبيع", "سيارات مستعملة", "سيارات جديدة", "تجربة قيادة"],
+  canonicalUrl: "/",
+});
 
 async function homeSafe(promiseFn, fallback) {
   try {
     return await promiseFn();
   } catch (e) {
-    console.error("[home] fetch failed:", e?.message || e);
+    logger.error("[home] fetch failed", e);
     return fallback;
   }
+}
+
+function HomeCarsSection({ title, cars, href = "/cars" }) {
+  if (!cars?.length) return null;
+
+  return (
+    <section className="py-20 relative w-full">
+      <SectionBackgroundVideo
+        src="/featured.mp4"
+        mobileSrc="/featured-mobile.mp4"
+        poster="/featured-poster.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black to-transparent z-5"></div>
+      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black to-transparent z-5"></div>
+      <div className="relative z-10 w-full">
+        <ScrollAnimate className="flex justify-between items-center mb-8 px-6 md:px-12">
+          <h2 className="text-3xl font-bold text-white">{title}</h2>
+          <LinkWithLoader href={href}>
+            <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
+          </LinkWithLoader>
+        </ScrollAnimate>
+        <FeaturedCarsCarousel cars={cars} />
+      </div>
+    </section>
+  );
 }
 
 export default async function Home() {
   // Parallel data fetching on the server (errors must not be cached as empty — see actions/banks etc.)
   const [
-    featuredCarsRes,
+    offerCarsRes,
+    luxuryCarsRes,
+    economyCarsRes,
+    commercialCarsRes,
     featuredBrandsRes,
     featuredModelsRes,
     banksRes,
@@ -44,7 +79,10 @@ export default async function Home() {
     mainLogoRes,
     reviewsRes
   ] = await Promise.all([
-    homeSafe(() => getFeaturedCars(20), { data: [] }),
+    homeSafe(() => getOfferCars(8), { data: [] }),
+    homeSafe(() => getLuxuryCars(8), { data: [] }),
+    homeSafe(() => getEconomicCars(8), { data: [] }),
+    homeSafe(() => getCommercialCars(8), { data: [] }),
     homeSafe(() => getFeaturedBrands(), { data: [] }),
     homeSafe(() => getFeaturedModels(), { data: [] }),
     homeSafe(() => getBanks(), { data: [] }),
@@ -54,11 +92,14 @@ export default async function Home() {
     homeSafe(() => getHomeReviews(3), [])
   ]);
 
-  const featuredCars = featuredCarsRes?.data || [];
+  const offerCars = offerCarsRes?.data || [];
+  const luxuryCars = luxuryCarsRes?.data || [];
+  const economyCars = economyCarsRes?.data || [];
+  const commercialCars = commercialCarsRes?.data || [];
   const featuredBrands = featuredBrandsRes?.data || [];
   const featuredModels = featuredModelsRes?.data || [];
   const banks = banksRes?.data || [];
-  console.log("[home] banks count:", banks.length);
+  logger.debug("[home] banks fetched", { count: banks.length });
   const heroSection = heroSectionRes?.data || {
     videoUrl: "/hero1.mp4",
     title: "مرحباً بك",
@@ -77,6 +118,13 @@ export default async function Home() {
 
   return (
     <>
+      <script
+        id="maxmotors-local-business-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateJsonLd("localBusiness")),
+        }}
+      />
       <link
         rel="preload"
         as="image"
@@ -169,26 +217,10 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured Cars */}
-      <section className="py-20 relative w-full">
-        <SectionBackgroundVideo
-          src="/featured.mp4"
-          mobileSrc="/featured-mobile.mp4"
-          poster="/featured-poster.jpg"
-          className="absolute inset-0 w-full h-full object-cover z-0"
-        />
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black to-transparent z-5"></div>
-        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black to-transparent z-5"></div>
-        <div className="relative z-10 w-full">
-          <ScrollAnimate className="flex justify-between items-center mb-8 px-6 md:px-12">
-            <h2 className="text-3xl font-bold text-white">السيارات المميزة</h2>
-            <LinkWithLoader href="/cars">
-              <Button variant="ghost" className="text-white">عرض الكل <ChevronLeft className="mr-1 h-4 w-4" /></Button>
-            </LinkWithLoader>
-          </ScrollAnimate>
-          <FeaturedCarsCarousel cars={featuredCars} />
-        </div>
-      </section>
+      <HomeCarsSection title="عروض مميزة" cars={offerCars} />
+      <HomeCarsSection title="سيارات فاخرة" cars={luxuryCars} />
+      <HomeCarsSection title="سيارات اقتصادية" cars={economyCars} href="/cars?isEconomic=true" />
+      <HomeCarsSection title="سيارات تجارية" cars={commercialCars} href="/cars?isCommercial=true" />
 
       {/* Banks Section — avoid ScrollAnimate here so tiles are not stuck at opacity:0 if animation never runs */}
       <section className="py-20 px-6 md:px-12 bg-black/50 backdrop-blur-sm">
@@ -333,7 +365,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <ChatBot />
       <WhatsAppButton phoneNumber={whatsappNumber} enabled={whatsappEnabled} label={whatsappLabel} text={whatsappText} />
     </div>
     </>

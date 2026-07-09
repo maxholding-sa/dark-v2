@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 import { serializedCarsData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
 import { getCarByIdSupabase } from "@/lib/supabaseReads";
+import { carDisplayPriorityOrderBy } from "@/lib/data";
 
 export async function getCarById(carId) {
   try {
@@ -103,5 +104,51 @@ export async function getCarById(carId) {
   } catch (error) {
     console.warn("[getCarById] Prisma failed, using Supabase:", error.message);
     return getCarByIdSupabase(carId);
+  }
+}
+
+export async function getSimilarCars(carId, limit = 4) {
+  try {
+    const currentCar = await db.car.findUnique({
+      where: { id: carId },
+      select: {
+        id: true,
+        make: true,
+        bodyType: true,
+        category: true,
+      },
+    });
+
+    if (!currentCar) {
+      return { success: false, data: [] };
+    }
+
+    const similarConditions = [
+      currentCar.category ? { category: currentCar.category } : null,
+      currentCar.bodyType ? { bodyType: currentCar.bodyType } : null,
+      currentCar.make ? { make: currentCar.make } : null,
+    ].filter(Boolean);
+
+    if (!similarConditions.length) {
+      return { success: true, data: [] };
+    }
+
+    const cars = await db.car.findMany({
+      where: {
+        id: { not: carId },
+        status: "AVAILABLE",
+        OR: similarConditions,
+      },
+      take: limit,
+      orderBy: [...carDisplayPriorityOrderBy, { createdAt: "desc" }],
+    });
+
+    return {
+      success: true,
+      data: cars.map((car) => serializedCarsData(car)),
+    };
+  } catch (error) {
+    console.warn("[getSimilarCars] Prisma failed:", error.message);
+    return { success: false, data: [] };
   }
 }

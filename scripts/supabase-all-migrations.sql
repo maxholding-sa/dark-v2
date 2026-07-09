@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS "Car" (
     "transmission" TEXT NOT NULL,
     "bodyType" TEXT NOT NULL,
     "isLuxury" BOOLEAN NOT NULL DEFAULT false,
+    "isEconomic" BOOLEAN NOT NULL DEFAULT false,
+    "isCommercial" BOOLEAN NOT NULL DEFAULT false,
     "insuranceSegment" TEXT,
     "driveType" TEXT,
     "seats" INTEGER,
@@ -49,6 +51,20 @@ CREATE INDEX IF NOT EXISTS "Car_year_idx" ON "Car"("year");
 CREATE INDEX IF NOT EXISTS "Car_status_idx" ON "Car"("status");
 CREATE INDEX IF NOT EXISTS "Car_fuelType_idx" ON "Car"("fuelType");
 CREATE INDEX IF NOT EXISTS "Car_featured_idx" ON "Car"("featured");
+
+ALTER TABLE "Car" ADD COLUMN IF NOT EXISTS "isEconomic" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Car" ADD COLUMN IF NOT EXISTS "isCommercial" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS "Car_isEconomic_idx" ON "Car"("isEconomic");
+CREATE INDEX IF NOT EXISTS "Car_isCommercial_idx" ON "Car"("isCommercial");
+
+UPDATE "Car"
+SET "isEconomic" = true
+WHERE "bodyType" IN ('إقتصادية', 'اقتصادية');
+
+UPDATE "Car"
+SET "isCommercial" = true
+WHERE "bodyType" = 'مركبة تجارية';
 
 CREATE TABLE IF NOT EXISTS "Bank" (
     "id" TEXT NOT NULL,

@@ -2,12 +2,20 @@ import { getCarById } from "@/actions/car-details";
 import { notFound } from "next/navigation";
 import React from "react";
 import TestDriveForm from "./_components/TestDriveForm";
+import { generateMetadata as buildMetadata } from "@/lib/seo";
 
-export async function generateMetaData() {
-  return {
-    title: "احجز اختبار قيادة | Click Car",
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+
+  return buildMetadata({
+    title: "احجز تجربة قيادة | ماكس موتورز",
     description: "حدد موعد اختبار قيادة في ثوانٍ",
-  };
+    canonicalUrl: `/test-drive/${id}`,
+    robots: {
+      index: false,
+      follow: false,
+    },
+  });
 }
 
 const TestDrivePage = async ({ params }) => {

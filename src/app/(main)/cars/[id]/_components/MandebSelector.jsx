@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getPublicMandebs } from "@/actions/mandeb";
-import { User, MapPin, Loader2 } from "lucide-react";
+import { User, MapPin, Loader2, MessageCircle, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatSaudiRiyalText } from "@/lib/helper";
 
 const MandebSelector = ({ isOpen, onOpenChange, car }) => {
     const [mandebs, setMandebs] = useState([]);
@@ -30,16 +31,25 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
         fetchMandebs();
     }, [isOpen]);
 
-    const handleMandebClick = (mandeb) => {
+    const cleanPhoneNumber = (phone) => String(phone || "").replace(/[^0-9]/g, "");
+
+    const handleWhatsappClick = (mandeb) => {
         const carUrl = window.location.href;
+        const phone = cleanPhoneNumber(mandeb.phone);
         const message = `السلام عليكم ورحمة الله وبركاته،\n` +
             `أرغب في الاستفسار عن السيارة التالية:\n` +
             `السيارة: ${car.year} ${car.make} ${car.model}\n` +
-            `السعر: ${car.price}\n` +
+            `السعر: ${formatSaudiRiyalText(car.price)}\n` +
             `الرابط: ${carUrl}`;
 
-        const whatsappUrl = `https://wa.me/${mandeb.phone}?text=${encodeURIComponent(message)}`;
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, "_blank");
+        onOpenChange(false);
+    };
+
+    const handleCallClick = (mandeb) => {
+        const phone = cleanPhoneNumber(mandeb.phone);
+        window.location.href = `tel:${phone}`;
         onOpenChange(false);
     };
 
@@ -59,10 +69,9 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
                         {mandebs.map((mandeb) => (
                             <Card
                                 key={mandeb.id}
-                                className="bg-zinc-900 border-zinc-800 hover:border-yellow-600 transition-all cursor-pointer group"
-                                onClick={() => handleMandebClick(mandeb)}
+                                className="bg-zinc-900 border-zinc-800 transition-all group"
                             >
-                                <CardContent className="p-4 flex items-center justify-between">
+                                <CardContent className="p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="bg-yellow-600/10 p-3 rounded-full group-hover:bg-yellow-600/20 transition-colors">
                                             <User className="h-6 w-6 text-yellow-600" />
@@ -77,9 +86,26 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" className="text-yellow-600 hover:text-yellow-500 hover:bg-yellow-600/10">
-                                        تواصل الآن
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="flex-1 text-yellow-600 hover:text-yellow-500 hover:bg-yellow-600/10 sm:flex-none"
+                                            onClick={() => handleWhatsappClick(mandeb)}
+                                        >
+                                            <MessageCircle className="ml-2 h-4 w-4" />
+                                            واتساب
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="flex-1 border-zinc-700 bg-zinc-950 text-white hover:bg-zinc-800 hover:text-white sm:flex-none"
+                                            onClick={() => handleCallClick(mandeb)}
+                                        >
+                                            <Phone className="ml-2 h-4 w-4" />
+                                            اتصال
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                         ))}
