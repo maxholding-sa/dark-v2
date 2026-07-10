@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import CarCard from "./CarCard";
 
 const AUTOPLAY_MS = 4500;
@@ -223,36 +222,6 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
             aria-label="عرض تفاصيل السيارة"
             className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[300px] lg:w-[340px] h-[360px] lg:h-[390px] cursor-pointer rounded-xl"
           />
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="mt-4 flex flex-col items-center gap-4">
-        <Link
-          href={`/cars/${cars[active].id}`}
-          onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
-          className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-base shadow-lg shadow-yellow-500/20 transition-all duration-300 hover:scale-105"
-        >
-          <Eye className="h-5 w-5" />
-          عرض التفاصيل
-        </Link>
-        <div className="flex items-center gap-4" dir="ltr">
-          <button
-            type="button"
-            onClick={mobilePrev}
-            aria-label="السابق"
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40 text-white transition-all duration-300 hover:border-yellow-500 hover:bg-yellow-500 hover:text-black"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={mobileNext}
-            aria-label="التالي"
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40 text-white transition-all duration-300 hover:border-yellow-500 hover:bg-yellow-500 hover:text-black"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
         </div>
       </div>
     </div>
