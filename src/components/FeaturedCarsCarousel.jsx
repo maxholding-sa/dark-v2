@@ -5,16 +5,27 @@ import Link from "next/link";
 import CarCard from "./CarCard";
 
 const AUTOPLAY_MS = 4500;
+const LOOP_COPIES = 3;
 
 export default function FeaturedCarsCarousel({ cars = [] }) {
   const total = cars.length;
-  const [active, setActive] = useState(0);
+  const loopCars =
+    total > 1 ? Array.from({ length: LOOP_COPIES }, () => cars).flat() : cars;
+
+  const [active, setActive] = useState(() => (total > 1 ? total : 0));
   const [paused, setPaused] = useState(false);
+  const [enableTransition, setEnableTransition] = useState(true);
   const touchStartX = useRef(null);
 
-  // Measure the mobile container so we can compute exact pixel offsets
   const mobileContainerRef = useRef(null);
   const [containerW, setContainerW] = useState(0);
+
+  const logicalActive =
+    total > 0 ? ((active % total) + total) % total : 0;
+
+  useEffect(() => {
+    setActive(total > 1 ? total : 0);
+  }, [total]);
 
   useEffect(() => {
     const el = mobileContainerRef.current;
@@ -26,52 +37,64 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     return () => ro.disconnect();
   }, []);
 
-  // Each card is ~42% of the container — balanced portrait size in the peek carousel.
   const gap = 12;
   const cardW = containerW > 0 ? (containerW - gap) * 0.42 : 150;
-  // Offset that keeps the active card perfectly centered
   const trackOffset =
     containerW > 0
       ? (containerW - cardW) / 2 - active * (cardW + gap)
       : 0;
 
-  // Desktop: wraps around infinitely
   const goTo = useCallback(
     (index) => {
       if (total === 0) return;
-      setActive(((index % total) + total) % total);
+      const normalized = ((index % total) + total) % total;
+      setEnableTransition(true);
+      setActive(total > 1 ? total + normalized : normalized);
     },
     [total]
   );
 
-  const next = useCallback(() => goTo(active + 1), [active, goTo]);
-  const prev = useCallback(() => goTo(active - 1), [active, goTo]);
+  const next = useCallback(() => {
+    if (total === 0) return;
+    setEnableTransition(true);
+    setActive((cur) => cur + 1);
+  }, [total]);
 
-  // Mobile: clamps to [0, total-1] — has a clear start and end
-  const mobileNext = useCallback(
-    () => setActive((cur) => Math.min(cur + 1, total - 1)),
-    [total]
-  );
-  const mobilePrev = useCallback(
-    () => setActive((cur) => Math.max(cur - 1, 0)),
-    []
-  );
+  const prev = useCallback(() => {
+    if (total === 0) return;
+    setEnableTransition(true);
+    setActive((cur) => cur - 1);
+  }, [total]);
 
-  // Autoplay stops at the last card instead of wrapping
+  const handleTrackTransitionEnd = useCallback(() => {
+    if (total <= 1) return;
+
+    if (active >= total * 2) {
+      setEnableTransition(false);
+      setActive((cur) => cur - total);
+    } else if (active < total) {
+      setEnableTransition(false);
+      setActive((cur) => cur + total);
+    }
+  }, [active, total]);
+
+  useEffect(() => {
+    if (!enableTransition) {
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setEnableTransition(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [enableTransition, active]);
+
   useEffect(() => {
     if (paused || total <= 1) return;
-    const id = setInterval(() => {
-      setActive((cur) => {
-        if (cur >= total - 1) return cur;
-        return cur + 1;
-      });
-    }, AUTOPLAY_MS);
+    const id = setInterval(next, AUTOPLAY_MS);
     return () => clearInterval(id);
-  }, [paused, total]);
+  }, [paused, total, next]);
 
   if (total === 0) return null;
 
-  // Desktop touch handlers (wrapping)
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -86,58 +109,45 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     touchStartX.current = null;
   };
 
-  // Mobile touch handlers (clamped)
-  const handleMobileTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleMobileTouchEnd = (e) => {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 40) {
-      if (delta < 0) mobileNext();
-      else mobilePrev();
-    }
-    touchStartX.current = null;
-  };
-
   return (
     <div
       className="relative w-full select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* ── MOBILE peek carousel (< md) ─────────────────────────────────────
-          Layout: ½ previous card | active card | ½ next card
-          Each card = (containerWidth - gap) / 2, centered by trackOffset.   */}
+      {/* ── MOBILE peek carousel (< md) ───────────────────────────────────── */}
       <div
         ref={mobileContainerRef}
         className="block md:hidden w-full overflow-hidden"
-        onTouchStart={handleMobileTouchStart}
-        onTouchEnd={handleMobileTouchEnd}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           dir="ltr"
-          className="flex transition-transform duration-500 ease-out"
+          className={`flex ${enableTransition ? "transition-transform duration-500 ease-out" : ""}`}
           style={{
             gap: `${gap}px`,
             transform: `translateX(${trackOffset}px)`,
           }}
+          onTransitionEnd={handleTrackTransitionEnd}
         >
-          {cars.map((car, i) => (
+          {loopCars.map((car, i) => (
             <div
-              key={car.id}
+              key={`${car.id}-${i}`}
               className="flex-shrink-0 transition-opacity duration-300"
               style={{
                 width: `${cardW}px`,
                 opacity: i === active ? 1 : 0.55,
               }}
-              onClick={() => i !== active && goTo(i)}
+              onClick={() => i !== active && setActive(i)}
             >
               <Link
                 href={`/cars/${car.id}`}
                 onClick={(e) => {
-                  if (i !== active) { e.preventDefault(); return; }
+                  if (i !== active) {
+                    e.preventDefault();
+                    return;
+                  }
                   window.dispatchEvent(new CustomEvent("startLoading"));
                 }}
               >
@@ -149,14 +159,13 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
           ))}
         </div>
 
-        {/* Dot indicators */}
         <div className="flex justify-center gap-1.5 mt-3">
           {cars.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
               className={`h-2 rounded-full transition-all duration-300 ${
-                i === active ? "w-6 bg-yellow-500" : "w-2 bg-white/30"
+                i === logicalActive ? "w-6 bg-yellow-500" : "w-2 bg-white/30"
               }`}
               aria-label={`انتقل إلى السيارة ${i + 1}`}
             />
@@ -164,9 +173,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
         </div>
       </div>
 
-      {/* ── DESKTOP 3-D carousel (≥ md) ─────────────────────────────────────
-          overflow-hidden and perspective are on SEPARATE elements on purpose.
-          Putting both on the same div causes iOS/Safari to hide all children. */}
+      {/* ── DESKTOP 3-D carousel (≥ md) ───────────────────────────────────── */}
       <div className="hidden md:block w-full overflow-hidden h-[460px] md:h-[500px]">
         <div
           dir="ltr"
@@ -181,7 +188,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
           </div>
 
           {cars.map((car, index) => {
-            let offset = index - active;
+            let offset = index - logicalActive;
             if (offset > total / 2) offset -= total;
             if (offset < -total / 2) offset += total;
 
@@ -217,7 +224,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
           })}
 
           <Link
-            href={`/cars/${cars[active].id}`}
+            href={`/cars/${cars[logicalActive].id}`}
             onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
             aria-label="عرض تفاصيل السيارة"
             className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[300px] lg:w-[340px] h-[360px] lg:h-[390px] cursor-pointer rounded-xl"
