@@ -243,6 +243,16 @@ const arabicSpellingVariations = {
   "hilus": "hilux",
   "hiluxx": "hilux",
   
+  "highlander": "highlander",
+  "highlandr": "highlander",
+  "higlander": "highlander",
+  "highlnder": "highlander",
+  
+  "هايلندر": "هايلاندر",
+  "هاي لاندر": "هايلاندر",
+  "هاي لاند": "هايلاندر",
+  "هايلاند": "هايلاندر",
+  
   // أخطاء في أسماء السيارات
   "كامرى": "كامري",
   "كامر": "كامري",
@@ -535,11 +545,18 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
     });
     
     // Also add the original query terms to search (in case the exact spelling exists in DB)
-    // Extract words from original query
-    const originalWords = originalSearchTerms.split(/\s+/).filter(word => word.length > 2);
-    originalWords.forEach(word => {
+    const searchStopWords = new Set([
+      "ابحث", "عن", "سيارة", "سيارات", "للبيع", "موديل", "موديلات",
+      "car", "cars", "for", "sale", "show", "find", "search",
+    ]);
+    const originalWords = originalSearchTerms
+      .split(/\s+/)
+      .filter((word) => word.length > 2 && !searchStopWords.has(word));
+    originalWords.forEach((word) => {
       makeConditions.push(
-        { make: { contains: word, mode: "insensitive" } }
+        { make: { contains: word, mode: "insensitive" } },
+        { model: { contains: word, mode: "insensitive" } },
+        { description: { contains: word, mode: "insensitive" } }
       );
     });
     
@@ -554,6 +571,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       { ar: ["كامري", "كامرى", "كامر"], en: "camry" },
       { ar: ["كورولا", "كوروللا", "كورلا"], en: "corolla" },
       { ar: ["هايلكس", "هيلكس", "هايلوكس"], en: "hilux" },
+      { ar: ["هايلاندر", "هايلندر", "هاي لاندر"], en: "highlander" },
       { ar: ["اكورد", "أكورد"], en: "accord" },
       { ar: ["سيفيك", "سفك"], en: "civic" },
       { ar: ["التيما", "ألتيما"], en: "altima" },

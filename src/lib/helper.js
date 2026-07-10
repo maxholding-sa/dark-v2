@@ -5,7 +5,7 @@ export const serializedCarsData = (car, wishlisted = false) => {
   if (!car) return null;
   return {
     ...car,
-    price: car.price ? parseFloat(car.price.toString()) : 0,
+    price: car.price != null && car.price !== "" ? parseFloat(String(car.price)) : 0,
     createdAt: car.createdAt?.toISOString ? car.createdAt.toISOString() : car.createdAt,
     updatedAt: car.updatedAt?.toISOString ? car.updatedAt.toISOString() : car.updatedAt,
     wishliseted: wishlisted,

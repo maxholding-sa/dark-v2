@@ -13,7 +13,8 @@ async function fileToBase64(file) {
 
 import { unstable_cache } from "next/cache";
 import { carDisplayPriorityOrderBy } from "@/lib/data";
-import { getFeaturedCarsSupabase, getHomeCarsByQuerySupabase } from "@/lib/supabaseReads";
+import { getFeaturedCarsSupabase, getHomeCarsByQuerySupabase, getSupabasePublic } from "@/lib/supabaseReads";
+import { resolveImageSearchDetails } from "@/lib/car-search";
 import { logger } from "@/lib/logger";
 
 const IMAGE_SEARCH_BODY_TYPES = [
@@ -33,6 +34,14 @@ function parseAiJsonResponse(text) {
   return JSON.parse(jsonMatch ? jsonMatch[0] : cleanedText);
 }
 
+function normalizeImageSearchColor(color = "") {
+  const trimmed = String(color).trim();
+  if (!trimmed) return "";
+
+  // DB colors are usually a single word; drop modifiers like غامق/فاتح/لؤلؤي
+  return trimmed.split(/\s+/)[0];
+}
+
 function cleanImageSearchData(data) {
   const bodyType = IMAGE_SEARCH_BODY_TYPES.find(
     (type) => type === String(data?.bodyType || "").trim()
@@ -40,10 +49,36 @@ function cleanImageSearchData(data) {
 
   return {
     make: String(data?.make || "").trim(),
+    model: String(data?.model || "").trim(),
     bodyType: bodyType || "",
-    color: String(data?.color || "").trim(),
+    color: normalizeImageSearchColor(data?.color),
     confidence: Number(data?.confidence) || 0,
   };
+}
+
+async function getAvailableMakeModels() {
+  try {
+    const rows = await db.car.findMany({
+      where: { status: "AVAILABLE" },
+      select: { make: true, model: true },
+    });
+    return rows;
+  } catch (error) {
+    const sb = getSupabasePublic();
+    if (!sb) return [];
+
+    const { data, error: supabaseError } = await sb
+      .from("Car")
+      .select("make, model")
+      .eq("status", "AVAILABLE");
+
+    if (supabaseError) {
+      console.warn("[getAvailableMakeModels] Supabase failed:", supabaseError.message);
+      return [];
+    }
+
+    return data ?? [];
+  }
 }
 
 export const getFeaturedCars = unstable_cache(
@@ -279,7 +314,7 @@ export async function processAiImageSearch(formData) {
     const imagePart = {
       inlineData: {
         data: base64Image,
-        mimeType: file.type,
+        mimeType: file.type || "image/jpeg",
       },
     };
 
@@ -287,12 +322,17 @@ export async function processAiImageSearch(formData) {
     const prompt = `
       قم بتحليل صورة السيارة هذه واستخراج المعلومات التالية لاستعلام البحث:
       1. الشركة المصنعة (Make) - بالعربية فقط
-      2. نوع الهيكل - اختر واحداً فقط من: دفع رباعي، سيدان، هاتشباك، كشف، كوبيه، ستيشن، بيك أب، رياضية
-      3. اللون - بالعربية فقط
+      2. الموديل (Model) - بالعربية فقط
+      3. نوع الهيكل - اختر واحداً فقط من: دفع رباعي، سيدان، هاتشباك، كشف، كوبيه، ستيشن، بيك أب، رياضية
+      4. اللون - بالعربية فقط (كلمة واحدة أساسية مثل: أبيض، أسود، رمادي، فضي)
+
+      ركّز بدقة على الشركة المصنعة والموديل لأنهما الأهم للبحث.
+      إذا تعرّفت على شعار أو اسم مثل SPECTRE فاستخدم الموديل العربي الصحيح (مثل: سبيكتر).
 
       قم بتنسيق إجابتك ككائن JSON نظيف بهذه الحقول:
       {
         "make": "",
+        "model": "",
         "bodyType": "",
         "color": "",
         "confidence": 0.0
@@ -314,10 +354,25 @@ export async function processAiImageSearch(formData) {
         const result = await model.generateContent([imagePart, prompt]); // generate a result
         const response = result.response;
         const text = response.text(); // take the text from the response
-        const carDetails = cleanImageSearchData(parseAiJsonResponse(text));
+        let parsed;
+        try {
+          parsed = parseAiJsonResponse(text);
+        } catch (parseError) {
+          throw new Error("تعذر قراءة نتيجة تحليل الصورة");
+        }
+
+        const carDetails = cleanImageSearchData(parsed);
+        const inventory = await getAvailableMakeModels();
+        const resolved = resolveImageSearchDetails(carDetails, inventory);
+
         return {
           success: true,
-          data: carDetails,
+          data: {
+            ...carDetails,
+            make: resolved.make,
+            model: resolved.model,
+            searchQuery: resolved.searchQuery,
+          },
         };
       } catch (error) {
         lastError = error;

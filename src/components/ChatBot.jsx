@@ -377,13 +377,13 @@ export default function ChatBot({ onOpenChange }) {
         <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-96 h-[80vh] md:h-[600px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
           <div className="bg-yellow-600 text-white rounded-t-2xl md:rounded-t-2xl p-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-black-500 rounded-full p-4">
+              <div className="rounded-full overflow-hidden shrink-0">
                 <Image
-                  src="/logo-white.png"
-                  alt="Chat icon"
-                  width={100}
-                  height={100}
-                  className="h-7 w-7 md:h-8 md:w-8"
+                  src="/chatbot-logo.png"
+                  alt="مساعد ماكس موتورز"
+                  width={40}
+                  height={40}
+                  className="h-9 w-9 md:h-10 md:w-10 object-cover"
                 />
               </div>
               <div>

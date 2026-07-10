@@ -6,7 +6,11 @@ import {
   transmissions as predefinedTransmissions,
   bodyTypeOptions as predefinedBodyTypes,
 } from "@/lib/data";
-import { buildSupabaseCarSearchGroups } from "@/lib/car-search";
+import {
+  buildMakeFilterVariants,
+  buildSupabaseCarSearchGroups,
+  buildSupabaseMakeFilters,
+} from "@/lib/car-search";
 
 /** Public Supabase client (anon key). Used when Prisma / DATABASE_URL is unavailable. */
 export function getSupabasePublic() {
@@ -57,7 +61,10 @@ export async function getCarsByFiltersSupabase({
   for (const group of searchGroups) {
     query = query.or(group);
   }
-  if (make) query = query.ilike("make", `%${make}%`);
+  if (make) {
+    const makeFilters = buildSupabaseMakeFilters(make);
+    if (makeFilters) query = query.or(makeFilters);
+  }
   if (bodyType) query = query.eq("bodyType", bodyType);
   if (typeof isEconomic === "boolean") query = query.eq("isEconomic", isEconomic);
   if (typeof isCommercial === "boolean") query = query.eq("isCommercial", isCommercial);
@@ -147,12 +154,17 @@ function normalizeText(value) {
   return normalizeFilterLabel(value).toLowerCase();
 }
 
+function matchesMakeFilter(rowMake, filterMake) {
+  if (!filterMake) return true;
+
+  const normalizedRow = normalizeText(rowMake);
+  return buildMakeFilterVariants(filterMake).some((variant) =>
+    normalizedRow.includes(normalizeText(variant))
+  );
+}
+
 function matchesFilter(row, { make, bodyType, fuelType, transmission, excludeField }) {
-  if (
-    excludeField !== "make" &&
-    make &&
-    !normalizeText(row.make).includes(normalizeText(make))
-  ) {
+  if (excludeField !== "make" && make && !matchesMakeFilter(row.make, make)) {
     return false;
   }
   if (

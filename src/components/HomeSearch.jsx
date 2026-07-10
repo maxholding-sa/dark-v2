@@ -34,7 +34,25 @@ const HomeSearch = () => {
     fn: aiImageSearchFn,
     data: aiImageSearchData,
     error: aiImageSearchError,
+    setData: setAiImageSearchData,
   } = useFetch(processAiImageSearch);
+
+  const buildImageSearchUrl = (data) => {
+    const params = new URLSearchParams();
+    const searchQuery =
+      data.searchQuery || [data.make, data.model].filter(Boolean).join(" ").trim();
+
+    if (searchQuery) {
+      params.set("search", searchQuery);
+    }
+
+    if (!params.toString()) {
+      return null;
+    }
+
+    params.set("page", "1");
+    return `/cars?${params.toString()}`;
+  };
 
   // Fetch suggestions from database/API
   useEffect(() => {
@@ -110,24 +128,18 @@ const HomeSearch = () => {
 
       // Handle success
       if (aiImageSearchData.success && aiImageSearchData.data) {
-        const params = new URLSearchParams();
+        const targetUrl = buildImageSearchUrl(aiImageSearchData.data);
 
-        if (aiImageSearchData.data.make)
-          params.set("make", aiImageSearchData.data.make);
-        if (aiImageSearchData.data.bodyType)
-          params.set("bodyType", aiImageSearchData.data.bodyType);
-        if (aiImageSearchData.data.color)
-          params.set("color", aiImageSearchData.data.color);
-
-        if (!params.toString()) {
+        if (!targetUrl) {
           toast.error("لم نتمكن من استخراج بيانات بحث واضحة من الصورة");
           setIsSearching(false);
           window.dispatchEvent(new CustomEvent('stopLoading'));
           return;
         }
 
-        params.set("page", "1");
-        router.push(`/cars?${params.toString()}`);
+        setIsSearching(false);
+        window.dispatchEvent(new CustomEvent('stopLoading'));
+        router.push(targetUrl);
       }
     }
   }, [aiImageSearchData, router]);
@@ -224,6 +236,7 @@ const HomeSearch = () => {
     }
 
     setIsSearching(true);
+    setAiImageSearchData(undefined);
     // Dispatch custom event to show loading immediately
     window.dispatchEvent(new CustomEvent('startLoading'));
     const formData = new FormData();
@@ -286,16 +299,18 @@ const HomeSearch = () => {
           )}
 
           <div className="absolute left-[70px]">
-            <Camera
-              size={30}
-              className="cursor-pointer p-1.5 rounded-xl"
-              variant="outline"
+            <button
+              type="button"
               onClick={() => setIsImageSearchActive(!isImageSearchActive)}
+              className="cursor-pointer rounded-xl p-1.5 transition-colors"
               style={{
-                background: isImageSearchActive ? "black" : "",
-                color: isImageSearchActive ? "white" : "",
+                background: isImageSearchActive ? "black" : "transparent",
+                color: isImageSearchActive ? "white" : "inherit",
               }}
-            />
+              aria-label="البحث بالصورة"
+            >
+              <Camera size={30} />
+            </button>
           </div>
 
           <Button type="submit" className="absolute left-2 rounded-full" suppressHydrationWarning>
@@ -360,16 +375,18 @@ const HomeSearch = () => {
           </Button>
 
           <div className="flex justify-center">
-            <Camera
-              size={36}
-              className="cursor-pointer p-2 rounded-xl"
-              variant="outline"
+            <button
+              type="button"
               onClick={() => setIsImageSearchActive(!isImageSearchActive)}
+              className="cursor-pointer rounded-xl p-2 transition-colors"
               style={{
                 background: isImageSearchActive ? "black" : "#f3f4f6",
                 color: isImageSearchActive ? "white" : "black",
               }}
-            />
+              aria-label="البحث بالصورة"
+            >
+              <Camera size={36} />
+            </button>
           </div>
         </div>
       </form>
@@ -386,6 +403,7 @@ const HomeSearch = () => {
                     className="h-32 md:h-40 object-contain mb-3 md:mb-4"
                   />
                   <Button
+                    type="button"
                     className="cursor-pointer text-sm text-black "
                     variant="outline"
                     onClick={() => {

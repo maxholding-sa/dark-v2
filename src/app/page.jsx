@@ -316,54 +316,61 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* FAQs */}
-      <section className="py-20 px-6 md:px-40 bg-zinc-950 text-white">
-        <div className="container mx-auto text-right">
-          <ScrollAnimate variant="up">
-            <h2 className="text-3xl font-bold mb-12 text-white">الأسئلة الشائعة</h2>
-          </ScrollAnimate>
-          <ScrollAnimate>
-            <div className="w-full" dir="rtl">
-              {faqItems.map((faq, index) => (
-                <details
-                  key={index}
-                  className="group border-b border-white/10 last:border-b-0"
-                >
-                  <summary className="flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-right text-lg font-medium transition-colors outline-none hover:text-yellow-500 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                    <span className="flex-1">{faq.question}</span>
-                    <ChevronDown className="text-white/60 pointer-events-none size-4 shrink-0 translate-y-1 transition-transform duration-200 group-open:rotate-180" />
-                  </summary>
-                  <div className="text-white/70 text-base pb-4">
-                    {faq.answer}
-                  </div>
-                </details>
-              ))}
-            </div>
-          </ScrollAnimate>
+      {/* FAQs + CTA — shared background video */}
+      <div className="relative overflow-hidden" data-section-video-root>
+        <div className="absolute inset-x-0 top-0 z-0 pointer-events-none">
+          <SectionBackgroundVideo
+            src="/sectionBG5.mp4"
+            mobileSrc="/sectionBG5-mobile.mp4"
+            poster="/sectionBG5-poster.jpg"
+            className="w-full h-auto block"
+          />
         </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-40 px-6 relative overflow-hidden">
-        <SectionBackgroundVideo
-          src="/sectionBG5.mp4"
-          mobileSrc="/sectionBG5-mobile.mp4"
-          poster="/sectionBG5-poster.jpg"
-          className="absolute inset-0 w-full h-full object-cover z-0"
-        />
-        <div className="absolute inset-0 bg-black/70 z-5"></div>
-        <div className="container mx-auto relative z-10 text-center max-w-2xl">
-          <ScrollAnimate>
-            <h2 className="text-5xl font-bold mb-8 text-white">ابدأ رحلتك اليوم</h2>
-            <p className="text-xl text-white/80 mb-12">انضم إلى آلاف المستخدمين الذين وجدوا سيارة أحلامهم عبر منصتنا.</p>
-            <LinkWithLoader href="/cars">
-              <Button size="lg" className="bg-yellow-500 text-black hover:bg-yellow-600 font-bold px-12 py-8 rounded-full text-xl shadow-2xl">
-                تصفح السيارات الآن
-              </Button>
-            </LinkWithLoader>
-          </ScrollAnimate>
-        </div>
-      </section>
+        {/* FAQs */}
+        <section className="relative z-10 py-20 px-6 md:px-40 text-white">
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/30 via-zinc-950/70 to-zinc-950/85 pointer-events-none"></div>
+          <div className="container mx-auto text-right relative z-10">
+            <ScrollAnimate variant="up">
+              <h2 className="text-3xl font-bold mb-12 text-white">الأسئلة الشائعة</h2>
+            </ScrollAnimate>
+            <ScrollAnimate>
+              <div className="w-full" dir="rtl">
+                {faqItems.map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border-b border-white/10 last:border-b-0"
+                  >
+                    <summary className="flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-right text-lg font-medium transition-colors outline-none hover:text-yellow-500 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <span className="flex-1">{faq.question}</span>
+                      <ChevronDown className="text-white/60 pointer-events-none size-4 shrink-0 translate-y-1 transition-transform duration-200 group-open:rotate-180" />
+                    </summary>
+                    <div className="text-white/70 text-base pb-4">
+                      {faq.answer}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </ScrollAnimate>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="relative z-10 py-20 md:py-40 px-6 min-h-[480px] flex items-center">
+          <div className="absolute inset-0 bg-black/70 pointer-events-none"></div>
+          <div className="container mx-auto relative z-10 text-center max-w-2xl">
+            <ScrollAnimate>
+              <h2 className="text-5xl font-bold mb-8 text-white">ابدأ رحلتك اليوم</h2>
+              <p className="text-xl text-white/80 mb-12">انضم إلى آلاف المستخدمين الذين وجدوا سيارة أحلامهم عبر منصتنا.</p>
+              <LinkWithLoader href="/cars">
+                <Button size="lg" className="bg-yellow-500 text-black hover:bg-yellow-600 font-bold px-12 py-8 rounded-full text-xl shadow-2xl">
+                  تصفح السيارات الآن
+                </Button>
+              </LinkWithLoader>
+            </ScrollAnimate>
+          </div>
+        </section>
+      </div>
 
       <WhatsAppButton phoneNumber={whatsappNumber} enabled={whatsappEnabled} label={whatsappLabel} text={whatsappText} />
     </div>

@@ -38,9 +38,12 @@ const SEARCH_ALIASES = [
   ["mitsubishi", "ميتسوبيشي"],
   ["jeep", "جيب"],
   ["range rover", "رنج روفر", "رينج روفر"],
+  ["rolls-royce", "rolls royce", "رولز رويس", "رولز"],
+  ["spectre", "سبيكتر", "سبكتر"],
   ["camry", "كامري", "كامرى", "كامر"],
   ["corolla", "كورولا", "كورلا", "كوروللا"],
   ["hilux", "هايلكس", "هيلكس", "هايلوكس"],
+  ["highlander", "هايلاندر", "هايلندر", "هاي لاندر"],
   ["land cruiser", "لاندكروزر", "لاند كروزر", "جيب تويوتا"],
   ["yaris", "يارس", "ياريس"],
   ["innova", "إنوفا", "انوفا", "innova crysta", "إنوفا crysta"],
@@ -193,15 +196,24 @@ function expandTerm(term) {
 export function buildSearchTokenGroups(search = "") {
   const trimmedSearch = search.trim();
   const normalizedSearch = normalizeSearchText(trimmedSearch);
+  const normalizedStopWords = new Set(
+    [...SEARCH_STOP_WORDS].map((word) => normalizeSearchText(word))
+  );
 
   if (!normalizedSearch) return [];
 
   const rawTokens = normalizedSearch
     .split(" ")
-    .filter((token) => token.length > 1 && !SEARCH_STOP_WORDS.has(token));
+    .filter(
+      (token) => token.length > 1 && !normalizedStopWords.has(token)
+    );
 
-  if (rawTokens.length <= 1) {
-    return [expandTerm(trimmedSearch || normalizedSearch)];
+  if (rawTokens.length === 0) {
+    return [];
+  }
+
+  if (rawTokens.length === 1) {
+    return [expandTerm(rawTokens[0])];
   }
 
   return rawTokens.map(expandTerm).filter((group) => group.length > 0);
@@ -223,6 +235,39 @@ export function buildPrismaCarSearchConditions(search = "") {
   return buildSearchTokenGroups(search).map((termGroup) => ({
     OR: termGroup.flatMap(buildPrismaTermCondition),
   }));
+}
+
+export function buildMakeFilterVariants(make = "") {
+  const trimmed = make.trim();
+  if (!trimmed) return [];
+
+  const variants = new Set([trimmed]);
+  for (const alias of expandTerm(trimmed)) {
+    variants.add(alias);
+  }
+
+  return [...variants].filter(Boolean);
+}
+
+export function buildPrismaMakeCondition(make = "") {
+  const variants = buildMakeFilterVariants(make);
+  if (variants.length === 0) return null;
+
+  if (variants.length === 1) {
+    return { make: { contains: variants[0], mode: "insensitive" } };
+  }
+
+  return {
+    OR: variants.map((term) => ({
+      make: { contains: term, mode: "insensitive" },
+    })),
+  };
+}
+
+export function buildSupabaseMakeFilters(make = "") {
+  return buildMakeFilterVariants(make)
+    .map((term) => `make.ilike.%${escapeSupabaseLike(term)}%`)
+    .join(",");
 }
 
 export function escapeSupabaseLike(value = "") {
@@ -250,4 +295,85 @@ export function buildSupabaseCarSearchGroups(search = "") {
         .join(",")
     )
     .filter(Boolean);
+}
+
+function trimSearchLabel(value = "") {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function inventoryTermsMatch(source = "", target = "") {
+  const normalizedSource = normalizeSearchText(source);
+  const normalizedTarget = normalizeSearchText(target);
+
+  if (!normalizedSource || !normalizedTarget) return false;
+  if (normalizedSource === normalizedTarget) return true;
+  if (
+    normalizedSource.includes(normalizedTarget) ||
+    normalizedTarget.includes(normalizedSource)
+  ) {
+    return true;
+  }
+
+  const sourceVariants = expandTerm(source).map(normalizeSearchText);
+  const targetVariants = expandTerm(target).map(normalizeSearchText);
+
+  return sourceVariants.some(
+    (variant) =>
+      targetVariants.includes(variant) ||
+      targetVariants.some(
+        (targetVariant) =>
+          variant.includes(targetVariant) || targetVariant.includes(variant)
+      )
+  );
+}
+
+export function buildImageSearchQuery(make = "", model = "") {
+  return [trimSearchLabel(make), trimSearchLabel(model)]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+export function resolveImageSearchDetails(
+  { make = "", model = "" } = {},
+  inventory = []
+) {
+  const normalizedInventory = inventory
+    .map((row) => ({
+      make: trimSearchLabel(row.make),
+      model: trimSearchLabel(row.model),
+    }))
+    .filter((row) => row.make && row.model);
+
+  let resolvedMake = trimSearchLabel(make);
+  let resolvedModel = trimSearchLabel(model);
+
+  const uniqueMakes = [...new Set(normalizedInventory.map((row) => row.make))];
+  const matchedMake = uniqueMakes.find((dbMake) =>
+    inventoryTermsMatch(make, dbMake)
+  );
+
+  if (matchedMake) {
+    resolvedMake = matchedMake;
+  }
+
+  const modelPool = matchedMake
+    ? normalizedInventory.filter((row) => row.make === matchedMake)
+    : normalizedInventory;
+  const uniqueModels = [...new Set(modelPool.map((row) => row.model))];
+  const matchedModel = uniqueModels.find((dbModel) =>
+    inventoryTermsMatch(model, dbModel)
+  );
+
+  if (matchedModel) {
+    resolvedModel = matchedModel;
+  }
+
+  const searchQuery = buildImageSearchQuery(resolvedMake, resolvedModel);
+
+  return {
+    make: resolvedMake,
+    model: resolvedModel,
+    searchQuery,
+  };
 }

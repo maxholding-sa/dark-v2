@@ -17,7 +17,10 @@ import {
   getCarsByFiltersSupabase,
   getDynamicCarFiltersSupabase,
 } from "@/lib/supabaseReads";
-import { buildPrismaCarSearchConditions } from "@/lib/car-search";
+import {
+  buildPrismaCarSearchConditions,
+  buildPrismaMakeCondition,
+} from "@/lib/car-search";
 
 // creating filter on the basis of cars in db
 export const getCarFilters = unstable_cache(
@@ -103,7 +106,11 @@ function buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField
   const where = { status: "AVAILABLE" };
 
   if (excludeField !== "make" && make) {
-    where.make = { contains: normalizeFilterLabel(make), mode: "insensitive" };
+    const makeCondition = buildPrismaMakeCondition(make);
+    if (makeCondition) {
+      if (!where.AND) where.AND = [];
+      where.AND.push(makeCondition);
+    }
   }
   if (excludeField !== "bodyType" && bodyType) {
     where.bodyType = { equals: bodyType, mode: "insensitive" };
@@ -215,11 +222,12 @@ export async function getCarsByFilters({
     };
 
     const searchConditions = buildPrismaCarSearchConditions(search);
-    if (searchConditions.length > 0) {
-      where.AND = searchConditions;
+    const makeCondition = buildPrismaMakeCondition(make);
+    const andConditions = [...searchConditions];
+    if (makeCondition) andConditions.push(makeCondition);
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
-
-    if (make) where.make = { contains: make, mode: "insensitive" };
     if (bodyType) where.bodyType = { equals: bodyType, mode: "insensitive" };
     if (typeof isEconomic === "boolean") where.isEconomic = isEconomic;
     if (typeof isCommercial === "boolean") where.isCommercial = isCommercial;
