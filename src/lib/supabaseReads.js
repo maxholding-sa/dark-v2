@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { serializedCarsData } from "@/lib/helper";
+import { serializedCarsData, dedupeFilterOptions, normalizeFilterLabel } from "@/lib/helper";
 import { serializeBankRecord } from "@/lib/bank-finance";
 import {
   fuelTypes as predefinedFuelTypes,
@@ -111,7 +111,7 @@ export async function getCarFiltersSupabase() {
   let maxPrice = 0;
 
   for (const row of data ?? []) {
-    if (row.make) makes.add(row.make);
+    if (row.make) makes.add(normalizeFilterLabel(row.make));
     if (row.bodyType) bodyTypes.add(row.bodyType);
     if (row.fuelType) fuelTypes.add(row.fuelType);
     if (row.transmission) transmissions.add(row.transmission);
@@ -129,7 +129,7 @@ export async function getCarFiltersSupabase() {
   return {
     success: true,
     data: {
-      makes: [...makes].sort(),
+      makes: dedupeFilterOptions([...makes]).sort(),
       bodyTypes: predefinedBodyTypes.filter((t) => bodyTypesList.includes(t)),
       fuelTypes: predefinedFuelTypes.filter((t) => fuelTypesList.includes(t)),
       transmissions: predefinedTransmissions.filter((t) =>
@@ -138,6 +138,113 @@ export async function getCarFiltersSupabase() {
       priceRange: {
         min: minPrice === Infinity ? 0 : minPrice,
         max: maxPrice <= 0 ? 100000 : maxPrice,
+      },
+    },
+  };
+}
+
+function normalizeText(value) {
+  return normalizeFilterLabel(value).toLowerCase();
+}
+
+function matchesFilter(row, { make, bodyType, fuelType, transmission, excludeField }) {
+  if (
+    excludeField !== "make" &&
+    make &&
+    !normalizeText(row.make).includes(normalizeText(make))
+  ) {
+    return false;
+  }
+  if (
+    excludeField !== "bodyType" &&
+    bodyType &&
+    normalizeText(row.bodyType) !== normalizeText(bodyType)
+  ) {
+    return false;
+  }
+  if (
+    excludeField !== "fuelType" &&
+    fuelType &&
+    normalizeText(row.fuelType) !== normalizeText(fuelType)
+  ) {
+    return false;
+  }
+  if (
+    excludeField !== "transmission" &&
+    transmission &&
+    normalizeText(row.transmission) !== normalizeText(transmission)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function collectFilterOptions(rows, filters, excludeField) {
+  const makes = new Set();
+  const bodyTypes = new Set();
+  const fuelTypes = new Set();
+  const transmissions = new Set();
+  let minPrice = Infinity;
+  let maxPrice = 0;
+
+  for (const row of rows) {
+    if (!matchesFilter(row, { ...filters, excludeField })) continue;
+
+    if (row.make) makes.add(normalizeFilterLabel(row.make));
+    if (row.bodyType) bodyTypes.add(row.bodyType);
+    if (row.fuelType) fuelTypes.add(row.fuelType);
+    if (row.transmission) transmissions.add(row.transmission);
+
+    const price = parseFloat(String(row.price ?? 0));
+    if (!Number.isNaN(price)) {
+      if (price < minPrice) minPrice = price;
+      if (price > maxPrice) maxPrice = price;
+    }
+  }
+
+  return { makes, bodyTypes, fuelTypes, transmissions, minPrice, maxPrice };
+}
+
+export async function getDynamicCarFiltersSupabase({
+  make = "",
+  bodyType = "",
+  fuelType = "",
+  transmission = "",
+} = {}) {
+  const sb = getSupabasePublic();
+  if (!sb) throw new Error("Supabase not configured");
+
+  const { data, error } = await sb
+    .from("Car")
+    .select("make, bodyType, fuelType, transmission, price")
+    .eq("status", "AVAILABLE");
+  if (error) throw new Error(error.message);
+
+  const rows = data ?? [];
+  const filters = { make, bodyType, fuelType, transmission };
+
+  const makesData = collectFilterOptions(rows, filters, "make");
+  const bodyTypesData = collectFilterOptions(rows, filters, "bodyType");
+  const fuelTypesData = collectFilterOptions(rows, filters, "fuelType");
+  const transmissionsData = collectFilterOptions(rows, filters, "transmission");
+  const priceData = collectFilterOptions(rows, filters, null);
+
+  const bodyTypesList = [...bodyTypesData.bodyTypes];
+  const fuelTypesList = [...fuelTypesData.fuelTypes];
+  const transmissionsList = [...transmissionsData.transmissions];
+
+  return {
+    success: true,
+    data: {
+      makes: dedupeFilterOptions([...makesData.makes]).sort(),
+      bodyTypes: predefinedBodyTypes.filter((t) => bodyTypesList.includes(t)),
+      fuelTypes: predefinedFuelTypes.filter((t) => fuelTypesList.includes(t)),
+      transmissions: predefinedTransmissions.filter((t) =>
+        transmissionsList.includes(t)
+      ),
+      priceRange: {
+        min: priceData.minPrice === Infinity ? 0 : priceData.minPrice,
+        max: priceData.maxPrice <= 0 ? 100000 : priceData.maxPrice,
       },
     },
   };

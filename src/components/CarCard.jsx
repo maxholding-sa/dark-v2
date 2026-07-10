@@ -67,7 +67,7 @@ const CarCard = ({ car, isFeatured }) => {
 
   const cardElement = (
     <Card
-      className={`overflow-hidden hover:shadow-xl trasition group py-0 shadow-lg border ${
+      className={`h-full overflow-hidden hover:shadow-xl trasition group py-0 shadow-lg border ${
         isFeatured
           ? "bg-zinc-900 border-white/10"
           : "bg-black/30 backdrop-blur-xl bg-white/10 border-white/20 cursor-pointer"
@@ -116,7 +116,11 @@ const CarCard = ({ car, isFeatured }) => {
       </div>
 
       {/* Card content */}
-      <CardContent className={isFeatured ? "p-2.5 sm:p-2.5 md:p-3" : "p-3 sm:p-3 md:p-4"}>
+      <CardContent
+        className={`flex flex-1 flex-col ${
+          isFeatured ? "p-2.5 sm:p-2.5 md:p-3" : "p-3 sm:p-3 md:p-4"
+        }`}
+      >
         <div className={`flex flex-col ${isFeatured ? "mb-1.5 md:mb-2" : "mb-1.5 md:mb-2"}`}>
           <h3 className={`font-bold line-clamp-1 ${isFeatured ? "text-base sm:text-base md:text-lg" : "text-base sm:text-base md:text-lg"}`}>
             {car.make} {car.model}
@@ -165,7 +169,7 @@ const CarCard = ({ car, isFeatured }) => {
         </div>
 
         {!isFeatured && (
-          <div className="flex justify-between">
+          <div className="mt-auto flex justify-between pt-2">
             <span className="flex-1 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-medium h-8 sm:h-9 md:h-10 bg-zinc-100 text-zinc-900 group-hover:bg-zinc-200 transition-colors">
               عرض السيارة
             </span>
@@ -182,7 +186,7 @@ const CarCard = ({ car, isFeatured }) => {
   return (
     <Link
       href={`/cars/${car.id}`}
-      className="block"
+      className="block h-full"
       onClick={handleCardNavigate}
     >
       {cardElement}

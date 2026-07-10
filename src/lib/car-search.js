@@ -1,4 +1,12 @@
 const ARABIC_DIACRITICS = /[\u064B-\u065F\u0670]/g;
+const ARABIC_TATWEEL = /\u0640/g;
+
+const ARABIC_FLEXIBLE_CHARS = {
+  "\u0627": ["\u0627", "\u0623", "\u0625", "\u0622"], // ا أ إ آ
+  "\u0647": ["\u0647", "\u0629"], // ه ة
+  "\u064A": ["\u064A", "\u0649", "\u0626"], // ي ى ئ
+  "\u0648": ["\u0648", "\u0624"], // و ؤ
+};
 
 const SEARCH_STOP_WORDS = new Set([
   "سيارة",
@@ -35,6 +43,7 @@ const SEARCH_ALIASES = [
   ["hilux", "هايلكس", "هيلكس", "هايلوكس"],
   ["land cruiser", "لاندكروزر", "لاند كروزر", "جيب تويوتا"],
   ["yaris", "يارس", "ياريس"],
+  ["innova", "إنوفا", "انوفا", "innova crysta", "إنوفا crysta"],
   ["accord", "اكورد", "أكورد"],
   ["civic", "سيفيك", "سفك"],
   ["altima", "التيما", "ألتيما"],
@@ -84,26 +93,93 @@ export function normalizeSearchText(value = "") {
     .toString()
     .toLowerCase()
     .replace(ARABIC_DIACRITICS, "")
+    .replace(ARABIC_TATWEEL, "")
     .replace(/[إأآا]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
-    .replace(/[ؤئ]/g, "ء")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ء/g, "")
     .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+function getArabicCharAlternatives(char) {
+  return ARABIC_FLEXIBLE_CHARS[char] || [char];
+}
+
+export function buildArabicSpellingVariants(term = "", maxVariants = 48) {
+  const trimmed = term.trim();
+  if (!trimmed) return [];
+
+  const variants = new Set([trimmed]);
+  const normalized = normalizeSearchText(trimmed);
+  variants.add(normalized);
+
+  const chars = [...normalized];
+  let combinations = [""];
+
+  for (const char of chars) {
+    const alternatives = getArabicCharAlternatives(char);
+    const next = [];
+
+    for (const prefix of combinations) {
+      for (const alternative of alternatives) {
+        next.push(prefix + alternative);
+        if (next.length >= maxVariants) break;
+      }
+      if (next.length >= maxVariants) break;
+    }
+
+    combinations = next.length > 0 ? next : combinations;
+    if (combinations.length >= maxVariants) {
+      combinations = combinations.slice(0, maxVariants);
+      break;
+    }
+  }
+
+  for (const value of combinations) {
+    if (value.length > 1) {
+      variants.add(value);
+    }
+  }
+
+  return [...variants];
+}
+
+function isAliasMatch(normalizedTerm, normalizedAlias) {
+  if (!normalizedTerm || !normalizedAlias) return false;
+  if (normalizedTerm === normalizedAlias) return true;
+  if (normalizedAlias.includes(normalizedTerm)) return true;
+  if (normalizedTerm.includes(normalizedAlias)) return true;
+
+  const minPrefixLength = 2;
+  if (
+    normalizedTerm.length >= minPrefixLength &&
+    normalizedAlias.startsWith(normalizedTerm)
+  ) {
+    return true;
+  }
+
+  if (
+    normalizedAlias.length >= minPrefixLength &&
+    normalizedTerm.startsWith(normalizedAlias)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function expandTerm(term) {
   const normalizedTerm = normalizeSearchText(term);
-  const variants = new Set([term.trim(), normalizedTerm]);
+  const variants = new Set(buildArabicSpellingVariants(term));
 
   for (const aliasGroup of SEARCH_ALIASES) {
     const normalizedAliases = aliasGroup.map(normalizeSearchText);
-    const matched = normalizedAliases.some(
-      (alias) =>
-        alias === normalizedTerm ||
-        alias.includes(normalizedTerm) ||
-        normalizedTerm.includes(alias)
+    const matched = normalizedAliases.some((alias) =>
+      isAliasMatch(normalizedTerm, alias)
     );
 
     if (matched) {

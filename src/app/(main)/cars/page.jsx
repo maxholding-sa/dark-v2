@@ -33,7 +33,7 @@ const CarsPage = async () => {
   return (
     <>
       <div className="w-full px-4 md:px-8">
-        <h1 className="text-2xl md:text-4xl mb-4 gradient-title">تصفح السيارات</h1>
+        <h1 className="text-2xl md:text-4xl mb-4 gradient-title-gold">تصفح السيارات</h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-80 flex-shrink-0">
@@ -44,7 +44,7 @@ const CarsPage = async () => {
           <div className="flex-1">
             {/* Listings MUST be wrapped in Suspense */}
             <Suspense fallback={<LoadingBar />}>
-              <CarListings />
+              <CarListings priceRange={filtersData?.data?.priceRange} />
             </Suspense>
           </div>
         </div>

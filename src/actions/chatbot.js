@@ -584,6 +584,7 @@ async function searchCarsInDatabase(query, conversationHistory = []) {
       { ar: ["فورستر", "فورستار"], en: "forester" },
       { ar: ["امبريزا", "إمبريزا"], en: "impreza" },
       { ar: ["راف فور", "راف4", "راف٤"], en: "rav4" },
+      { ar: ["إنوفا", "انوفا"], en: "innova" },
     ];
 
     // Check if contextual search mentions any car model

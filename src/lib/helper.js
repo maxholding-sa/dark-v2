@@ -47,6 +47,30 @@ export const serializeLoanRequests = (requests) => {
   return requests.map(serializeLoanRequest);
 };
 
+/** Normalize filter labels: trim and collapse whitespace */
+export function normalizeFilterLabel(value) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+/** Deduplicate filter options after normalizing (e.g. "بي واي دي" vs " بي واي دي ") */
+export function dedupeFilterOptions(values) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values) {
+    const normalized = normalizeFilterLabel(value);
+    if (!normalized) continue;
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 export const formatSaudiRiyalReact = (amount) => {
   const value = Number(amount) || 0;
 
@@ -63,6 +87,20 @@ export const formatSaudiRiyalReact = (amount) => {
       <span>{formattedNumber}</span>
 
       {/* Icon after */}
+      <span className="icon-saudi_riyal" aria-hidden="true">
+        &#xea;
+      </span>
+    </span>
+  );
+};
+
+export const formatFilterPriceReact = (amount) => {
+  const value = Math.max(0, Number(amount) || 0);
+  const formattedNumber = new Intl.NumberFormat("en-EN").format(value);
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+      <span>{formattedNumber}</span>
       <span className="icon-saudi_riyal" aria-hidden="true">
         &#xea;
       </span>

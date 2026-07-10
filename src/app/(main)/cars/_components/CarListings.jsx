@@ -10,6 +10,7 @@ import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import CarCard from "@/components/CarCard";
+import ActiveFilterChips from "./ActiveFilterChips";
 import {
   Pagination,
   PaginationContent,
@@ -20,7 +21,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-const CarListings = () => {
+const CarListings = ({ priceRange }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,15 +129,15 @@ const CarListings = () => {
   // No results then show
   if (cars.length === 0) {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-gray-50">
-        <div className="bg-gray-100 p-4 rounded-full mb-4">
-          <Info className="h-8 w-8 text-gray-500" />
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 border border-gray-800 rounded-xl bg-gray-950">
+        <div className="bg-gray-900 p-4 rounded-full mb-4">
+          <Info className="h-8 w-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-medium mb-2">لم يتم العثور على سيارات</h3>
-        <p className="text-gray-500 mb-6 max-w-md">
+        <h3 className="text-lg font-medium mb-2 text-white">لم يتم العثور على سيارات</h3>
+        <p className="text-gray-400 mb-6 max-w-md">
           لم نتمكن من العثور على أي سيارات تطابق معايير البحث الخاصة بك. جرب تعديل الفلاتر أو مصطلح البحث.
         </p>
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="border-gray-700 text-white hover:bg-gray-900">
           <Link href="/cars">مسح جميع الفلاتر</Link>
         </Button>
       </div>
@@ -203,6 +204,8 @@ const CarListings = () => {
 
   return (
     <div>
+      <ActiveFilterChips priceRange={priceRange} />
+
       <div className="flex justify-between items-center mb-6">
         <p className="text-gray-600">
           عرض{" "}

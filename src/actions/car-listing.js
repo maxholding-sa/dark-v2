@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
-import { serializedCarsData } from "@/lib/helper";
+import { serializedCarsData, dedupeFilterOptions, normalizeFilterLabel } from "@/lib/helper";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -15,6 +15,7 @@ import { unstable_cache } from "next/cache";
 import {
   getCarFiltersSupabase,
   getCarsByFiltersSupabase,
+  getDynamicCarFiltersSupabase,
 } from "@/lib/supabaseReads";
 import { buildPrismaCarSearchConditions } from "@/lib/car-search";
 
@@ -62,7 +63,7 @@ export const getCarFilters = unstable_cache(
       });
 
       // Extract values from database
-      const makesList = makes.map((item) => item.make);
+      const makesList = dedupeFilterOptions(makes.map((item) => item.make));
       const bodyTypesList = bodyTypes_db.map((item) => item.bodyType);
       const fuelTypesList = fuelTypes_db.map((item) => item.fuelType);
       const transmissionsList = transmissions_db.map((item) => item.transmission);
@@ -94,9 +95,100 @@ export const getCarFilters = unstable_cache(
       return getCarFiltersSupabase();
     }
   },
-  ["car-filters-v2"],
+  ["car-filters-v4"],
   { revalidate: 3600, tags: ["cars"] }
 );
+
+function buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField }) {
+  const where = { status: "AVAILABLE" };
+
+  if (excludeField !== "make" && make) {
+    where.make = { contains: normalizeFilterLabel(make), mode: "insensitive" };
+  }
+  if (excludeField !== "bodyType" && bodyType) {
+    where.bodyType = { equals: bodyType, mode: "insensitive" };
+  }
+  if (excludeField !== "fuelType" && fuelType) {
+    where.fuelType = { equals: fuelType, mode: "insensitive" };
+  }
+  if (excludeField !== "transmission" && transmission) {
+    where.transmission = { equals: transmission, mode: "insensitive" };
+  }
+
+  return where;
+}
+
+function filterPredefinedOptions(list, predefined) {
+  return predefined.filter((type) => list.includes(type));
+}
+
+// Dynamic cascading filters based on current selections
+export async function getDynamicCarFilters({
+  make = "",
+  bodyType = "",
+  fuelType = "",
+  transmission = "",
+} = {}) {
+  try {
+    const [makes, bodyTypes_db, fuelTypes_db, transmissions_db, priceAggregations] =
+      await Promise.all([
+        db.car.findMany({
+          where: buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField: "make" }),
+          select: { make: true },
+          distinct: ["make"],
+          orderBy: { make: "asc" },
+        }),
+        db.car.findMany({
+          where: buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField: "bodyType" }),
+          select: { bodyType: true },
+          distinct: ["bodyType"],
+          orderBy: { bodyType: "asc" },
+        }),
+        db.car.findMany({
+          where: buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField: "fuelType" }),
+          select: { fuelType: true },
+          distinct: ["fuelType"],
+          orderBy: { fuelType: "asc" },
+        }),
+        db.car.findMany({
+          where: buildFilterWhere({ make, bodyType, fuelType, transmission, excludeField: "transmission" }),
+          select: { transmission: true },
+          distinct: ["transmission"],
+          orderBy: { transmission: "asc" },
+        }),
+        db.car.aggregate({
+          where: buildFilterWhere({ make, bodyType, fuelType, transmission }),
+          _min: { price: true },
+          _max: { price: true },
+        }),
+      ]);
+
+    const bodyTypesList = bodyTypes_db.map((item) => item.bodyType);
+    const fuelTypesList = fuelTypes_db.map((item) => item.fuelType);
+    const transmissionsList = transmissions_db.map((item) => item.transmission);
+
+    return {
+      success: true,
+      data: {
+        makes: dedupeFilterOptions(makes.map((item) => item.make)),
+        bodyTypes: filterPredefinedOptions(bodyTypesList, predefinedBodyTypes),
+        fuelTypes: filterPredefinedOptions(fuelTypesList, predefinedFuelTypes),
+        transmissions: filterPredefinedOptions(transmissionsList, predefinedTransmissions),
+        priceRange: {
+          min: priceAggregations._min.price
+            ? parseFloat(priceAggregations._min.price.toString())
+            : 0,
+          max: priceAggregations._max.price
+            ? parseFloat(priceAggregations._max.price.toString())
+            : 100000,
+        },
+      },
+    };
+  } catch (error) {
+    console.warn("[getDynamicCarFilters] Prisma failed, using Supabase:", error.message);
+    return getDynamicCarFiltersSupabase({ make, bodyType, fuelType, transmission });
+  }
+}
 
 // fetch cars as per filters
 export async function getCarsByFilters({
