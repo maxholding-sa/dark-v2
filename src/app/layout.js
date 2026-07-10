@@ -17,6 +17,9 @@ const cairo = Cairo({
   fallback: ["Tahoma", "Arial", "sans-serif"],
 });
 
+const isValidTikTokPixelId = (id) =>
+  typeof id === "string" && /^[A-Z0-9]{10,}$/i.test(id.trim());
+
 export const metadata = {
   title: {
     default: SITE_CONFIG.name,
@@ -224,14 +227,13 @@ export default async function RootLayout({ children }) {
           )}
 
           {/* TikTok Pixel */}
-          {pixels.tiktokPixel && (
+          {isValidTikTokPixelId(pixels.tiktokPixel) && (
             <Script
               id="tiktok-pixel"
               strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `
                   !function (w, d, t) {
-                    w.Tawk_API = w.Tawk_API || {};
                     w.ttq = w.ttq || [];
                     w.ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "trackWithQuery", "click", "updateId"];
                     w.ttq.setAndDefer = function (t, e) {
@@ -252,7 +254,7 @@ export default async function RootLayout({ children }) {
                       var a = d.getElementsByTagName("script")[0];
                       a.parentNode.insertBefore(o, a)
                     };
-                    w.ttq.load('${pixels.tiktokPixel}');
+                    w.ttq.load('${pixels.tiktokPixel.trim()}');
                     w.ttq.page();
                   }(window, document, 'ttq');
                 `,

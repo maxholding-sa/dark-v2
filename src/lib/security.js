@@ -27,12 +27,18 @@ const parseAllowedOrigins = () => {
 
 export const allowedOrigins = parseAllowedOrigins();
 
+const clerkScriptSources = [
+  "https://*.clerk.accounts.dev",
+  "https://*.clerk.dev",
+  "https://*.clerk.com",
+];
+
 const scriptSources = [
   "'self'",
   "'unsafe-inline'",
   process.env.NODE_ENV !== "production" ? "'unsafe-eval'" : null,
-  "https://*.clerk.accounts.dev",
-  "https://*.clerk.dev",
+  ...clerkScriptSources,
+  "https://challenges.cloudflare.com",
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
   "https://connect.facebook.net",
@@ -44,14 +50,22 @@ const scriptSources = [
 
 const connectSources = [
   "'self'",
-  "https://*.clerk.accounts.dev",
-  "https://*.clerk.dev",
+  ...clerkScriptSources,
   "https://*.supabase.co",
   "https://www.google-analytics.com",
   "https://analytics.google.com",
   "https://www.facebook.com",
   "https://analytics.tiktok.com",
   "https://*.clarity.ms",
+];
+
+const frameSources = [
+  "'self'",
+  ...clerkScriptSources,
+  "https://challenges.cloudflare.com",
+  "https://www.youtube.com",
+  "https://www.google.com",
+  "https://maps.google.com",
 ];
 
 export const securityHeaders = [
@@ -70,15 +84,15 @@ export const securityHeaders = [
       `script-src ${scriptSources.join(" ")}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://placehold.co https://www.facebook.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://img.clerk.com https://placehold.co https://www.facebook.com",
       "media-src 'self' blob: https://*.supabase.co",
       `connect-src ${connectSources.join(" ")}`,
-      "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.dev",
+      `frame-src ${frameSources.join(" ")}`,
+      "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "upgrade-insecure-requests",
     ].join("; "),
   },
 ];

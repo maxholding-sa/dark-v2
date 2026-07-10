@@ -30,7 +30,7 @@ import MandebSelector from "./MandebSelector";
 import ImageLightbox from "./ImageLightbox";
 import CarCard from "@/components/CarCard";
 
-const CarDetails = ({ car, testDriveInfo, user, similarCars = [] }) => {
+const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
   const router = useRouter();
   const { isSignedIn } = useAuth();
 

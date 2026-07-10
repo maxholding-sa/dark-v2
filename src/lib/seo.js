@@ -115,6 +115,7 @@ export const generateMetadata = ({
   author = SITE_CONFIG.name,
   robots = INDEX_ROBOTS,
   ogLocale = SITE_CONFIG.locale,
+  other = {},
 } = {}) => {
   const canonical = absoluteUrl(canonicalUrl);
   const allKeywords = [
@@ -182,6 +183,7 @@ export const generateMetadata = ({
     verification: {
       google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
     },
+    other,
   });
 };
 
@@ -355,7 +357,11 @@ export const generateCarMetadata = (car) => {
     keywords,
     ogImage: car.images?.[0] || car.image || SITE_CONFIG.defaultOgImage,
     canonicalUrl: `${SITE_CONFIG.url}/cars/${car.id}`,
-    ogType: "product",
+    // Next.js Metadata API only accepts standard Open Graph types (e.g. website, article).
+    ogType: "website",
+    other: {
+      "og:type": "product",
+    },
   });
 };
 

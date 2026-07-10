@@ -57,7 +57,6 @@ const CarPage = async ({ params }) => {
         <CarDetails
           car={car}
           testDriveInfo={result?.data.testDriveInfo}
-          user={result?.user}
           similarCars={similarCarsResult?.data || []}
         />
       </div>
