@@ -16,6 +16,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
   const [paused, setPaused] = useState(false);
   const [enableTransition, setEnableTransition] = useState(true);
   const touchStartX = useRef(null);
+  const trackRef = useRef(null);
 
   const mobileContainerRef = useRef(null);
   const [containerW, setContainerW] = useState(0);
@@ -23,8 +24,18 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
   const logicalActive =
     total > 0 ? ((active % total) + total) % total : 0;
 
+  // Keep index in the middle copy: [total, 2*total)
+  const normalizeToMiddle = useCallback(
+    (index) => {
+      if (total <= 1) return 0;
+      return total + ((index % total) + total) % total;
+    },
+    [total]
+  );
+
   useEffect(() => {
     setActive(total > 1 ? total : 0);
+    setEnableTransition(true);
   }, [total]);
 
   useEffect(() => {
@@ -44,16 +55,6 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       ? (containerW - cardW) / 2 - active * (cardW + gap)
       : 0;
 
-  const goTo = useCallback(
-    (index) => {
-      if (total === 0) return;
-      const normalized = ((index % total) + total) % total;
-      setEnableTransition(true);
-      setActive(total > 1 ? total + normalized : normalized);
-    },
-    [total]
-  );
-
   const next = useCallback(() => {
     if (total === 0) return;
     setEnableTransition(true);
@@ -66,26 +67,50 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
     setActive((cur) => cur - 1);
   }, [total]);
 
-  const handleTrackTransitionEnd = useCallback(() => {
-    if (total <= 1) return;
+  const handleTrackTransitionEnd = useCallback(
+    (e) => {
+      // Ignore bubbled opacity/etc transitions from child cards
+      if (e.target !== e.currentTarget) return;
+      if (e.propertyName !== "transform") return;
+      if (total <= 1) return;
 
-    if (active >= total * 2) {
-      setEnableTransition(false);
-      setActive((cur) => cur - total);
-    } else if (active < total) {
-      setEnableTransition(false);
-      setActive((cur) => cur + total);
-    }
-  }, [active, total]);
-
-  useEffect(() => {
-    if (!enableTransition) {
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setEnableTransition(true));
+      setActive((cur) => {
+        if (cur < total || cur >= total * 2) {
+          setEnableTransition(false);
+          return normalizeToMiddle(cur);
+        }
+        return cur;
       });
-      return () => cancelAnimationFrame(id);
+    },
+    [total, normalizeToMiddle]
+  );
+
+  // After a silent jump, re-enable transitions on the next frame
+  useEffect(() => {
+    if (enableTransition) return;
+
+    const track = trackRef.current;
+    if (track) {
+      // Force reflow so the browser applies the jump without animating
+      void track.offsetHeight;
     }
+
+    const id = requestAnimationFrame(() => {
+      setEnableTransition(true);
+    });
+    return () => cancelAnimationFrame(id);
   }, [enableTransition, active]);
+
+  // Desktop hides the mobile track (no transitionEnd) — keep index in the middle copy
+  useEffect(() => {
+    if (total <= 1) return;
+    if (active >= total * 2 || active < total) {
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (isDesktop) {
+        setActive(normalizeToMiddle(active));
+      }
+    }
+  }, [active, total, normalizeToMiddle]);
 
   useEffect(() => {
     if (paused || total <= 1) return;
@@ -123,6 +148,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
         onTouchEnd={handleTouchEnd}
       >
         <div
+          ref={trackRef}
           dir="ltr"
           className={`flex ${enableTransition ? "transition-transform duration-500 ease-out" : ""}`}
           style={{
@@ -139,7 +165,11 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
                 width: `${cardW}px`,
                 opacity: i === active ? 1 : 0.55,
               }}
-              onClick={() => i !== active && setActive(i)}
+              onClick={() => {
+                if (i === active) return;
+                setEnableTransition(true);
+                setActive(i);
+              }}
             >
               <Link
                 href={`/cars/${car.id}`}
@@ -156,19 +186,6 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
                 </div>
               </Link>
             </div>
-          ))}
-        </div>
-
-        <div className="flex justify-center gap-1.5 mt-3">
-          {cars.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                i === logicalActive ? "w-6 bg-yellow-500" : "w-2 bg-white/30"
-              }`}
-              aria-label={`انتقل إلى السيارة ${i + 1}`}
-            />
           ))}
         </div>
       </div>

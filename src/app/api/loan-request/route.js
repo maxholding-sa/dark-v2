@@ -78,7 +78,9 @@ export async function POST(request) {
       !birthYear ||
       !gender ||
       !loanAmount ||
-      !downPayment ||
+      downPayment === undefined ||
+      downPayment === null ||
+      downPayment === "" ||
       !loanTerm ||
       !carId
     ) {

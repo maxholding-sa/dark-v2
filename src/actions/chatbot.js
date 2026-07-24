@@ -4,6 +4,26 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { serializedCarsData } from "@/lib/helper";
+import {
+  ensureChatConversation,
+  appendChatMessages,
+  updateChatConversationState,
+  getConversationById,
+  resolveClerkUserId,
+} from "@/actions/chat-conversation";
+import {
+  startLoanFlow,
+  selectCarForLoan,
+  selectOfferForLoan,
+  handleLoanChatTurn,
+  showCarsForLoanSelection,
+} from "@/actions/chat-loan";
+import {
+  LOAN_CHAT_MODES,
+  emptyLoanState,
+  wantsFinancingFlow,
+  wantsCancelLoanFlow,
+} from "@/lib/chat-loan-intake";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -1076,18 +1096,113 @@ function formatStoreForAI(store) {
   return parts.join("\n");
 }
 
-export async function getChatbotResponse(message, conversationHistory = []) {
+export async function getChatbotResponse(message, conversationHistory = [], options = {}) {
   try {
+    const {
+      sessionId,
+      conversationId: incomingConversationId = null,
+      action = null,
+      actionPayload = {},
+    } = options || {};
+
+    if (!sessionId) {
+      return { success: false, message: "معرّف الجلسة مفقود. حدّث الصفحة وحاول مرة أخرى." };
+    }
+
+    let conversation = incomingConversationId
+      ? await getConversationById(incomingConversationId)
+      : null;
+
+    if (!conversation || conversation.sessionId !== sessionId) {
+      conversation = await ensureChatConversation(sessionId);
+    }
+
+    if (action === "select_car" && actionPayload.carId) {
+      return selectCarForLoan(conversation, actionPayload.carId, message || null);
+    }
+    if (action === "select_offer" && actionPayload.offerId != null) {
+      return selectOfferForLoan(conversation, actionPayload.offerId, message || null);
+    }
+    if (action === "start_loan") {
+      return startLoanFlow(conversation, {
+        cars: actionPayload.cars || [],
+        message: message || "أريد تمويل سيارة",
+      });
+    }
+
+    if (wantsCancelLoanFlow(message) && conversation.mode !== LOAN_CHAT_MODES.IDLE) {
+      await updateChatConversationState(conversation.id, {
+        mode: LOAN_CHAT_MODES.IDLE,
+        loanState: emptyLoanState(),
+      });
+      conversation = await getConversationById(conversation.id);
+      const cancelReply = {
+        success: true,
+        message: "تم إلغاء مسار التمويل. كيف يمكنني مساعدتك؟",
+        cars: [],
+        offers: [],
+        conversationId: conversation.id,
+        mode: LOAN_CHAT_MODES.IDLE,
+      };
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        { role: "assistant", content: cancelReply.message, payload: {} },
+      ]);
+      return cancelReply;
+    }
+
+    const activeLoanModes = [
+      LOAN_CHAT_MODES.LOAN_INTAKE,
+      LOAN_CHAT_MODES.OFFERS,
+      LOAN_CHAT_MODES.CONTACT_INTAKE,
+      LOAN_CHAT_MODES.ADMIN_CONTACT,
+    ];
+    if (activeLoanModes.includes(conversation.mode)) {
+      const loanReply = await handleLoanChatTurn(conversation, message);
+      if (loanReply) return loanReply;
+    }
+
+    if (conversation.mode === LOAN_CHAT_MODES.SUBMITTED) {
+      await updateChatConversationState(conversation.id, {
+        mode: LOAN_CHAT_MODES.IDLE,
+        loanState: emptyLoanState(),
+      });
+      conversation = await getConversationById(conversation.id);
+    }
+
     logger.debug("[chatbot] Received message", {
       messageLength: message?.length || 0,
       historyLength: conversationHistory.length,
+      conversationId: conversation.id,
+      mode: conversation.mode,
     });
     
     // تصحيح الأخطاء الإملائية في رسالة المستخدم
     const correctedMessage = correctArabicSpelling(message);
     const shouldShowCorrection = correctedMessage !== message;
     logger.debug("[chatbot] Spell check result", { corrected: shouldShowCorrection });
-    
+
+    // Financing: ask for car first, then show matching cars for selection
+    if (
+      wantsFinancingFlow(correctedMessage) &&
+      conversation.mode === LOAN_CHAT_MODES.IDLE
+    ) {
+      return startLoanFlow(conversation, { cars: [], message });
+    }
+
+    // While choosing a car for financing, search what the customer asked for
+    if (conversation.mode === LOAN_CHAT_MODES.CAR_SELECT) {
+      const matchedCars = await searchCarsInDatabase(
+        correctedMessage,
+        conversationHistory
+      );
+      return showCarsForLoanSelection(
+        conversation,
+        matchedCars.slice(0, 8),
+        message
+      );
+    }
+
     // Initialize the model - using gemini-1.5-flash
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -1137,12 +1252,9 @@ export async function getChatbotResponse(message, conversationHistory = []) {
       }
     }
 
-    if (
-      (intents.financing || intents.corporate) &&
-      relevantCars.length === 0
-    ) {
+    if (intents.corporate && relevantCars.length === 0) {
       relevantCars = await fetchLatestOfferCars();
-      logger.debug("[chatbot] Added sample cars for financing/corporate context");
+      logger.debug("[chatbot] Added sample cars for corporate context");
     }
 
     logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
@@ -1366,22 +1478,31 @@ ${priceContext}
       cleanedText = cleanedText.replace(/\[CARS_TO_SHOW\][\d,\s]+/, '').trim();
     }
 
-    // Save chat log to database for analytics
+    // Save chat log to database for analytics + full conversation history
     try {
+      const clerkUserId = await resolveClerkUserId();
       await db.chatLog.create({
         data: {
-          userId: null, // Will be populated if user is authenticated (future enhancement)
-          sessionId: `session_${Date.now()}`, // Simple session tracking
-          userMessage: message, // الرسالة الأصلية من المستخدم
-          correctedMessage: shouldShowCorrection ? correctedMessage : null, // Save corrected version if different
+          userId: clerkUserId,
+          sessionId,
+          userMessage: message,
+          correctedMessage: shouldShowCorrection ? correctedMessage : null,
           aiResponse: cleanedText,
           carsFound: relevantCars.length,
           carsShown: carsToShow.length,
           carIds: carsToShow.map(car => car.id),
-          language: /[\u0600-\u06FF]/.test(message) ? "ar" : "en", // Detect Arabic script
+          language: /[\u0600-\u06FF]/.test(message) ? "ar" : "en",
         }
       });
-      logger.debug("[chatbot] Chat log saved to database");
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        {
+          role: "assistant",
+          content: cleanedText,
+          payload: { cars: carsToShow },
+        },
+      ]);
+      logger.debug("[chatbot] Chat log + conversation saved");
     } catch (logError) {
       logger.error("[chatbot] Failed to save chat log", logError);
       // Don't throw error - logging failure shouldn't break the chat
@@ -1391,7 +1512,10 @@ ${priceContext}
       success: true,
       message: cleanedText,
       carsFound: relevantCars.length,
-      cars: carsToShow, // Include only the cars that AI mentioned
+      cars: carsToShow,
+      offers: [],
+      conversationId: conversation.id,
+      mode: conversation.mode,
     };
   } catch (error) {
     console.error("Error generating chatbot response:", error);

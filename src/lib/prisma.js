@@ -77,7 +77,7 @@ const createPrismaClient = () => {
 };
 
 // Bump when Prisma schema changes so HMR does not keep an outdated client.
-const PRISMA_CLIENT_VERSION = "20260709-car-section-flags";
+const PRISMA_CLIENT_VERSION = "20260724-chat-conversation";
 const globalForPrisma = globalThis;
 
 function getPrismaClient() {

@@ -1,88 +1,182 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, ExternalLink, Car } from "lucide-react";
+import {
+  X,
+  Send,
+  ExternalLink,
+  Car,
+  History,
+  Plus,
+  Banknote,
+  ChevronRight,
+} from "lucide-react";
 import { getChatbotResponse } from "@/actions/chatbot";
+import {
+  listChatConversations,
+  loadChatConversation,
+  createNewChatConversation,
+  ensureChatConversation,
+} from "@/actions/chat-conversation";
 import Link from "next/link";
 import Image from "next/image";
 import { formatSaudiRiyalText } from "@/lib/helper";
 
 const PROACTIVE_GREETING =
   "👋 أهلاً، أنا مساعد MAX AI\nأقدر أرشح لك سيارة حسب راتبك أو ميزانيتك";
-
-/** First show and repeat interval when chat is closed (ms). */
 const PROACTIVE_INTERVAL_MS = 8000;
+const SESSION_KEY = "max_chat_session_id";
+const CONVERSATION_KEY = "max_chat_conversation_id";
+const WELCOME_TEXT =
+  "مرحباً! أنا مساعد ماكس موتورز الذكي. كيف يمكنني مساعدتك اليوم؟ 🚗\nيمكنك أيضاً طلب تمويل وسيتم حساب العروض داخل المحادثة.";
+
+function getOrCreateSessionId() {
+  if (typeof window === "undefined") return null;
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) {
+    id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(SESSION_KEY, id);
+  }
+  return id;
+}
+
+function mapLoadedMessages(rows) {
+  if (!rows?.length) {
+    return [
+      {
+        id: "welcome",
+        text: WELCOME_TEXT,
+        sender: "bot",
+        timestamp: new Date(),
+        cars: [],
+        offers: [],
+      },
+    ];
+  }
+  return rows.map((msg) => ({
+    id: msg.id,
+    text: msg.text || msg.content,
+    sender: msg.sender || (msg.role === "user" ? "user" : "bot"),
+    timestamp: new Date(msg.createdAt || Date.now()),
+    cars: msg.cars || msg.payload?.cars || [],
+    offers: msg.offers || msg.payload?.offers || [],
+    fieldPrompt: msg.fieldPrompt || msg.payload?.fieldPrompt || null,
+    loanSubmitted: msg.loanSubmitted || msg.payload?.loanSubmitted || null,
+  }));
+}
 
 export default function ChatBot({ onOpenChange }) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "مرحباً! أنا مساعد ماكس موتورز الذكي. كيف يمكنني مساعدتك اليوم؟ 🚗",
-      sender: "bot",
-      timestamp: new Date(),
-      cars: [],
-    },
-  ]);
+  const [sessionId, setSessionId] = useState(null);
+  const [conversationId, setConversationId] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showStarterMessages, setShowStarterMessages] = useState(true);
   const [showProactiveBubble, setShowProactiveBubble] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const proactiveTimersRef = useRef({ hide: null, next: null });
   const scheduleNextBubbleRef = useRef(null);
 
-  // Starter message options - aligned with chatbot's search capabilities
   const starterMessages = [
     {
       id: 1,
       text: "هل يوجد سيارات فاخرة لديكم؟",
       icon: "✨",
-      description: "سيارات فاخرة"
+      description: "سيارات فاخرة",
     },
     {
       id: 2,
       text: "أبحث عن أحدث عروض السيارات المتوفرة حالياً؟",
       icon: "🚗",
-      description: "أحدث العروض"
+      description: "أحدث العروض",
     },
     {
       id: 3,
       text: "ما هي أفضل سيارة اقتصادية في السعر والوقود؟",
       icon: "💰",
-      description: "اقتصادية في السعر والوقود"
+      description: "اقتصادية في السعر والوقود",
     },
     {
       id: 4,
       text: "أريد مقارنة بين موديلات السيارات المختلفة",
       icon: "📊",
-      description: "مقارنة الموديلات"
+      description: "مقارنة الموديلات",
     },
     {
       id: 5,
-      text: "هل يوجد تقسيط أو تمويل بنكي؟ وما هي الشروط؟",
+      text: "أريد تمويل سيارة",
       icon: "🏦",
-      description: "التقسيط والتمويل البنكي"
+      description: "اختر سيارة ثم احسب العروض",
     },
     {
       id: 6,
       text: "أريد التواصل بخصوص عروض الشركات والمؤسسات؟",
       icon: "🏢",
-      description: "عروض الشركات والمؤسسات"
+      description: "عروض الشركات والمؤسسات",
     },
   ];
 
-  useEffect(() => {
-    setMounted(true);
+  const refreshHistory = useCallback(async (sid) => {
+    if (!sid) return;
+    setHistoryLoading(true);
+    try {
+      const items = await listChatConversations(sid);
+      setHistoryItems(items || []);
+    } catch (error) {
+      console.error("Failed to load chat history", error);
+    } finally {
+      setHistoryLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (onOpenChange) {
-      onOpenChange(isOpen);
-    }
+    const sid = getOrCreateSessionId();
+    setSessionId(sid);
+    setMounted(true);
+
+    (async () => {
+      try {
+        const savedConversationId = localStorage.getItem(CONVERSATION_KEY);
+        if (savedConversationId) {
+          const loaded = await loadChatConversation(savedConversationId, sid);
+          if (loaded.success) {
+            setConversationId(loaded.conversation.id);
+            setMessages(mapLoadedMessages(loaded.conversation.messages));
+            setShowStarterMessages(
+              !(loaded.conversation.messages || []).some((m) => m.sender === "user" || m.role === "user")
+            );
+            return;
+          }
+        }
+        const conversation = await ensureChatConversation(sid, {
+          title: "محادثة جديدة",
+        });
+        setConversationId(conversation.id);
+        localStorage.setItem(CONVERSATION_KEY, conversation.id);
+        setMessages(mapLoadedMessages([]));
+      } catch (error) {
+        console.error("Failed to init chat conversation", error);
+        setMessages(mapLoadedMessages([]));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (onOpenChange) onOpenChange(isOpen);
   }, [isOpen, onOpenChange]);
+
+  useEffect(() => {
+    if (isOpen && sessionId) refreshHistory(sessionId);
+  }, [isOpen, sessionId, refreshHistory]);
 
   useEffect(() => {
     if (!mounted || isOpen) {
@@ -116,18 +210,11 @@ export default function ChatBot({ onOpenChange }) {
       if (proactiveTimersRef.current.next) {
         clearTimeout(proactiveTimersRef.current.next);
       }
-      proactiveTimersRef.current.next = setTimeout(
-        showBubble,
-        PROACTIVE_INTERVAL_MS
-      );
+      proactiveTimersRef.current.next = setTimeout(showBubble, PROACTIVE_INTERVAL_MS);
     };
 
     scheduleNextBubbleRef.current = scheduleNextBubble;
-
-    proactiveTimersRef.current.next = setTimeout(
-      showBubble,
-      PROACTIVE_INTERVAL_MS
-    );
+    proactiveTimersRef.current.next = setTimeout(showBubble, PROACTIVE_INTERVAL_MS);
 
     return () => {
       clearProactiveTimers();
@@ -141,58 +228,43 @@ export default function ChatBot({ onOpenChange }) {
       clearTimeout(proactiveTimersRef.current.hide);
       proactiveTimersRef.current.hide = null;
     }
-    if (scheduleNext) {
-      scheduleNextBubbleRef.current?.();
-    }
+    if (scheduleNext) scheduleNextBubbleRef.current?.();
   };
 
-  const scrollToBottom = () => {
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [messages, isTyping]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Hide starter messages after user sends first message
-  useEffect(() => {
-    const userMessages = messages.filter(msg => msg.sender === "user");
-    if (userMessages.length > 0) {
-      setShowStarterMessages(false);
-    }
+    const userMessages = messages.filter((msg) => msg.sender === "user");
+    if (userMessages.length > 0) setShowStarterMessages(false);
   }, [messages]);
 
   const formatMessageText = (text) => {
-    const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\)|https?:\/\/[^\s]+)/g);
-    
+    const parts = String(text || "").split(/(\*\*.*?\*\*|\[.*?\]\(.*?\)|https?:\/\/[^\s]+)/g);
     return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
+      if (part.startsWith("**") && part.endsWith("**")) {
         return (
           <strong key={index} className="font-bold">
-            {boldText}
+            {part.slice(2, -2)}
           </strong>
         );
       }
-      
       const markdownLinkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
       if (markdownLinkMatch) {
-        const linkText = markdownLinkMatch[1];
-        const linkUrl = markdownLinkMatch[2];
         return (
           <a
             key={index}
-            href={linkUrl}
+            href={markdownLinkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 underline break-all"
             onClick={(e) => e.stopPropagation()}
           >
-            {linkText}
+            {markdownLinkMatch[1]}
           </a>
         );
       }
-      
       if (part.match(/^https?:\/\//)) {
         return (
           <a
@@ -207,23 +279,44 @@ export default function ChatBot({ onOpenChange }) {
           </a>
         );
       }
-      
       return <span key={index}>{part}</span>;
     });
   };
 
-  const handleStarterMessageClick = async (messageText) => {
-    // Create user message
+  const applyBotResult = (result) => {
+    if (result?.conversationId) {
+      setConversationId(result.conversationId);
+      localStorage.setItem(CONVERSATION_KEY, result.conversationId);
+    }
+    return {
+      id: `${Date.now()}_bot`,
+      text: result?.success
+        ? result.message
+        : result?.message || "عذراً، واجهت مشكلة في الاتصال. يرجى المحاولة مرة أخرى. 😊",
+      sender: "bot",
+      timestamp: new Date(),
+      cars: result?.cars || [],
+      offers: result?.offers || [],
+      fieldPrompt: result?.fieldPrompt || null,
+      loanSubmitted: result?.loanSubmitted || null,
+    };
+  };
+
+  const sendMessage = async (messageText, extraOptions = {}) => {
+    if (!messageText?.trim() || isTyping || !sessionId) return;
+
     const userMessage = {
-      id: Date.now(),
-      text: messageText,
+      id: `${Date.now()}_user`,
+      text: messageText.trim(),
       sender: "user",
       timestamp: new Date(),
     };
 
-    // Add user message to chat
-    setMessages((prev) => [...prev, userMessage]);
+    if (!extraOptions.skipUserBubble) {
+      setMessages((prev) => [...prev, userMessage]);
+    }
     setShowStarterMessages(false);
+    setShowHistory(false);
     setIsTyping(true);
 
     try {
@@ -233,81 +326,90 @@ export default function ChatBot({ onOpenChange }) {
         cars: msg.cars || [],
       }));
 
-      const result = await getChatbotResponse(messageText, conversationHistory);
+      const result = await getChatbotResponse(messageText.trim(), conversationHistory, {
+        sessionId,
+        conversationId,
+        ...extraOptions,
+      });
 
-      const botResponse = {
-        id: Date.now() + 1,
-        text: result.success
-          ? result.message
-          : "عذراً، واجهت مشكلة في الاتصال. يرجى المحاولة مرة أخرى. 😊",
-        sender: "bot",
-        timestamp: new Date(),
-        cars: result.success && result.cars ? result.cars : [],
-      };
-
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [...prev, applyBotResult(result)]);
+      refreshHistory(sessionId);
     } catch (error) {
       console.error("Error sending message:", error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً. 🙏",
-        sender: "bot",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}_err`,
+          text: "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً. 🙏",
+          sender: "bot",
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
   };
 
+  const handleStarterMessageClick = (messageText) => sendMessage(messageText);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
-    if (!inputMessage.trim() || isTyping) return;
-
-    const userMessageText = inputMessage.trim();
-
-    const userMessage = {
-      id: Date.now(),
-      text: userMessageText,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const text = inputMessage.trim();
+    if (!text) return;
     setInputMessage("");
+    await sendMessage(text);
+  };
+
+  const handleSelectCar = async (carId) => {
+    await sendMessage("اختيار سيارة للتمويل", {
+      action: "select_car",
+      actionPayload: { carId },
+    });
+  };
+
+  const handleSelectOffer = async (offerId) => {
+    await sendMessage("اختيار عرض تمويلي", {
+      action: "select_offer",
+      actionPayload: { offerId },
+    });
+  };
+
+  const handleQuickOption = async (value) => {
+    setInputMessage("");
+    await sendMessage(value);
+  };
+
+  const handleNewChat = async () => {
+    if (!sessionId || isTyping) return;
     setIsTyping(true);
-    setShowStarterMessages(false);
-
     try {
-      const conversationHistory = messages.map((msg) => ({
-        sender: msg.sender,
-        text: msg.text,
-        cars: msg.cars || [],
-      }));
-
-      const result = await getChatbotResponse(userMessageText, conversationHistory);
-
-      const botResponse = {
-        id: Date.now() + 1,
-        text: result.success
-          ? result.message
-          : "عذراً، واجهت مشكلة في الاتصال. يرجى المحاولة مرة أخرى. 😊",
-        sender: "bot",
-        timestamp: new Date(),
-        cars: result.success && result.cars ? result.cars : [],
-      };
-
-      setMessages((prev) => [...prev, botResponse]);
+      const conversation = await createNewChatConversation(sessionId);
+      setConversationId(conversation.id);
+      localStorage.setItem(CONVERSATION_KEY, conversation.id);
+      setMessages(mapLoadedMessages([]));
+      setShowStarterMessages(true);
+      setShowHistory(false);
+      refreshHistory(sessionId);
     } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً. 🙏",
-        sender: "bot",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error("Failed to create conversation", error);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleLoadConversation = async (id) => {
+    if (!sessionId || isTyping) return;
+    setIsTyping(true);
+    try {
+      const loaded = await loadChatConversation(id, sessionId);
+      if (!loaded.success) return;
+      setConversationId(loaded.conversation.id);
+      localStorage.setItem(CONVERSATION_KEY, loaded.conversation.id);
+      setMessages(mapLoadedMessages(loaded.conversation.messages));
+      setShowStarterMessages(false);
+      setShowHistory(false);
+    } catch (error) {
+      console.error("Failed to load conversation", error);
     } finally {
       setIsTyping(false);
     }
@@ -317,7 +419,6 @@ export default function ChatBot({ onOpenChange }) {
     <>
       {!isOpen && (
         <div className="fixed z-[60] left-[max(1rem,env(safe-area-inset-left,0px))] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] md:left-6 md:bottom-6">
-          {/* w-fit = عرض الزر فقط؛ الفقاعة محاذية من يسار الزر */}
           <div className="relative w-fit">
             {showProactiveBubble && (
               <div
@@ -374,188 +475,322 @@ export default function ChatBot({ onOpenChange }) {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-96 h-[80vh] md:h-[600px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-yellow-600 text-white rounded-t-2xl md:rounded-t-2xl p-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-[26rem] h-[80vh] md:h-[640px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-yellow-600 text-white rounded-t-2xl p-3 md:p-4 flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="rounded-full overflow-hidden shrink-0">
                 <Image
                   src="/chatbot-logo.png"
                   alt="مساعد ماكس موتورز"
                   width={40}
                   height={40}
-                  className="h-9 w-9 md:h-10 md:w-10 object-cover"
+                  className="h-9 w-9 object-cover"
                 />
               </div>
-              <div>
-                <h3 className="font-bold text-base md:text-lg">مساعد ماكس موتورز</h3>
-                <p className="text-xs text-gray-300">متصل الآن</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm md:text-base truncate">مساعد ماكس موتورز</h3>
+                <p className="text-[11px] text-yellow-100">تمويل + سجل محادثات</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-gray-800 rounded-full p-2 transition"
-              aria-label="إغلاق الدردشة"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleNewChat}
+                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                aria-label="محادثة جديدة"
+                title="محادثة جديدة"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowHistory((v) => !v)}
+                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                aria-label="سجل المحادثات"
+                title="سجل المحادثات"
+              >
+                <History className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                aria-label="إغلاق الدردشة"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-zinc-900">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex flex-col ${
-                  message.sender === "user" ? "items-end" : "items-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[80%] md:max-w-[75%] rounded-2xl p-2.5 md:p-3 ${
-                    message.sender === "user"
-                      ? "bg-yellow-600 text-white rounded-bl-none"
-                      : "bg-white text-gray-900 rounded-br-none shadow-md border border-gray-200"
-                  }`}
+          {showHistory ? (
+            <div className="flex-1 overflow-y-auto p-3 bg-zinc-900 space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold">محادثاتي السابقة</h4>
+                <button
+                  type="button"
+                  className="text-xs text-yellow-500"
+                  onClick={() => setShowHistory(false)}
                 >
-                  <div className="text-sm leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere">
-                    {formatMessageText(message.text)}
-                  </div>
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.sender === "user"
-                        ? "text-gray-300"
-                        : "text-gray-400"
+                  رجوع للمحادثة
+                </button>
+              </div>
+              {historyLoading ? (
+                <p className="text-sm text-white/60 text-center py-8">جاري التحميل...</p>
+              ) : historyItems.length === 0 ? (
+                <p className="text-sm text-white/60 text-center py-8">لا توجد محادثات بعد</p>
+              ) : (
+                historyItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleLoadConversation(item.id)}
+                    className={`w-full text-right rounded-xl border p-3 transition ${
+                      item.id === conversationId
+                        ? "border-yellow-600 bg-yellow-950/40"
+                        : "border-white/10 bg-zinc-950 hover:border-yellow-700/60"
                     }`}
                   >
-                    {message.timestamp.toLocaleTimeString("ar-SA", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-
-                {message.cars && message.cars.length > 0 && (
-                  <div className="mt-2 space-y-2 w-full max-w-[90%]">
-                    {message.cars.map((car) => (
-                      <Link
-                        key={car.id}
-                        href={`/cars/${car.id}`}
-                        className="block bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow overflow-hidden"
-                      >
-                        <div className="flex gap-2">
-                          <div className="w-24 h-24 relative flex-shrink-0">
-                            {car.images && car.images[0] ? (
-                              <Image
-                                src={car.images[0]}
-                                alt={`${car.make} ${car.model}`}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                <Car className="h-8 w-8 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 p-2 min-w-0">
-                            <h4 className="font-bold text-sm text-gray-900 truncate">
-                              {car.make} {car.model}
-                            </h4>
-                            <p className="text-xs text-gray-600">
-                              {car.year} • {car.bodyType}
-                            </p>
-                            <p className="text-sm font-bold text-green-600 mt-1">
-                              {formatSaudiRiyalText(car.price)}
-                            </p>
-                            {car.featured && (
-                              <span className="inline-block text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full mt-1">
-                                ⭐ مميزة
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center px-2">
-                            <ExternalLink className="h-4 w-4 text-gray-400" />
-                          </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <ChevronRight className="h-4 w-4 text-white/40 shrink-0" />
+                    </div>
+                    <p className="text-[11px] text-white/50 mt-1">
+                      {item.messageCount} رسالة ·{" "}
+                      {new Date(item.updatedAt).toLocaleDateString("ar-SA")}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-zinc-900">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex flex-col ${
+                      message.sender === "user" ? "items-end" : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl p-2.5 md:p-3 ${
+                        message.sender === "user"
+                          ? "bg-yellow-600 text-white rounded-bl-none"
+                          : "bg-white text-gray-900 rounded-br-none shadow-md border border-gray-200"
+                      }`}
+                    >
+                      <div className="text-sm leading-relaxed whitespace-pre-line break-words">
+                        {formatMessageText(message.text)}
+                      </div>
+                      {message.fieldPrompt?.options?.length ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {message.fieldPrompt.options.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              disabled={isTyping}
+                              onClick={() => handleQuickOption(opt.label || opt.value)}
+                              className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200"
+                            >
+                              {opt.label || opt.value}
+                            </button>
+                          ))}
                         </div>
-                      </Link>
+                      ) : null}
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender === "user" ? "text-yellow-100" : "text-gray-400"
+                        }`}
+                      >
+                        {message.timestamp.toLocaleTimeString("ar-SA", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+
+                    {message.cars?.length > 0 && (
+                      <div className="mt-2 space-y-2 w-full max-w-[95%]">
+                        {message.cars.map((car) => (
+                          <div
+                            key={car.id}
+                            className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden"
+                          >
+                            <Link href={`/cars/${car.id}`} className="flex gap-2">
+                              <div className="w-20 h-20 relative flex-shrink-0">
+                                {car.images?.[0] ? (
+                                  <Image
+                                    src={car.images[0]}
+                                    alt={`${car.make} ${car.model}`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                    <Car className="h-7 w-7 text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 p-2 min-w-0">
+                                <h4 className="font-bold text-sm text-gray-900 truncate">
+                                  {car.make} {car.model}
+                                </h4>
+                                <p className="text-xs text-gray-600">
+                                  {car.year} • {car.bodyType}
+                                </p>
+                                <p className="text-sm font-bold text-green-600 mt-1">
+                                  {formatSaudiRiyalText(car.price)}
+                                </p>
+                              </div>
+                              <div className="flex items-center px-2">
+                                <ExternalLink className="h-4 w-4 text-gray-400" />
+                              </div>
+                            </Link>
+                            <div className="px-2 pb-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={isTyping}
+                                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
+                                onClick={() => handleSelectCar(car.id)}
+                              >
+                                <Banknote className="h-3.5 w-3.5 ml-1" />
+                                {Number(car.price) > 0
+                                  ? "موّل هذه السيارة"
+                                  : "تواصل مع الإدارة للتسعير"}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {message.offers?.length > 0 && (
+                      <div className="mt-2 space-y-2 w-full max-w-[95%]">
+                        {message.offers.slice(0, 8).map((offer) => (
+                          <div
+                            key={offer.id}
+                            className="rounded-lg border border-yellow-700/70 bg-zinc-950 p-3 text-right"
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <p className="text-sm font-semibold text-yellow-500">
+                                {offer.bankName}
+                              </p>
+                              <p className="text-xs text-white/60">
+                                {Math.floor((offer.termMonths || 60) / 12)} سنوات
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-center text-xs mb-2">
+                              <div className="rounded bg-black/60 p-2">
+                                <p className="text-white/50">القسط الشهري</p>
+                                <p className="font-semibold text-white">
+                                  {Math.round(offer.monthlyPayment || 0).toLocaleString("en-US")}
+                                </p>
+                              </div>
+                              <div className="rounded bg-black/60 p-2">
+                                <p className="text-white/50">الدفعة الأولى</p>
+                                <p className="font-semibold text-white">
+                                  {Math.round(offer.downPayment || 0).toLocaleString("en-US")}
+                                </p>
+                              </div>
+                              <div className="rounded bg-black/60 p-2">
+                                <p className="text-white/50">الدفعة الأخيرة</p>
+                                <p className="font-semibold text-white">
+                                  {Math.round(offer.balloonPayment || 0).toLocaleString("en-US")}
+                                </p>
+                              </div>
+                              <div className="rounded bg-black/60 p-2">
+                                <p className="text-white/50">نسبة الدفعة</p>
+                                <p className="font-semibold text-white">
+                                  {Number(offer.downPaymentPct || 0).toFixed(1)}%
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={isTyping}
+                              className="w-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                              onClick={() => handleSelectOffer(offer.id)}
+                            >
+                              اختر هذا العرض وأكمل الطلب
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {showStarterMessages && messages.length <= 1 && (
+                  <div className="space-y-2 animate-in fade-in-50 duration-500">
+                    <p className="text-sm text-white text-center mb-3">
+                      اختر أحد الخيارات للبدء:
+                    </p>
+                    {starterMessages.map((starter) => (
+                      <button
+                        key={starter.id}
+                        onClick={() => handleStarterMessageClick(starter.text)}
+                        className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-3 text-right transition-all duration-200 hover:shadow-md group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{starter.icon}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{starter.text}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{starter.description}</p>
+                          </div>
+                          <Send className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </button>
                     ))}
                   </div>
                 )}
-              </div>
-            ))}
 
-            {/* Starter Messages - Show only at the beginning */}
-            {showStarterMessages && messages.length === 1 && (
-              <div className="space-y-2 animate-in fade-in-50 duration-500">
-                <p className="text-sm text-white text-center mb-3">
-                  اختر أحد الخيارات للبدء:
-                </p>
-                {starterMessages.map((starter) => (
-                  <button
-                    key={starter.id}
-                    onClick={() => handleStarterMessageClick(starter.text)}
-                    className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-3 text-right transition-all duration-200 hover:shadow-md hover:border-gray-300 group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{starter.icon}</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900 group-hover:text-black">
-                          {starter.text}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {starter.description}
-                        </p>
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-white text-gray-800 rounded-2xl rounded-br-none p-2.5 shadow-md border border-gray-200">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        />
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.4s" }}
+                        />
                       </div>
-                      <Send className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white text-gray-800 rounded-2xl rounded-br-none p-2.5 md:p-3 shadow-md border border-gray-200">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.4s" }}
-                    ></div>
                   </div>
-                </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          <form
-            onSubmit={handleSendMessage}
-            className="p-3 md:p-4 bg-zinc-950 border-t border-white/10 md:rounded-b-2xl rounded-b-none"
-          >
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="اكتب رسالتك هنا..."
-                className="flex-1 rounded-full border-gray-600 bg-zinc-900 focus:border-white text-base text-white placeholder:text-gray-400"
-                disabled={isTyping}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className="rounded-full bg-yellow-600 hover:bg-yellow-700 text-white transition-all duration-300 hover:scale-105 h-10 w-10 md:h-11 md:w-11"
-                disabled={isTyping || !inputMessage.trim()}
+              <form
+                onSubmit={handleSendMessage}
+                className="p-3 md:p-4 bg-zinc-950 border-t border-white/10 md:rounded-b-2xl"
               >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="اكتب رسالتك هنا..."
+                    className="flex-1 rounded-full border-gray-600 bg-zinc-900 focus:border-white text-base text-white placeholder:text-gray-400"
+                    disabled={isTyping}
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="rounded-full bg-yellow-600 hover:bg-yellow-700 text-white h-10 w-10"
+                    disabled={isTyping || !inputMessage.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       )}
     </>

@@ -10,64 +10,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatSaudiRiyalReact } from "@/lib/helper";
-import { buildCustomerFinancingOffer, createBankConfigFromBank, LOAN_CALCULATOR_META, registerAprDisclosureBanks } from "@/lib/loan-calculator";
-import { getBalloonOptionsForBank, getProfitRateForSector } from "@/lib/bank-finance";
-import { EMPLOYER_SECTORS } from "@/constants/employer-sectors";
-import { isBrandInSegmentMap, parseBrandSegmentMap, validateInsuranceSegment } from "@/lib/brand-segment";
 import {
-  buildFinancingScenarioInputs,
+  LOAN_CALCULATOR_META,
+  registerAprDisclosureBanks,
+} from "@/lib/loan-calculator";
+import { EMPLOYER_SECTORS } from "@/constants/employer-sectors";
+import {
   logFinancingOfferScenario,
 } from "@/lib/financing-scenario-log";
+import {
+  generateIslamicOffers,
+  formatPercent,
+  getEmployerSectorLabel,
+  getCarPrice,
+  getMaxDownPaymentSar,
+  resolveDownPaymentSar,
+} from "@/lib/generate-islamic-offers";
 import { Currency, User, Mail, Phone, MessageSquare, Calendar, ChevronLeft, ChevronRight, Upload, CheckCircle, Car, File, Key, Lock, Banknote, TrendingUp, AlertTriangle, Shield, Target, Award, BarChart3, DollarSign, Percent, Clock, Star } from "lucide-react";
 
-const CURRENT_HIJRI_YEAR = 1447;
-const CURRENT_GREGORIAN_YEAR = 2026;
-
-const getAgeBracketFromBirthYear = (birthYear, birthDateType = "hijri") => {
-  const year = Number.parseInt(birthYear, 10);
-  if (!year) return "31 to 35";
-  const currentYear = birthDateType === "gregorian" ? CURRENT_GREGORIAN_YEAR : CURRENT_HIJRI_YEAR;
-  const age = currentYear - year;
-  if (age <= 24) return "18 to 24";
-  if (age <= 30) return "25 to 30";
-  if (age <= 35) return "31 to 35";
-  if (age <= 40) return "36 to 40";
-  if (age <= 45) return "41 to 45";
-  if (age <= 50) return "46 to 50";
-  if (age <= 60) return "51 to 60";
-  return "61+";
-};
-
-const MAX_OFFERS_PER_BANK = 5;
 const MAX_DOWN_PAYMENT_PCT = LOAN_CALCULATOR_META.maxDownPaymentPct;
-const TERM_MONTHS = 60; // 5 years
 
-const formatPercent = (value, digits = 2) => `${Number(value || 0).toFixed(digits)}%`;
-const getEmployerSectorLabel = (value) =>
-  EMPLOYER_SECTORS.find((sector) => sector.value === value)?.label || value || "غير محدد";
 const formatBalloonPolicy = (offer) =>
   offer.loanPolicy || (offer.balloonPayment > 0 ? "دفعة أخيرة حسب جهة التمويل" : "غير محدد");
 
 const DEFAULT_DOWN_PAYMENT_PCT = 0.2;
-
-const parseCarPrice = (value) => {
-  if (value == null || value === "") return 0;
-  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value : 0;
-  if (typeof value === "object" && typeof value.toString === "function") {
-    return parseCarPrice(value.toString());
-  }
-  const parsed = parseFloat(String(value).replace(/[^\d.-]/g, ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-};
-
-const getCarPrice = (car, formData) => {
-  const fromCar = parseCarPrice(car?.price);
-  if (fromCar > 0) return fromCar;
-  return parseCarPrice(formData?.loanAmount);
-};
-
-const getMaxDownPaymentSar = (carPrice) =>
-  carPrice > 0 ? Math.floor(carPrice * MAX_DOWN_PAYMENT_PCT) : 0;
 
 const getDefaultDownPaymentSar = (carPrice, pct = DEFAULT_DOWN_PAYMENT_PCT) => {
   if (!Number.isFinite(carPrice) || carPrice <= 0) return "";
@@ -76,46 +42,51 @@ const getDefaultDownPaymentSar = (carPrice, pct = DEFAULT_DOWN_PAYMENT_PCT) => {
   return String(Math.min(defaultAmount, maxAllowed));
 };
 
-const resolveDownPaymentSar = (formData, carPrice) => {
-  const maxAllowed = getMaxDownPaymentSar(carPrice);
-  const entered = Number(formData?.downPayment);
-  if (Number.isFinite(entered) && entered > 0 && entered <= maxAllowed) {
-    return entered;
-  }
-  if (carPrice > 0) {
-    return Number(getDefaultDownPaymentSar(carPrice));
-  }
-  return null;
+const getDownPaymentInputValue = (formData) => {
+  const raw = formData?.downPayment;
+  if (raw === "" || raw == null) return "0";
+  const entered = Number(raw);
+  if (!Number.isFinite(entered) || entered < 0) return "0";
+  return String(entered);
 };
 
-const getDownPaymentInputValue = (car, formData) => {
-  const carPrice = getCarPrice(car, formData);
-  if (carPrice <= 0) return "";
-
-  const maxAllowed = getMaxDownPaymentSar(carPrice);
-  const entered = Number(formData?.downPayment);
-  if (Number.isFinite(entered) && entered > 0 && entered <= maxAllowed) {
-    return String(entered);
+const formatOfferMoney = (amount) => {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value < 0) {
+    return formatSaudiRiyalReact(0);
   }
-
-  return getDefaultDownPaymentSar(carPrice);
+  if (value === 0) {
+    return <span>0</span>;
+  }
+  return formatSaudiRiyalReact(value);
 };
 
+/** Keep loan amount in sync with car price; keep first payment as entered (including 0). */
 const syncDownPaymentFormData = (car, prev) => {
   const carPrice = getCarPrice(car, prev);
-  if (carPrice <= 0) return prev;
+  if (carPrice <= 0) {
+    if (!prev.loanAmount) return prev;
+    return { ...prev, loanAmount: "" };
+  }
 
   const maxAllowed = getMaxDownPaymentSar(carPrice);
-  const entered = Number(prev.downPayment);
-  const isValid = Number.isFinite(entered) && entered > 0 && entered <= maxAllowed;
-  const defaultDownPayment = getDefaultDownPaymentSar(carPrice);
+  const raw = prev.downPayment;
+  const entered = Number(raw);
+  const isMissing = raw === "" || raw == null || !Number.isFinite(entered) || entered < 0;
 
-  if (isValid && Number(prev.loanAmount) === carPrice) return prev;
+  let downPayment = "0";
+  if (!isMissing) {
+    downPayment = entered > maxAllowed ? String(maxAllowed) : String(entered);
+  }
+
+  if (downPayment === String(prev.downPayment ?? "0") && Number(prev.loanAmount) === carPrice) {
+    return prev;
+  }
 
   return {
     ...prev,
     loanAmount: String(carPrice),
-    downPayment: isValid ? prev.downPayment : defaultDownPayment,
+    downPayment,
   };
 };
 
@@ -134,7 +105,7 @@ const createInitialFormData = (car) => {
     birthYear: "",
     gender: "",
     loanAmount: carPrice > 0 ? String(carPrice) : "",
-    downPayment: getDefaultDownPaymentSar(carPrice),
+    downPayment: "0",
     loanTerm: "5",
     monthlyIncome: "",
     employmentStatus: "",
@@ -151,183 +122,6 @@ const createInitialFormData = (car) => {
     city: "",
     time: "",
   };
-};
-
-/** Best offer first: lowest monthly, then down payment, then total cost. */
-const compareOffersBestFirst = (a, b) => {
-  if (a.monthlyPayment !== b.monthlyPayment) return a.monthlyPayment - b.monthlyPayment;
-  if (a.downPayment !== b.downPayment) return a.downPayment - b.downPayment;
-  return (a.totalPayment ?? 0) - (b.totalPayment ?? 0);
-};
-
-const generateIslamicOffers = ({ banks, formData, car }) => {
-  const carPrice = getCarPrice(car, formData);
-  if (carPrice <= 0) {
-    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "لم يتم تحديد سعر لهذه السيارة. يرجى التواصل مع الإدارة لتحديث سعر السيارة." };
-  }
-  if (!banks.length) {
-    return { offers: [], scenarioInputs: null, pricingBlocked: true, pricingBlockReason: "جاري تحميل بيانات البنوك..." };
-  }
-
-  let insuranceSegment;
-  try {
-    insuranceSegment = validateInsuranceSegment(car.insuranceSegment);
-  } catch {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason:
-        "فئة التأمين غير محددة لهذه السيارة. يجب تعيين فئة التأمين (من جدول الماركات) قبل إنشاء العروض.",
-    };
-  }
-
-  const eligibleBanks = banks.filter((bank) => {
-    const bankConfig = createBankConfigFromBank(bank);
-    const bankBrandMap = parseBrandSegmentMap(bank?.brandSegmentMap, bankConfig.brand_segment_map);
-    return isBrandInSegmentMap(bankBrandMap, car.make);
-  });
-
-  if (!eligibleBanks.length) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: `ماركة "${car.make}" غير موجودة في جداول فئات أي بنك شريك. يلزم مراجعة يدوية أو تحديث جداول الفئات.`,
-    };
-  }
-
-  const selectedBank =
-    banks.find((b) => b.id.toString() === formData.salaryTransferBank) || eligibleBanks[0];
-  const selectedBankConfig = createBankConfigFromBank(selectedBank);
-  const profitRate = getProfitRateForSector(selectedBank, formData.employerSector);
-  const adminPct = selectedBankConfig.default_admin_fees_pct ?? 0.01;
-  const ageBracket = getAgeBracketFromBirthYear(formData.birthYear, formData.birthDateType);
-  const gender = formData.gender || "male";
-
-  if (!formData.employerSector) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: "اختر قطاع جهة العمل أولاً حتى يتم حساب سعر الربح الصحيح لكل بنك حسب القطاع.",
-    };
-  }
-
-  const requestedDownPayment = resolveDownPaymentSar(formData, carPrice);
-  const requestedDownPaymentPct =
-    requestedDownPayment != null && carPrice > 0 ? requestedDownPayment / carPrice : NaN;
-
-  if (requestedDownPayment == null || !Number.isFinite(requestedDownPaymentPct) || requestedDownPayment <= 0) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: "أدخل الدفعة الأولى التي تناسبك حتى تظهر عروض البنوك بناءً عليها.",
-    };
-  }
-
-  if (requestedDownPayment > getMaxDownPaymentSar(carPrice)) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: `أقصى دفعة أولى مسموحة هي ${getMaxDownPaymentSar(carPrice).toLocaleString("en-US")} ريال (${formatPercent(MAX_DOWN_PAYMENT_PCT * 100, 0)} من سعر السيارة).`,
-    };
-  }
-
-  if (requestedDownPayment >= carPrice) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: "الدفعة الأولى يجب أن تكون أقل من سعر السيارة.",
-    };
-  }
-
-  if (requestedDownPaymentPct > MAX_DOWN_PAYMENT_PCT) {
-    return {
-      offers: [],
-      scenarioInputs: null,
-      pricingBlocked: true,
-      pricingBlockReason: `أعلى دفعة أولى متاحة حالياً هي ${formatPercent(MAX_DOWN_PAYMENT_PCT * 100, 0)} من سعر السيارة.`,
-    };
-  }
-
-  const allowedDownPayments = [requestedDownPaymentPct];
-
-  const scenarioInputs = buildFinancingScenarioInputs({
-    car,
-    formData,
-    selectedBank,
-    bankConfig: selectedBankConfig,
-    profitRate,
-    adminPct,
-    ageBracket,
-    gender,
-  });
-
-  const offers = [];
-  let offerId = 1;
-
-  for (const bank of eligibleBanks) {
-    const bankConfig = createBankConfigFromBank(bank);
-    const bankProfitRate = getProfitRateForSector(bank, formData.employerSector);
-    const bankAdminPct = bankConfig.default_admin_fees_pct ?? 0.01;
-    const balloonOptions = getBalloonOptionsForBank(bank);
-
-    const bankCandidates = [];
-    for (const downPct of allowedDownPayments) {
-      for (const balloonPct of balloonOptions) {
-        bankCandidates.push(
-          buildCustomerFinancingOffer(
-            bankConfig,
-            {
-              car_price: carPrice,
-              down_payment_pct: downPct,
-              term_months: TERM_MONTHS,
-              profit_rate: bankProfitRate,
-              admin_fees_pct: bankAdminPct,
-              balloon_payment_pct: balloonPct,
-              gender,
-              age_bracket: ageBracket,
-              insurance_segment: insuranceSegment,
-              rebate: 0,
-            },
-            {
-              id: 0,
-              bankName: bank?.name || "بنك افتراضي",
-              bankId: bank.id,
-              bankLogo: bank?.logoImage || "",
-              employerSector: formData.employerSector,
-              employerSectorLabel: getEmployerSectorLabel(formData.employerSector),
-              loanPolicy: bank?.loanPolicy || null,
-              bankFinalPaymentPolicyPct: bank?.defaultBalloonPaymentPct ?? null,
-            }
-          )
-        );
-      }
-    }
-
-    const pricedCandidates = bankCandidates
-      .filter((offer) => offer.pricingAvailable !== false)
-      .filter((offer) => offer.downPaymentPct <= MAX_DOWN_PAYMENT_PCT * 100);
-    const picked = pricedCandidates
-      .sort(compareOffersBestFirst)
-      .slice(0, MAX_OFFERS_PER_BANK)
-      .map((offer) => ({
-        ...offer,
-        categoryId: `bank-${bank.id}`,
-        categoryTitle: bank?.name || "بنك افتراضي",
-      }));
-
-    for (const offer of picked) {
-      offers.push({ ...offer, id: offerId });
-      offerId += 1;
-    }
-  }
-
-  return { offers, scenarioInputs, pricingBlocked: false };
 };
 
 const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
@@ -395,7 +189,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">الدفعة الاولى</p>
-        <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
+        <p className="font-semibold">{formatOfferMoney(offer.downPayment)}</p>
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">نسبة الدفعة الأولى</p>
@@ -403,7 +197,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">الدفعة الأخيرة</p>
-        <p className="font-semibold">{formatSaudiRiyalReact((offer.balloonPayment || 0).toFixed(0))}</p>
+        <p className="font-semibold">{formatOfferMoney(offer.balloonPayment || 0)}</p>
       </div>
     </div>
 
@@ -562,12 +356,16 @@ const LoanRequestForm = ({ car }) => {
       const maxAllowed = getMaxDownPaymentSar(carPrice);
 
       if (rawValue === "") {
-        return { ...prev, downPayment: getDefaultDownPaymentSar(carPrice) };
+        return { ...prev, downPayment: "0" };
       }
 
       const numeric = Number(rawValue);
       if (!Number.isFinite(numeric)) {
         return { ...prev, downPayment: rawValue };
+      }
+
+      if (numeric < 0) {
+        return { ...prev, downPayment: "0" };
       }
 
       if (maxAllowed > 0 && numeric > maxAllowed) {
@@ -1114,8 +912,8 @@ const LoanRequestForm = ({ car }) => {
         const carPrice = carPriceValue || getCarPrice(car, formData);
         const maxDownPaymentSar = getMaxDownPaymentSar(carPrice);
         const defaultDownPaymentSar = Number(getDefaultDownPaymentSar(carPrice)) || 0;
-        const downPaymentInputValue = getDownPaymentInputValue(car, formData);
-        const enteredDownPayment = Number(downPaymentInputValue) || resolveDownPaymentSar(formData, carPrice) || 0;
+        const downPaymentInputValue = getDownPaymentInputValue(formData);
+        const enteredDownPayment = resolveDownPaymentSar(formData, carPrice) ?? 0;
         const enteredDownPaymentPct = carPrice > 0 ? (enteredDownPayment / carPrice) * 100 : 0;
         const remainingLoanAmount = Math.max(0, carPrice - enteredDownPayment);
         const downPaymentEditor = (
@@ -1134,24 +932,25 @@ const LoanRequestForm = ({ car }) => {
               <Input
                 id="downPayment"
                 type="number"
-                min="1"
-                max={Math.max(1, maxDownPaymentSar)}
+                min="0"
+                max={Math.max(0, maxDownPaymentSar)}
                 value={downPaymentInputValue}
                 onChange={(e) => handleDownPaymentChange(e.target.value)}
                 onBlur={(e) => {
                   const carPriceOnBlur = getCarPrice(car, formData);
                   const maxAllowed = getMaxDownPaymentSar(carPriceOnBlur);
                   const entered = Number(e.target.value);
-                  if (!Number.isFinite(entered) || entered <= 0) {
-                    handleDownPaymentChange(getDefaultDownPaymentSar(carPriceOnBlur));
+                  if (!Number.isFinite(entered) || entered < 0) {
+                    handleDownPaymentChange("0");
                   } else if (maxAllowed > 0 && entered > maxAllowed) {
                     handleDownPaymentChange(String(maxAllowed));
                   }
                 }}
-                placeholder={defaultDownPaymentSar > 0 ? String(defaultDownPaymentSar) : "أدخل الدفعة الأولى"}
+                placeholder="0"
               />
               <p className="mt-2 text-xs text-white/60">
                 الحد الأقصى: {formatSaudiRiyalReact(maxDownPaymentSar)} ({formatPercent(MAX_DOWN_PAYMENT_PCT * 100, 0)} من سعر السيارة)
+                {defaultDownPaymentSar > 0 ? ` · مثال شائع: ${defaultDownPaymentSar.toLocaleString("en-US")} (20%)` : ""}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
@@ -1290,14 +1089,14 @@ const LoanRequestForm = ({ car }) => {
                     <div key={offer.id} className="border-2 rounded-lg p-4 border-green-500 bg-white">
                       <div className="text-center mb-4">
                         <p className="text-lg font-bold text-green-800">
-                          عرض {formatSaudiRiyalReact(offer.downPayment.toFixed(0))} دفعة اولى و قسط {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
+                          عرض {formatOfferMoney(offer.downPayment)} دفعة اولى و قسط {formatOfferMoney(offer.monthlyPayment)}
                         </p>
                       </div>
 
                     <div className="grid grid-cols-1 gap-2 mb-4 text-center">
                       <div className="bg-black p-2 rounded">
                         <p className="text-xs text-white">قسط شهري</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
+                        <p className="font-semibold">{formatOfferMoney(offer.monthlyPayment)}</p>
                       </div>
                       <div className="bg-black p-2 rounded">
                         <p className="text-xs text-white">مدة القسط</p>
@@ -1305,7 +1104,7 @@ const LoanRequestForm = ({ car }) => {
                       </div>
                       <div className="bg-black p-2 rounded">
                         <p className="text-xs text-white">الدفعة الاولى</p>
-                        <p className="font-semibold">{formatSaudiRiyalReact(offer.downPayment.toFixed(0))}</p>
+                        <p className="font-semibold">{formatOfferMoney(offer.downPayment)}</p>
                       </div>
                     </div>
 
@@ -1462,7 +1261,7 @@ const LoanRequestForm = ({ car }) => {
                                 <div className="space-y-2">
                                   {comparisonAnalysis.summary.affordableOffers.map((offer, index) => (
                                     <div key={index} className="text-sm text-green-700">
-                                      <p className="font-semibold">عرض {formatSaudiRiyalReact(offer.downPayment?.toFixed(0) || 0)} دفعة أولى، {formatSaudiRiyalReact(offer.monthlyPayment?.toFixed(0) || 0)} قسط شهري</p>
+                                      <p className="font-semibold">عرض {formatOfferMoney(offer.downPayment)} دفعة أولى، {formatOfferMoney(offer.monthlyPayment)} قسط شهري</p>
                                     </div>
                                   ))}
                                 </div>
