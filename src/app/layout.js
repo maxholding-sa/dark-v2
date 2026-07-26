@@ -64,7 +64,7 @@ export const metadata = {
     creator: SITE_CONFIG.twitterHandle,
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    google: "JGLgXvJvi4W4A8NgMdI99dGfG3XbDHc9ZBEJsqjF8bY",
   },
   robots: {
     index: true,
