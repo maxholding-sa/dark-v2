@@ -25,7 +25,6 @@ export const LOAN_OFFER_FIELD_ORDER = [
 export const LOAN_SUBMIT_FIELD_ORDER = [
   "fullName",
   "mobileNumber",
-  "email",
   "city",
   "time",
   "idNumber",
@@ -36,8 +35,11 @@ export const LOAN_SUBMIT_FIELD_ORDER = [
   "totalMonthlyObligations",
 ];
 
+/** Optional fields collected when provided by the customer. */
+export const LOAN_OPTIONAL_FIELD_ORDER = ["email", "additionalInfo"];
+
 /** Minimal lead fields when car price is 0 / on-request. */
-export const ADMIN_CONTACT_FIELD_ORDER = ["fullName", "mobileNumber", "email"];
+export const ADMIN_CONTACT_FIELD_ORDER = ["fullName", "mobileNumber"];
 
 export const MAX_DOWN_PAYMENT_PCT_CHAT = 0.45;
 
@@ -69,6 +71,7 @@ export const emptyLoanState = () => ({
   selectedOffer: null,
   offers: [],
   loanRequestId: null,
+  optionalAsked: {},
 });
 
 export const FIELD_PROMPTS = {
@@ -113,7 +116,7 @@ export const FIELD_PROMPTS = {
   mobileNumber: {
     question: "ما هو رقم الجوال؟ (9 أرقام بعد 5، بدون مفتاح الدولة)",
   },
-  email: { question: "ما هو البريد الإلكتروني؟" },
+  email: { question: "ما هو البريد الإلكتروني؟ (اختياري — اكتب «تخطي» للمتابعة بدونه)" },
   city: { question: "في أي مدينة تسكن؟" },
   time: {
     question: "ما الوقت المفضل للتواصل؟ (صباحاً / مساءً / أي وقت)",
@@ -159,6 +162,12 @@ export function getNextMissingField(loanState, order) {
 
     if (value === "" || value == null) return key;
   }
+
+  for (const key of LOAN_OPTIONAL_FIELD_ORDER) {
+    if (loanState?.optionalAsked?.[key]) continue;
+    return key;
+  }
+
   return null;
 }
 
@@ -260,8 +269,14 @@ export function parseLoanFieldAnswer(fieldKey, rawText, context = {}) {
       return { ok: true, value: digits };
     }
     case "email": {
+      if (/^(تخطي|skip|لا|no|بدون|none)$/i.test(text)) {
+        return { ok: true, value: "", optional: true };
+      }
+      if (!text) {
+        return { ok: true, value: "", optional: true };
+      }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-        return { ok: false, error: "أدخل بريداً إلكترونياً صحيحاً" };
+        return { ok: false, error: "أدخل بريداً إلكترونياً صحيحاً أو اكتب «تخطي»" };
       }
       return { ok: true, value: text };
     }

@@ -24,6 +24,20 @@ import {
   wantsFinancingFlow,
   wantsCancelLoanFlow,
 } from "@/lib/chat-loan-intake";
+import {
+  searchCarsForChat,
+  fetchEconomicalCarsForChat,
+  fetchLatestOfferCarsForChat,
+  fetchAllAvailableCarsForChat,
+} from "@/lib/chat-car-search";
+import {
+  filterCarsByAffordability,
+  parseAffordabilityFromText,
+  wantsSalaryRecommendation,
+  getMaxAffordableMonthlyPayment,
+} from "@/lib/chat-affordability";
+import { parseBudgetFromQuery } from "@/lib/car-search";
+import { getPublicMandebs } from "@/actions/mandeb";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -456,470 +470,34 @@ function correctArabicSpelling(text) {
   return correctedText;
 }
 
-// Helper function to search cars in database based on user query
 async function searchCarsInDatabase(query, conversationHistory = []) {
-  try {
-    logger.debug("[chatbot] Searching cars", {
-      queryLength: query?.length || 0,
-      historyLength: conversationHistory.length,
-    });
-    
-    // تصحيح الأخطاء الإملائية في النص المدخل
-    const correctedQuery = correctArabicSpelling(query);
-    logger.debug("[chatbot] Spell correction result", {
-      changed: correctedQuery !== query,
-    });
-    
-    // Extract potential search terms from the corrected query
-    const searchTerms = correctedQuery.toLowerCase();
-    
-    // Build context from previous conversation
-    let contextualSearchTerms = searchTerms;
-    let maintainPreviousFilters = false;
-    
-    // Check if current query is a general "show me cars" type request
-    const generalFollowUpQueries = [
-      "متوفر", "متاح", "available", "show", "عرض", "اعرض",
-      "كل", "جميع", "all", "السيارات", "cars", "ايه", "ايش", "what"
-    ];
-    
-    const isGeneralFollowUp = generalFollowUpQueries.some(term => searchTerms.includes(term)) 
-      && searchTerms.split(/\s+/).length <= 4; // Short queries are likely follow-ups
-    
-    if (conversationHistory.length > 0) {
-      // Get last 3 user messages to understand context
-      const recentUserMessages = conversationHistory
-        .filter(msg => msg.sender === "user")
-        .slice(-3)
-        .map(msg => {
-          // تطبيق تصحيح الأخطاء على رسائل المحادثة السابقة أيضاً
-          const correctedMessage = correctArabicSpelling(msg.text);
-          return correctedMessage.toLowerCase();
-        })
-        .join(' ');
-      
-      // If current query is general but previous queries had specific filters, maintain those filters
-      if (isGeneralFollowUp && recentUserMessages.length > 0) {
-        logger.debug("[chatbot] General follow-up detected");
-        contextualSearchTerms = `${recentUserMessages} ${searchTerms}`.toLowerCase();
-        maintainPreviousFilters = true;
-      } else {
-        contextualSearchTerms = `${recentUserMessages} ${searchTerms}`.toLowerCase();
-      }
-      
-      logger.debug("[chatbot] Using contextual search terms from conversation history");
-      if (maintainPreviousFilters) {
-        logger.debug("[chatbot] Maintaining previous search filters from context");
-      }
-    }
-    
-    // Build dynamic search conditions
-    const whereConditions = {
-      status: "AVAILABLE", // Only show available cars
-      AND: [], // Use AND to combine DIFFERENT types of filters (make + color, etc.)
-      OR: []   // Use OR for alternatives within same category
-    };
+  logger.debug("[chatbot] Searching cars", {
+    queryLength: query?.length || 0,
+    historyLength: conversationHistory.length,
+  });
+  const correctedQuery = correctArabicSpelling(query);
+  return searchCarsForChat(correctedQuery, conversationHistory);
+}
 
-    // Common car makes in Arabic and English
-    const carMakes = [
-      { ar: ["اودي", "أودي"], en: "audi" },
-      { ar: ["بي ام دبليو", "بي إم دبليو", "بي أم دبليو", "بيام دبليو"], en: "bmw" },
-      { ar: ["مرسيدس", "مرسيدس بنز"], en: "mercedes" },
-      { ar: ["تويوتا"], en: "toyota" },
-      { ar: ["هوندا"], en: "honda" },
-      { ar: ["نيسان"], en: "nissan" },
-      { ar: ["هيونداي", "هونداي"], en: "hyundai" },
-      { ar: ["كيا"], en: "kia" },
-      { ar: ["فورد"], en: "ford" },
-      { ar: ["شيفروليه", "شفروليه"], en: "chevrolet" },
-      { ar: ["لكزس", "ليكزس"], en: "lexus" },
-      { ar: ["فولكس فاجن", "فولكس واجن"], en: "volkswagen" },
-      { ar: ["ميتسوبيشي"], en: "mitsubishi" },
-      { ar: ["جيب"], en: "jeep" },
-      { ar: ["مازدا"], en: "mazda" },
-      { ar: ["سوبارو"], en: "subaru" },
-      { ar: ["بورش", "بورشه"], en: "porsche" },
-      { ar: ["تسلا", "تيسلا"], en: "tesla" },
-      { ar: ["رنج روفر", "رينج روفر"], en: "range rover" },
-    ];
+async function buildContactActions(store = null) {
+  const storeInfo = store || (await fetchStoreInfoForChatbot());
+  const mandebsResult = await getPublicMandebs().catch(() => ({ success: false, data: [] }));
+  const mandebs = mandebsResult?.success ? mandebsResult.data || [] : [];
 
-    // Check if contextual search mentions any car make
-    let makeConditions = [];
-    
-    // Also search with the original query (before correction) to handle cases where both spellings exist in DB
-    const originalSearchTerms = query.toLowerCase();
-    
-    carMakes.forEach(({ ar, en }) => {
-      // Check all Arabic variations in contextual search
-      const matchesArabic = ar.some(arabicName => contextualSearchTerms.includes(arabicName));
-      const matchesEnglish = contextualSearchTerms.includes(en.toLowerCase());
-      
-      if (matchesArabic || matchesEnglish) {
-        logger.debug("[chatbot] Matched car make", { make: en });
-        // Add make condition (will be combined with other filters using AND)
-        makeConditions.push(
-          { make: { contains: en, mode: "insensitive" } }, // English version
-          ...ar.map(arabicName => ({ make: { contains: arabicName, mode: "insensitive" } })) // All Arabic versions
-        );
-      }
-    });
-    
-    // Also add the original query terms to search (in case the exact spelling exists in DB)
-    const searchStopWords = new Set([
-      "ابحث", "عن", "سيارة", "سيارات", "للبيع", "موديل", "موديلات",
-      "car", "cars", "for", "sale", "show", "find", "search",
-    ]);
-    const originalWords = originalSearchTerms
-      .split(/\s+/)
-      .filter((word) => word.length > 2 && !searchStopWords.has(word));
-    originalWords.forEach((word) => {
-      makeConditions.push(
-        { make: { contains: word, mode: "insensitive" } },
-        { model: { contains: word, mode: "insensitive" } },
-        { description: { contains: word, mode: "insensitive" } }
-      );
-    });
-    
-    if (makeConditions.length > 0) {
-      // Add make conditions to OR (search for this brand)
-      whereConditions.OR.push(...makeConditions);
-      logger.debug("[chatbot] Added make search conditions", { count: makeConditions.length });
-    }
-
-    // Common car models in Arabic and English
-    const carModels = [
-      { ar: ["كامري", "كامرى", "كامر"], en: "camry" },
-      { ar: ["كورولا", "كوروللا", "كورلا"], en: "corolla" },
-      { ar: ["هايلكس", "هيلكس", "هايلوكس"], en: "hilux" },
-      { ar: ["هايلاندر", "هايلندر", "هاي لاندر"], en: "highlander" },
-      { ar: ["اكورد", "أكورد"], en: "accord" },
-      { ar: ["سيفيك", "سفك"], en: "civic" },
-      { ar: ["التيما", "ألتيما"], en: "altima" },
-      { ar: ["اكسنت", "أكسنت"], en: "accent" },
-      { ar: ["النترا", "إلنترا"], en: "elantra" },
-      { ar: ["سوناتا", "صوناتا"], en: "sonata" },
-      { ar: ["توسان", "توسون"], en: "tucson" },
-      { ar: ["سبورتاج", "سبورتيج"], en: "sportage" },
-      { ar: ["سيراتو", "سراتو"], en: "cerato" },
-      { ar: ["اوبتيما", "أوبتيما"], en: "optima" },
-      { ar: ["باترول", "بترول"], en: "patrol" },
-      { ar: ["اكستريل", "إكستريل"], en: "x-trail" },
-      { ar: ["صني", "سني"], en: "sunny" },
-      { ar: ["تاهو", "طاهو"], en: "tahoe" },
-      { ar: ["كابتيفا", "كابتفا"], en: "captiva" },
-      { ar: ["كروز", "كروس"], en: "cruze" },
-      { ar: ["اكسبلورر", "إكسبلورر"], en: "explorer" },
-      { ar: ["فوكس", "فكس"], en: "focus" },
-      { ar: ["فيوجن", "فيوژن"], en: "fusion" },
-      { ar: ["موستنج", "موستانج"], en: "mustang" },
-      { ar: ["رنجلر", "رانجلر"], en: "wrangler" },
-      { ar: ["شيروكي", "تشيروكي"], en: "cherokee" },
-      { ar: ["جراند شيروكي"], en: "grand cherokee" },
-      { ar: ["لانسر", "لنسر"], en: "lancer" },
-      { ar: ["باجيرو", "باچيرو"], en: "pajero" },
-      { ar: ["ام اكس 5", "ام اكس5"], en: "mx-5" },
-      { ar: ["سي اكس 5", "سي اكس5"], en: "cx-5" },
-      { ar: ["فورستر", "فورستار"], en: "forester" },
-      { ar: ["امبريزا", "إمبريزا"], en: "impreza" },
-      { ar: ["راف فور", "راف4", "راف٤"], en: "rav4" },
-      { ar: ["إنوفا", "انوفا"], en: "innova" },
-    ];
-
-    // Check if contextual search mentions any car model
-    let modelConditions = [];
-    
-    carModels.forEach(({ ar, en }) => {
-      const matchesArabic = ar.some(arabicName => contextualSearchTerms.includes(arabicName));
-      const matchesEnglish = contextualSearchTerms.includes(en.toLowerCase());
-      
-      if (matchesArabic || matchesEnglish) {
-        logger.debug("[chatbot] Matched car model", { model: en });
-        // Add model condition - search for this model
-        modelConditions.push(
-          { model: { contains: en, mode: "insensitive" } }, // English version
-          ...ar.map(arabicName => ({ model: { contains: arabicName, mode: "insensitive" } })) // All Arabic versions
-        );
-      }
-    });
-    
-    // If model was found, add it as a standalone filter (user searching for specific model)
-    if (modelConditions.length > 0) {
-      // Don't use AND - use OR so we can find the model even without make
-      whereConditions.OR.push(...modelConditions);
-      logger.debug("[chatbot] Added model search conditions", { count: modelConditions.length });
-    }
-
-    // Search by body type
-    const bodyTypes = [
-      { ar: ["دفع رباعي", "دفع رباعى"], en: "دفع رباعي", search: ["suv", "4x4"] },
-      { ar: ["سيدان", "سيدان"], en: "سيدان", search: ["sedan"] },
-      { ar: ["هاتشباك", "هاتشباك"], en: "هاتشباك", search: ["hatchback"] },
-      { ar: ["كشف"], en: "كشف", search: ["convertible", "cabrio"] },
-      { ar: ["كوبيه", "كوبية"], en: "كوبيه", search: ["coupe"] },
-      { ar: ["ستيشن"], en: "ستيشن", search: ["wagon", "station"] },
-      { ar: ["بيك اب", "بيك أب"], en: "بيك أب", search: ["pickup", "truck"] },
-      { ar: ["رياضية", "رياضيه"], en: "رياضية", search: ["sport", "sports", "sportscar"] },
-    ];
-
-    // Body / color / fuel: use current message only so stacked context + luxury لا تفرض OR متضاربة (مثلاً سيدان من لصق بطاقة + سيارة SUV في القاعدة)
-    const termsForBodyColorFuel = searchTerms;
-
-    let bodyTypeConditions = [];
-    bodyTypes.forEach(({ ar, en, search }) => {
-      const matchesArabic = ar.some(arabicName => termsForBodyColorFuel.includes(arabicName));
-      const matchesEnglish = search.some(englishName => termsForBodyColorFuel.includes(englishName));
-      
-      if (matchesArabic || matchesEnglish) {
-        logger.debug("[chatbot] Matched body type", { bodyType: en });
-        bodyTypeConditions.push({
-          bodyType: { contains: en, mode: "insensitive" }
-        });
-      }
-    });
-    
-    if (bodyTypeConditions.length > 0) {
-      // Add body type to OR
-      whereConditions.OR.push(...bodyTypeConditions);
-      logger.debug("[chatbot] Added body type search conditions", { count: bodyTypeConditions.length });
-    }
-
-    // Search by fuel type
-    let fuelTypeConditions = [];
-    if (termsForBodyColorFuel.includes("كهربائي") || termsForBodyColorFuel.includes("كهربائى") || termsForBodyColorFuel.includes("electric")) {
-      logger.debug("[chatbot] Matched fuel type", { fuelType: "electric" });
-      fuelTypeConditions.push({ fuelType: "كهربائي" });
-    }
-    if (termsForBodyColorFuel.includes("هجين") || termsForBodyColorFuel.includes("هايبرد") || termsForBodyColorFuel.includes("hybrid")) {
-      logger.debug("[chatbot] Matched fuel type", { fuelType: "hybrid" });
-      fuelTypeConditions.push({ 
-        fuelType: { in: ["هجين", "هجين قابل للشحن"] }
-      });
-    }
-    
-    if (fuelTypeConditions.length > 0) {
-      // Add fuel type to OR
-      whereConditions.OR.push(...fuelTypeConditions);
-      logger.debug("[chatbot] Added fuel type search conditions", { count: fuelTypeConditions.length });
-    }
-
-    // Search by color
-    const colors = [
-      { ar: ["أحمر", "احمر", "حمراء"], en: ["red", "أحمر"] },
-      { ar: ["أسود", "اسود", "سوداء"], en: ["black", "أسود"] },
-      { ar: ["أبيض", "ابيض", "بيضاء"], en: ["white", "أبيض"] },
-      { ar: ["أزرق", "ازرق", "زرقاء"], en: ["blue", "أزرق"] },
-      { ar: ["رمادي", "رمادى", "رصاصي"], en: ["gray", "grey", "رمادي"] },
-      { ar: ["فضي", "فضى"], en: ["silver", "فضي"] },
-      { ar: ["أخضر", "اخضر", "خضراء"], en: ["green", "أخضر"] },
-      { ar: ["أصفر", "اصفر", "صفراء"], en: ["yellow", "أصفر"] },
-      { ar: ["برتقالي", "برتقالى"], en: ["orange", "برتقالي"] },
-      { ar: ["بني", "بنى", "بنية"], en: ["brown", "بني"] },
-      { ar: ["ذهبي", "ذهبى"], en: ["gold", "ذهبي"] },
-      { ar: ["بيج", "بيچ"], en: ["beige", "بيج"] },
-    ];
-
-    let colorConditions = [];
-    colors.forEach(({ ar, en }) => {
-      const matchesArabic = ar.some(arabicName => termsForBodyColorFuel.includes(arabicName));
-      const matchesEnglish = en.some(englishName => termsForBodyColorFuel.includes(englishName.toLowerCase()));
-      
-      if (matchesArabic || matchesEnglish) {
-        logger.debug("[chatbot] Matched color", { color: en[en.length - 1] });
-        // Search for both Arabic and English color names
-        colorConditions.push(
-          ...en.map(colorName => ({ color: { contains: colorName, mode: "insensitive" } })),
-          ...ar.map(colorName => ({ color: { contains: colorName, mode: "insensitive" } }))
-        );
-      }
-    });
-    
-    if (colorConditions.length > 0) {
-      // Add color to OR
-      whereConditions.OR.push(...colorConditions);
-      logger.debug("[chatbot] Added color search conditions", { count: colorConditions.length });
-    }
-
-    // Luxury cars: Car.isLuxury === true ⇔ وسم «فاخرة» في الموقع/لوحة التحكم (same field)
-    const luxuryKeywords = [
-      "فاخر",
-      "فاخرة",
-      "فاره",
-      "فارهة",
-      "فارهه",
-      "سيارة فارهة",
-      "سيارات فارهة",
-      "وسم فارهة",
-      "بالفارهة",
-      "luxury",
-      "luxurious",
-      "lexury",
-      "lexuary",
-      "prestige",
-      "راقي",
-      "راقية",
-      "لكسري",
-      "فخم",
-      "فخمة",
-    ];
-    const wantsLuxuryCars = luxuryKeywords.some((kw) =>
-      contextualSearchTerms.includes(kw.toLowerCase())
-    );
-    if (wantsLuxuryCars) {
-      logger.debug("[chatbot] Luxury intent detected");
-      whereConditions.AND.push({ isLuxury: true });
-    }
-
-    // Check for general "show me cars" type queries
-    const generalCarQueries = [
-      "سيارات", "سيارة", "عربيات", "عربية",
-      "cars", "car", "vehicles", "vehicle",
-      "متوفر", "متاح", "available"
-    ];
-    
-    const isGeneralQuery = generalCarQueries.some(term => searchTerms.includes(term));
-    
-    // If no specific search terms found, search broadly or show all available
-    if (whereConditions.AND.length === 0 && whereConditions.OR.length === 0) {
-      logger.debug("[chatbot] No specific filters matched, using broad search");
-      
-      // IMPORTANT: If this is a general follow-up and we should maintain filters
-      // but no filters were extracted, it means the context was too vague
-      // In this case, show featured cars but log the issue
-      if (maintainPreviousFilters && isGeneralQuery) {
-        logger.debug("[chatbot] Context filters were too vague, falling back to featured cars");
-      } else if (isGeneralQuery && !maintainPreviousFilters) {
-        // For very general queries with no context, just show featured cars first
-        logger.debug("[chatbot] General query detected, showing featured cars");
-        // Don't add AND/OR conditions, the query will just use status: AVAILABLE
-      } else {
-        // For specific text search - search with BOTH original and corrected queries
-        // This handles cases where both spellings exist in the database (e.g., تاما and تويوتا)
-        const correctedSearchQuery = correctArabicSpelling(query);
-        const queryWords = query.split(/\s+/).filter(word => word.length > 1);
-        
-        logger.debug("[chatbot] Searching in all car text fields");
-        
-        whereConditions.OR.push(
-          // Search with original query in ALL relevant fields
-          { make: { contains: query, mode: "insensitive" } },
-          { model: { contains: query, mode: "insensitive" } },
-          { color: { contains: query, mode: "insensitive" } },
-          { bodyType: { contains: query, mode: "insensitive" } },
-          { fuelType: { contains: query, mode: "insensitive" } },
-          { description: { contains: query, mode: "insensitive" } },
-          // Search with corrected query (only if different)
-          ...(correctedSearchQuery !== query ? [
-            { make: { contains: correctedSearchQuery, mode: "insensitive" } },
-            { model: { contains: correctedSearchQuery, mode: "insensitive" } },
-            { color: { contains: correctedSearchQuery, mode: "insensitive" } },
-            { bodyType: { contains: correctedSearchQuery, mode: "insensitive" } },
-            { fuelType: { contains: correctedSearchQuery, mode: "insensitive" } },
-            { description: { contains: correctedSearchQuery, mode: "insensitive" } },
-          ] : []),
-          // Search individual words from original query in make, model, and color
-          ...queryWords.flatMap(word => [
-            { make: { contains: word, mode: "insensitive" } },
-            { model: { contains: word, mode: "insensitive" } },
-            { color: { contains: word, mode: "insensitive" } },
-            { bodyType: { contains: word, mode: "insensitive" } },
-          ])
-        );
-      }
-    } else {
-      // Filters were found - log what we're searching for
-      const totalFilters = whereConditions.AND.length + whereConditions.OR.length;
-      logger.debug("[chatbot] Filters applied to search", {
-        totalFilters,
-        andCount: whereConditions.AND.length,
-        orCount: whereConditions.OR.length,
-      });
-      if (maintainPreviousFilters) {
-        logger.debug("[chatbot] Maintained context filters from previous conversation");
-      }
-    }
-
-    // Execute the search
-    logger.debug("[chatbot] Executing database query", {
-      andCount: whereConditions.AND.length,
-      orCount: whereConditions.OR.length,
-    });
-    
-    // Build the final where clause
-    const finalWhereConditions = { status: "AVAILABLE" };
-    
-    // Combine AND and OR conditions properly
-    if (whereConditions.AND.length > 0 && whereConditions.OR.length > 0) {
-      // Both AND and OR conditions exist - combine them
-      finalWhereConditions.AND = [
-        ...whereConditions.AND,
-        { OR: whereConditions.OR }
-      ];
-    } else if (whereConditions.AND.length > 0) {
-      // Only AND conditions
-      finalWhereConditions.AND = whereConditions.AND;
-    } else if (whereConditions.OR.length > 0) {
-      // Only OR conditions (like searching for a model name)
-      finalWhereConditions.OR = whereConditions.OR;
-    }
-    // If neither, just status: AVAILABLE (show featured cars)
-
-    const orderBy = wantsLuxuryCars
-      ? [
-          { featured: "desc" },
-          { price: "desc" },
-          { createdAt: "desc" },
-        ]
-      : [{ featured: "desc" }, { createdAt: "desc" }];
-
-    const carSelect = {
-      id: true,
-      make: true,
-      model: true,
-      year: true,
-      price: true,
-      mileage: true,
-      color: true,
-      fuelType: true,
-      transmission: true,
-      bodyType: true,
-      seats: true,
-      description: true,
-      images: true,
-      featured: true,
-      isLuxury: true,
-    };
-
-    let cars = await db.car.findMany({
-      where: finalWhereConditions,
-      take: 5, // Limit to 5 results to avoid overwhelming the AI
-      orderBy,
-      select: carSelect,
-    });
-
-    // فخامة + شروط OR (لون/هيكل/…) قد تُصفّر النتائج رغم وجود سيارات فارهة — أعد المحاولة بفلتر isLuxury فقط
-    if (cars.length === 0 && wantsLuxuryCars) {
-      logger.debug("[chatbot] Luxury search returned no rows, retrying with luxury-only filter");
-      cars = await db.car.findMany({
-        where: { status: "AVAILABLE", isLuxury: true },
-        take: 5,
-        orderBy,
-        select: carSelect,
-      });
-    }
-
-    logger.debug("[chatbot] Database returned cars", { count: cars.length });
-    if (cars.length > 0) {
-      logger.debug("[chatbot] Sample result available", {
-        make: cars[0].make,
-        model: cars[0].model,
-      });
-    }
-    
-    return cars.map((car) => serializedCarsData(car));
-  } catch (error) {
-    console.error("Error searching cars in database:", error);
-    return [];
+  if (!storeInfo?.phone && !storeInfo?.whatsapp && mandebs.length === 0) {
+    return null;
   }
+
+  return {
+    phone: storeInfo?.phone || null,
+    whatsapp: storeInfo?.whatsapp || null,
+    mandebs: mandebs.map((m) => ({
+      id: m.id,
+      name: m.name,
+      phone: m.phone,
+      city: m.city,
+    })),
+  };
 }
 
 // Helper function to calculate average price for a car make
@@ -965,7 +543,7 @@ function formatCarsForAI(cars) {
 العلامة التجارية: ${car.make}
 الموديل: ${car.model}
 سنة الصنع: ${car.year}
-السعر: $${Number(car.price).toLocaleString()}
+السعر: ${Number(car.price).toLocaleString("ar-SA")} ر.س
 المسافة المقطوعة: ${car.mileage.toLocaleString()} كم
 اللون: ${car.color}
 نوع الوقود: ${car.fuelType}
@@ -980,30 +558,17 @@ ${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (i
   }).join('\n\n');
 }
 
-const CAR_SELECT_CHATBOT = {
-  id: true,
-  make: true,
-  model: true,
-  year: true,
-  price: true,
-  mileage: true,
-  color: true,
-  fuelType: true,
-  transmission: true,
-  bodyType: true,
-  seats: true,
-  description: true,
-  images: true,
-  featured: true,
-  isLuxury: true,
-};
-
 function detectChatIntents(text) {
+  const contact =
+    /تواصل|اتصال|اتصل|رقم|جوال|هاتف|واتساب|واتس|whatsapp|phone|call|مندوب|مناديب|موظف|خدمة\s*عملاء|customer\s*service/i.test(
+      text
+    );
   const corporate =
     /شركات|مؤسسات|عروض الشركات|المؤسسات|جهات|أسطول|fleet|قطاع\s*حكومي/i.test(
       text
     );
   const financing =
+    !contact &&
     /تقسيط|تمويل|بنك|بنكي|قرض|قسط|أقساط|فائدة|شروط.*تمويل|loan|finance|installment|تمويلية/i.test(
       text
     );
@@ -1020,29 +585,32 @@ function detectChatIntents(text) {
     ) ||
       /ابحث عن أحدث عروض|أبحث عن أحدث عروض/i.test(text));
 
-  return { corporate, financing, compare, economical, latestOffers };
+  return { contact, corporate, financing, compare, economical, latestOffers };
 }
 
 async function fetchLatestOfferCars() {
-  const cars = await db.car.findMany({
-    where: { status: "AVAILABLE" },
-    take: 8,
-    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    select: CAR_SELECT_CHATBOT,
-  });
-
-  return cars.map((car) => serializedCarsData(car));
+  return fetchLatestOfferCarsForChat();
 }
 
-async function fetchEconomicalCars() {
-  const cars = await db.car.findMany({
-    where: { status: "AVAILABLE" },
-    take: 8,
-    orderBy: [{ price: "asc" }, { mileage: "asc" }],
-    select: CAR_SELECT_CHATBOT,
-  });
+async function fetchEconomicalCars(maxPrice = null) {
+  return fetchEconomicalCarsForChat(maxPrice);
+}
 
-  return cars.map((car) => serializedCarsData(car));
+function buildPlatformInfoForAI(storeInfo) {
+  const storeDescription = storeInfo?.description?.trim();
+  const lines = [
+    "- بيع سيارات جديدة متوفرة على الموقع",
+    "- التمويل الإسلامي عبر البنوك الشريكة",
+    "- حجز تجربة قيادة عبر الموقع",
+    "- عروض الشركات والمؤسسات",
+    "- **سيارة فاخرة (luxury)** = أي سيارة عليها وسم «فاخرة» في الموقع (isLuxury)",
+    "- نوفر سيارات كهربائية وهجينة حسب المخزون المتاح",
+    "- دعم العملاء متوفر عبر قنوات التواصل الرسمية",
+  ];
+  if (storeDescription) {
+    lines.unshift(`- نبذة عن المعرض: ${storeDescription}`);
+  }
+  return lines.join("\n");
 }
 
 async function fetchBanksForChatbot() {
@@ -1229,12 +797,87 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     const intents = detectChatIntents(correctedMessage);
     logger.debug("[chatbot] Detected intents", intents);
 
+    const budget = parseBudgetFromQuery(correctedMessage);
+    const storeInfo = await fetchStoreInfoForChatbot();
+    let contactActions = null;
+    let salaryContext = "";
+
+    if (intents.contact) {
+      contactActions = await buildContactActions(storeInfo);
+      const contactReply = {
+        success: true,
+        message:
+          "يسعدنا تواصلك معنا! يمكنك الاتصال أو مراسلتنا عبر واتساب مباشرة من الأزرار أدناه، أو اختيار أحد مناديب المبيعات.",
+        cars: [],
+        offers: [],
+        contactActions,
+        conversationId: conversation.id,
+        mode: conversation.mode,
+      };
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        {
+          role: "assistant",
+          content: contactReply.message,
+          payload: { contactActions },
+        },
+      ]);
+      return contactReply;
+    }
+
     let relevantCars = [];
-    if (intents.economical) {
-      relevantCars = await fetchEconomicalCars();
+    const salaryIntent = wantsSalaryRecommendation(correctedMessage);
+    const affordability = parseAffordabilityFromText(correctedMessage);
+
+    if (salaryIntent && !affordability.netSalary) {
+      const salaryPrompt = {
+        success: true,
+        message:
+          "يسعدني أرشّح لك سيارة مناسبة لراتبك! 📊\nأرسل لي:\n- صافي راتبك الشهري بالريال\n- مجموع التزاماتك الشهرية (اكتب 0 إن لم يوجد)\n\nمثال: راتبي 7000 والتزاماتي 1000",
+        cars: [],
+        offers: [],
+        conversationId: conversation.id,
+        mode: conversation.mode,
+      };
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        { role: "assistant", content: salaryPrompt.message, payload: {} },
+      ]);
+      return salaryPrompt;
+    }
+
+    if (salaryIntent && affordability.netSalary) {
+      const banks = await fetchBanksForChatbot();
+      const allCars = await fetchAllAvailableCarsForChat(50);
+      relevantCars = await filterCarsByAffordability(
+        allCars,
+        banks,
+        affordability.netSalary,
+        affordability.totalMonthlyObligations
+      );
+      const maxPayment = getMaxAffordableMonthlyPayment(
+        affordability.netSalary,
+        affordability.totalMonthlyObligations
+      );
+      salaryContext = `\n\n=== ترشيح حسب الراتب (DTI ${35}%) ===
+- صافي الراتب: ${Number(affordability.netSalary).toLocaleString("ar-SA")} ر.س
+- الالتزامات الشهرية: ${Number(affordability.totalMonthlyObligations).toLocaleString("ar-SA")} ر.س
+- أقصى قسط شهري مقبول تقريباً: ${maxPayment.toLocaleString("ar-SA")} ر.س
+- السيارات أدناه مُصفّاة بناءً على عروض تمويل فعلية (افتراضات: قطاع حكومي مدني، بدون دفعة أولى)
+- إذا أراد العميل دقة أعلى، وجّهه لإكمال بيانات التمويل داخل المحادثة`;
+      logger.debug("[chatbot] Salary-based filtering applied", {
+        count: relevantCars.length,
+      });
+    } else if (intents.economical) {
+      relevantCars = await fetchEconomicalCars(budget.maxPrice);
       logger.debug("[chatbot] Using economical car set");
     } else if (intents.latestOffers) {
       relevantCars = await fetchLatestOfferCars();
+      if (budget.maxPrice != null) {
+        relevantCars = relevantCars.filter(
+          (car) => Number(car.price) <= budget.maxPrice
+        );
+      }
       logger.debug("[chatbot] Using latest offers car set");
     } else {
       logger.debug("[chatbot] Searching database with conversation context");
@@ -1257,13 +900,14 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       logger.debug("[chatbot] Added sample cars for corporate context");
     }
 
+    const needsContactFallback = relevantCars.length === 0 && !salaryIntent;
+    if (needsContactFallback) {
+      contactActions = await buildContactActions(storeInfo);
+    }
+
     logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
 
     const banks = intents.financing ? await fetchBanksForChatbot() : [];
-    const storeInfo =
-      intents.financing || intents.corporate
-        ? await fetchStoreInfoForChatbot()
-        : null;
 
     const banksContext = intents.financing
       ? `\n\n=== بيانات البنوك والتمويل (من جدول البنوك في لوحة التحكم) ===\n${formatBanksForAI(banks)}`
@@ -1275,6 +919,21 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
         : "";
 
     let intentInstructions = "";
+    if (budget.maxPrice != null || budget.minPrice != null) {
+      intentInstructions += `
+موضوع الرسالة: **فلترة حسب الميزانية**.
+- النتائج مُصفّاة مسبقاً حسب الميزانية المطلوبة — لا تذكر سيارات خارج هذا النطاق.
+${budget.maxPrice != null ? `- الحد الأقصى للسعر: ${budget.maxPrice.toLocaleString("ar-SA")} ر.س` : ""}
+${budget.minPrice != null ? `- الحد الأدنى للسعر: ${budget.minPrice.toLocaleString("ar-SA")} ر.س` : ""}
+`;
+    }
+    if (salaryIntent && affordability.netSalary) {
+      intentInstructions += `
+موضوع الرسالة: **ترشيح حسب الراتب والالتزامات**.
+- اعرض فقط السيارات المؤهلة ضمن حد التحمل الشهري (35% من الدخل المتاح بعد الالتزامات).
+- وضّح أن التقدير مبني على افتراضات تمويل أولية ويمكن تحسينه بإكمال بيانات التمويل.
+`;
+    }
     if (intents.compare) {
       intentInstructions += `
 موضوع الرسالة: **مقارنة بين موديلات**.
@@ -1310,6 +969,36 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
 - لا تخترع أرقاماً أو سياسات غير مذكورة في البيانات المقدمة.
 `;
     }
+    if (needsContactFallback) {
+      intentInstructions += `
+موضوع الرسالة: **لا توجد نتائج كافية**.
+- أخبر العميل بوضوح أنك لا تملك معلومات كافية أو لا توجد سيارات مطابقة حالياً.
+- لا تخترع سيارات أو أسعاراً أو مواصفات غير موجودة في البيانات.
+- وجّه العميل للتواصل مع الفريق عبر الأزرار التي ستظهر له.
+`;
+    }
+
+    if (relevantCars.length === 0 && needsContactFallback) {
+      const fallbackMessage =
+        "عذراً، لا أملك معلومات كافية أو لا توجد سيارات مطابقة لطلبك حالياً في قاعدة بياناتنا. يمكنك التواصل مع فريقنا مباشرة عبر الأزرار أدناه وسنساعدك بشكل أفضل.";
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        {
+          role: "assistant",
+          content: fallbackMessage,
+          payload: { contactActions },
+        },
+      ]);
+      return {
+        success: true,
+        message: fallbackMessage,
+        cars: [],
+        offers: [],
+        contactActions,
+        conversationId: conversation.id,
+        mode: conversation.mode,
+      };
+    }
 
     // Format car data for the AI
     const carsContext = formatCarsForAI(relevantCars);
@@ -1341,10 +1030,10 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
 
         if (priceStats) {
           priceContext += `\n\nإحصائيات الأسعار لسيارات ${make}:
-- متوسط السعر: $${Number(priceStats.average).toLocaleString()}
+- متوسط السعر: ${Number(priceStats.average).toLocaleString("ar-SA")} ر.س
 - عدد السيارات المتوفرة: ${priceStats.count}
-- أقل سعر: $${priceStats.min.toLocaleString()}
-- أعلى سعر: $${priceStats.max.toLocaleString()}`;
+- أقل سعر: ${priceStats.min.toLocaleString("ar-SA")} ر.س
+- أعلى سعر: ${priceStats.max.toLocaleString("ar-SA")} ر.س`;
         }
       }
     } else if (relevantCars.length > 0) {
@@ -1353,47 +1042,39 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     }
 
     // Create a context-aware prompt with car dealership information
-    const systemContext = `أنت مساعد ذكي لمنصة ماكس موتورز، منصة متخصصة في بيع وشراء السيارات في المملكة العربية السعودية.
+    const systemContext = `أنت مساعد ذكي لمنصة ماكس موتورز، منصة سعودية متخصصة في بيع السيارات الجديدة وتقديم حلول التمويل في المملكة العربية السعودية.
 ${intentInstructions}
 معلومات عن المنصة:
-- نوفر آلاف السيارات الجديدة والمستعملة المفحوصة
-- يمكن للمستخدمين حجز اختبار قيادة بسهولة عبر الإنترنت
-- لدينا علامات تجارية مميزة مثل: تويوتا، BMW، مرسيدس، هيونداي، كيا، نيسان، فورد، شيفروليه
-- **سيارة فاخرة (luxury)** = أي سيارة عليها وسم **«فاخرة»** في الموقع؛ هذا يطابق الحقل isLuxury في قاعدة البيانات. لا تُسمِّ سيارة «فاخرة» إلا إذا وردت في النتائج أدناه مع سطر يذكر وسم الفاخرة أو isLuxury
-- نوفر سيارات كهربائية وهجينة
-- جميع السيارات تأتي مع تقرير فحص شامل
-- عملية شراء آمنة ومضمونة
-- دعم العملاء متوفر على مدار الساعة
-- التمويل متاح من خلال شركاء معتمدين
+${buildPlatformInfoForAI(storeInfo)}
 
 دورك:
 - الرد على استفسارات العملاء بشكل ودود ومفيد
 - مساعدة العملاء في العثور على السيارة المناسبة
 - شرح خدمات المنصة
 - تقديم معلومات عن العلامات التجارية والموديلات المتوفرة في قاعدة البيانات
-- المساعدة في حجز اختبار القيادة
-- عرض تفاصيل السيارات المتوفرة مع الروابط والصور
+- المساعدة في حجز تجربة القيادة
+- عرض تفاصيل السيارات المتوفرة
 - **استخدم سياق المحادثة السابقة والسيارات المعروضة سابقاً للإجابة على الأسئلة التالية**
 - **إذا سأل العميل عن لون أو ميزة معينة، ارجع للسيارات المعروضة في الرد السابق**
-- **🔥 مهم جداً: عندما يسأل العميل "ما السيارات المتوفرة؟" أو "اعرض لي السيارات"، انظر للسياق - إذا كان قد طلب قبل ذلك نوع معين (مثل سيارة عائلية، دفع رباعي، تويوتا، إلخ)، فاعرض فقط السيارات التي تطابق ذلك النوع من القائمة أدناه**
-- **السيارات المعروضة أدناه هي بالفعل مصفاة بناءً على سياق المحادثة - لا تطلب "جميع" السيارات بل تحدث عن السيارات المناسبة للبحث السابق**
+- **عندما يسأل العميل "ما السيارات المتوفرة؟" انظر للسياق السابق واعرض السيارات المناسبة فقط من القائمة أدناه**
 
 قواعد الرد المهمة:
 - استخدم اللغة العربية الفصحى البسيطة
 - كن ودوداً ومحترفاً
+- **إذا لم تكن المعلومة في البيانات المقدمة، قل بوضوح أنك لا تعرف — لا تخترع إجابات**
+- **لا تذكر سيارات أو أسعاراً غير موجودة في قائمة النتائج أدناه**
 - عند عرض معلومات سيارة، قدم التفاصيل كاملة مع السعر والمواصفات بتنسيق احترافي
 - **لا تعرض الروابط أو URLs في ردودك أبداً** - المستخدم سيرى بطاقات السيارات المنسقة في الواجهة
 - **لا تذكر "رابط السيارة" أو "عرض السيارة" أو أي URLs في النص**
 - ركز على وصف السيارات وميزاتها ومواصفاتها فقط
 - استخدم الإيموجي بشكل معتدل لجعل الردود أكثر ودية
-- استخدم **النص** لتمييز المعلومات المهمة مثل أسماء السيارات والأسعار (مثال: **تويوتا كامري 2024** بسعر **$28,000**)
+- استخدم **النص** لتمييز المعلومات المهمة مثل أسماء السيارات والأسعار (مثال: **تويوتا كامري 2024** بسعر **85,000 ر.س**)
 - اعرض المعلومات بطريقة منظمة وجذابة دون ذكر الروابط أو الصور
 - **مهم جداً**: فقط عندما يكون هناك سيارات متوفرة وتحدثت عنها، أضف في نهاية ردك سطر جديد يبدأ بـ [CARS_TO_SHOW] متبوعاً بأرقام السيارات التي ذكرتها مفصولة بفواصل
 - **لا تضيف [CARS_TO_SHOW] إذا لم تكن هناك سيارات متوفرة أو لم تذكر سيارات محددة في ردك**
 - مثال: إذا تحدثت عن السيارة 1 والسيارة 3، أضف: [CARS_TO_SHOW]1,3
-- **قاعدة حاسمة**: عند ذكر أسماء السيارات في ردك، استخدم **بالضبط** نفس أسماء العلامات التجارية والموديلات الموجودة في قاعدة البيانات أعلاه (مثال: إذا كانت السيارة في القاعدة هي "تويوتا كامري"، اذكرها "تويوتا كامري" وليس "تاما كامري" أو أي تهجئة أخرى)
-- **يجب أن تتطابق أسماء السيارات في ردك مع الأسماء في قاعدة البيانات تماماً** لضمان تطابق بطاقات السيارات المعروضة مع النص
-${banksContext}${storeContactContext}
+- **قاعدة حاسمة**: عند ذكر أسماء السيارات في ردك، استخدم **بالضبط** نفس أسماء العلامات التجارية والموديلات الموجودة في قاعدة البيانات أعلاه
+${banksContext}${storeContactContext}${salaryContext}
 ${previousCarsContext}
 
 السيارات المتوفرة حالياً في قاعدة البيانات (نتائج البحث الحالية):
@@ -1499,7 +1180,7 @@ ${priceContext}
         {
           role: "assistant",
           content: cleanedText,
-          payload: { cars: carsToShow },
+          payload: { cars: carsToShow, contactActions },
         },
       ]);
       logger.debug("[chatbot] Chat log + conversation saved");
@@ -1514,17 +1195,19 @@ ${priceContext}
       carsFound: relevantCars.length,
       cars: carsToShow,
       offers: [],
+      contactActions,
       conversationId: conversation.id,
       mode: conversation.mode,
     };
   } catch (error) {
     console.error("Error generating chatbot response:", error);
-    
-    // Provide fallback responses
+
+    const contactActions = await buildContactActions().catch(() => null);
     return {
       success: false,
       message:
-        "عذراً، واجهت مشكلة في الاتصال. يمكنك تصفح السيارات المتاحة أو التواصل مع فريق الدعم للمساعدة. 😊",
+        "عذراً، واجهت مشكلة في الاتصال. يمكنك التواصل مع فريق الدعم مباشرة عبر الأزرار أدناه.",
+      contactActions,
       error: error.message,
     };
   }

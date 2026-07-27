@@ -23,6 +23,34 @@ const SEARCH_STOP_WORDS = new Set([
   "sale",
 ]);
 
+let dynamicAliasGroups = [];
+
+export function registerDynamicAliases(groups = []) {
+  dynamicAliasGroups = Array.isArray(groups) ? groups : [];
+}
+
+function getAllAliasGroups() {
+  return [...SEARCH_ALIASES, ...dynamicAliasGroups];
+}
+
+export function buildDynamicAliasGroups(inventoryRows = []) {
+  const groups = [];
+  const seen = new Set();
+
+  for (const row of inventoryRows) {
+    for (const value of [row?.make, row?.model]) {
+      const trimmed = String(value || "").trim();
+      if (!trimmed || trimmed.length < 2) continue;
+      const key = normalizeSearchText(trimmed);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      groups.push([trimmed]);
+    }
+  }
+
+  return groups;
+}
+
 const SEARCH_ALIASES = [
   ["toyota", "تويوتا", "تيوتا"],
   ["honda", "هوندا"],
@@ -57,7 +85,9 @@ const SEARCH_ALIASES = [
   ["sonata", "سوناتا"],
   ["tucson", "توسان", "توكسون"],
   ["sportage", "سبورتاج"],
-  ["cerato", "سيراتو"],
+  ["cerato", "سيراتو", "سراتو"],
+  ["cruze", "كروز", "كروس"],
+  ["optima", "اوبتيما", "أوبتيما"],
   ["tahoe", "تاهو"],
   ["explorer", "اكسبلورر", "إكسبلورر"],
   ["white", "ابيض", "أبيض", "بيضاء"],
@@ -151,13 +181,41 @@ export function buildArabicSpellingVariants(term = "", maxVariants = 48) {
   return [...variants];
 }
 
+function isCompleteWordMatch(term, text) {
+  if (!term || !text) return false;
+  if (term === text) return true;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\s)${escaped}(\\s|$)`, "u").test(text);
+}
+
 function isAliasMatch(normalizedTerm, normalizedAlias) {
   if (!normalizedTerm || !normalizedAlias) return false;
   if (normalizedTerm === normalizedAlias) return true;
+
+  const termParts = normalizedTerm.split(" ").filter(Boolean);
+  const aliasParts = normalizedAlias.split(" ").filter(Boolean);
+
+  if (termParts.length === 1) {
+    const term = termParts[0];
+    if (aliasParts.some((part) => part === term)) return true;
+    if (aliasParts.some((part) => part.startsWith(term) && part.length > term.length)) {
+      return false;
+    }
+    if (aliasParts.some((part) => term.startsWith(part) && term.length > part.length)) {
+      return false;
+    }
+    if (isCompleteWordMatch(term, normalizedAlias)) return true;
+    if (term.length >= 5 && normalizedAlias.startsWith(term)) return true;
+    if (normalizedTerm.length >= 5 && normalizedTerm.startsWith(normalizedAlias)) {
+      return true;
+    }
+    return false;
+  }
+
   if (normalizedAlias.includes(normalizedTerm)) return true;
   if (normalizedTerm.includes(normalizedAlias)) return true;
 
-  const minPrefixLength = 2;
+  const minPrefixLength = 3;
   if (
     normalizedTerm.length >= minPrefixLength &&
     normalizedAlias.startsWith(normalizedTerm)
@@ -179,7 +237,7 @@ function expandTerm(term) {
   const normalizedTerm = normalizeSearchText(term);
   const variants = new Set(buildArabicSpellingVariants(term));
 
-  for (const aliasGroup of SEARCH_ALIASES) {
+  for (const aliasGroup of getAllAliasGroups()) {
     const normalizedAliases = aliasGroup.map(normalizeSearchText);
     const matched = normalizedAliases.some((alias) =>
       isAliasMatch(normalizedTerm, alias)
@@ -376,4 +434,173 @@ export function resolveImageSearchDetails(
     model: resolvedModel,
     searchQuery,
   };
+}
+
+const EASTERN_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+
+export function parseWesternDigits(value = "") {
+  return String(value).replace(/[٠-٩]/g, (digit) => {
+    const index = EASTERN_ARABIC_DIGITS.indexOf(digit);
+    return index >= 0 ? String(index) : digit;
+  });
+}
+
+function parseAmountToken(rawValue = "", unit = "") {
+  const cleaned = parseWesternDigits(String(rawValue || ""))
+    .replace(/,/g, "")
+    .trim();
+  let amount = Number.parseFloat(cleaned);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  const normalizedUnit = normalizeSearchText(unit || "");
+  if (
+    /الف|الف|k/.test(normalizedUnit) ||
+    /الف|الف|k/.test(normalizeSearchText(String(rawValue)))
+  ) {
+    amount *= 1000;
+  }
+
+  return Math.round(amount);
+}
+
+export function parseBudgetFromQuery(text = "") {
+  const normalized = parseWesternDigits(String(text || ""));
+  let minPrice = null;
+  let maxPrice = null;
+
+  const rangeMatch = normalized.match(
+    /(?:من|between)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?\s*(?:الى|إلى|to|-)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+  );
+  if (rangeMatch) {
+    minPrice = parseAmountToken(rangeMatch[1], rangeMatch[2]);
+    maxPrice = parseAmountToken(rangeMatch[3], rangeMatch[4]);
+    return { minPrice, maxPrice };
+  }
+
+  const maxPatterns = [
+    /(?:أقل\s*من|اقل\s*من|تحت|لا\s*تتجاوز|under|below|max|maximum|up\s*to)\s*(?:من)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
+    /(?:ميزاني(?:ة|تي)?|budget)\s*(?:حوالي|تقريبا|تقريباً)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
+    /([\d,.]+)\s*(ألف|الف|k|K)\s*(?:ريال)?\s*(?:أقل|تحت|او\s*اقل)/i,
+  ];
+
+  for (const pattern of maxPatterns) {
+    const match = normalized.match(pattern);
+    if (match) {
+      maxPrice = parseAmountToken(match[1], match[2]);
+      break;
+    }
+  }
+
+  const minPatterns = [
+    /(?:أكثر\s*من|اكثر\s*من|فوق|أعلى\s*من|اعلى\s*من|above|over|min|minimum|from)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
+  ];
+
+  for (const pattern of minPatterns) {
+    const match = normalized.match(pattern);
+    if (match) {
+      minPrice = parseAmountToken(match[1], match[2]);
+      break;
+    }
+  }
+
+  if (!maxPrice) {
+    const plainBudget = normalized.match(
+      /(?:بسعر|بميزانية|سعر|price)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+    );
+    if (plainBudget) {
+      maxPrice = parseAmountToken(plainBudget[1], plainBudget[2]);
+    }
+  }
+
+  return { minPrice, maxPrice };
+}
+
+export function parseSalaryFromQuery(text = "") {
+  const normalized = parseWesternDigits(String(text || ""));
+  let netSalary = null;
+  let totalMonthlyObligations = 0;
+
+  const salaryMatch =
+    normalized.match(
+      /(?:راتب(?:ي)?|صافي\s*الراتب|دخلي|salary|income)\s*(?:هو|عن|≈|=\s*)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+    ) ||
+    normalized.match(
+      /([\d,.]+)\s*(ألف|الف|k|K)?\s*(?:ريال)?\s*(?:راتب|صافي)/i
+    );
+
+  if (salaryMatch) {
+    netSalary = parseAmountToken(salaryMatch[1], salaryMatch[2]);
+  }
+
+  const obligationsMatch = normalized.match(
+    /(?:التزامات(?:ي)?|التزام|قسط\s*شهري|obligations?)\s*(?:هي|عن|≈|=\s*)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+  );
+  if (obligationsMatch) {
+    totalMonthlyObligations =
+      parseAmountToken(obligationsMatch[1], obligationsMatch[2]) || 0;
+  }
+
+  if (/بدون\s*التزام|لا\s*يوجد\s*التزام|0\s*التزام/i.test(normalized)) {
+    totalMonthlyObligations = 0;
+  }
+
+  return { netSalary, totalMonthlyObligations };
+}
+
+export function wantsLuxuryCars(text = "") {
+  const normalized = normalizeSearchText(text);
+  const luxuryKeywords = [
+    "فاخر",
+    "فاخرة",
+    "فاره",
+    "فارهة",
+    "luxury",
+    "luxurious",
+    "prestige",
+    "راقي",
+    "راقية",
+    "فخم",
+    "فخمة",
+  ];
+  return luxuryKeywords.some((kw) => normalized.includes(kw));
+}
+
+export function buildChatSearchQuery(query = "", conversationHistory = []) {
+  const searchTerms = normalizeSearchText(query);
+  const generalFollowUpQueries = [
+    "متوفر",
+    "متاح",
+    "available",
+    "show",
+    "عرض",
+    "اعرض",
+    "كل",
+    "جميع",
+    "all",
+    "السيارات",
+    "cars",
+    "ايه",
+    "ايش",
+    "what",
+  ];
+
+  const isGeneralFollowUp =
+    generalFollowUpQueries.some((term) => searchTerms.includes(term)) &&
+    searchTerms.split(/\s+/).length <= 4;
+
+  if (!conversationHistory.length) {
+    return query;
+  }
+
+  const recentUserMessages = conversationHistory
+    .filter((msg) => msg.sender === "user")
+    .slice(-3)
+    .map((msg) => msg.text)
+    .join(" ");
+
+  if (isGeneralFollowUp && recentUserMessages) {
+    return `${recentUserMessages} ${query}`.trim();
+  }
+
+  return `${recentUserMessages} ${query}`.trim();
 }

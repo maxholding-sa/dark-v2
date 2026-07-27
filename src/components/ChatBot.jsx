@@ -24,12 +24,83 @@ import Image from "next/image";
 import { formatSaudiRiyalText } from "@/lib/helper";
 
 const PROACTIVE_GREETING =
-  "👋 أهلاً، أنا مساعد MAX AI\nأقدر أرشح لك سيارة حسب راتبك أو ميزانيتك";
+  "👋 أهلاً، أنا مساعد MAX AI\nأقدر أساعدك في اختيار سيارة أو حساب التمويل حسب راتبك";
 const PROACTIVE_INTERVAL_MS = 8000;
 const SESSION_KEY = "max_chat_session_id";
 const CONVERSATION_KEY = "max_chat_conversation_id";
 const WELCOME_TEXT =
-  "مرحباً! أنا مساعد ماكس موتورز الذكي. كيف يمكنني مساعدتك اليوم؟ 🚗\nيمكنك أيضاً طلب تمويل وسيتم حساب العروض داخل المحادثة.";
+  "مرحباً! أنا مساعد ماكس موتورز الذكي. 🚗\nأساعدك في استعراض السيارات الجديدة المتوفرة، حساب التمويل، وحجز تجربة القيادة.\nكيف يمكنني مساعدتك اليوم؟";
+
+function cleanPhoneNumber(phone) {
+  return String(phone || "").replace(/[^0-9]/g, "");
+}
+
+function ChatContactActions({ contactActions }) {
+  if (!contactActions) return null;
+
+  const { phone, whatsapp, mandebs = [] } = contactActions;
+  const hasStoreContact = phone || whatsapp;
+
+  if (!hasStoreContact && mandebs.length === 0) return null;
+
+  return (
+    <div className="mt-2 w-full max-w-[95%] space-y-2">
+      {hasStoreContact ? (
+        <div className="flex flex-wrap gap-2">
+          {phone ? (
+            <a
+              href={`tel:${cleanPhoneNumber(phone)}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+            >
+              📞 اتصال
+            </a>
+          ) : null}
+          {whatsapp ? (
+            <a
+              href={`https://wa.me/${cleanPhoneNumber(whatsapp)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+            >
+              💬 واتساب
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mandebs.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-700">مناديب المبيعات:</p>
+          {mandebs.map((mandeb) => (
+            <div
+              key={mandeb.id}
+              className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm"
+            >
+              <p className="text-sm font-semibold text-gray-900">{mandeb.name}</p>
+              <p className="text-xs text-gray-500 mb-2">{mandeb.city}</p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={`tel:${cleanPhoneNumber(mandeb.phone)}`}
+                  className="inline-flex items-center rounded-full bg-green-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-green-700"
+                >
+                  اتصال
+                </a>
+                <a
+                  href={`https://wa.me/${cleanPhoneNumber(mandeb.phone)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700"
+                >
+                  واتساب
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function getOrCreateSessionId() {
   if (typeof window === "undefined") return null;
@@ -66,6 +137,7 @@ function mapLoadedMessages(rows) {
     offers: msg.offers || msg.payload?.offers || [],
     fieldPrompt: msg.fieldPrompt || msg.payload?.fieldPrompt || null,
     loanSubmitted: msg.loanSubmitted || msg.payload?.loanSubmitted || null,
+    contactActions: msg.contactActions || msg.payload?.contactActions || null,
   }));
 }
 
@@ -122,6 +194,18 @@ export default function ChatBot({ onOpenChange }) {
       text: "أريد التواصل بخصوص عروض الشركات والمؤسسات؟",
       icon: "🏢",
       description: "عروض الشركات والمؤسسات",
+    },
+    {
+      id: 7,
+      text: "رشّح لي سيارة حسب راتبي 7000 ريال",
+      icon: "💼",
+      description: "ترشيح حسب الراتب",
+    },
+    {
+      id: 8,
+      text: "أريد رقم الواتساب للتواصل",
+      icon: "📞",
+      description: "بيانات التواصل",
     },
   ];
 
@@ -299,6 +383,7 @@ export default function ChatBot({ onOpenChange }) {
       offers: result?.offers || [],
       fieldPrompt: result?.fieldPrompt || null,
       loanSubmitted: result?.loanSubmitted || null,
+      contactActions: result?.contactActions || null,
     };
   };
 
@@ -719,6 +804,10 @@ export default function ChatBot({ onOpenChange }) {
                         ))}
                       </div>
                     )}
+
+                    {message.sender === "bot" && message.contactActions ? (
+                      <ChatContactActions contactActions={message.contactActions} />
+                    ) : null}
                   </div>
                 ))}
 

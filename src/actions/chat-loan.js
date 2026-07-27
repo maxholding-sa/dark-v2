@@ -5,6 +5,7 @@ import {
   LOAN_CHAT_MODES,
   LOAN_OFFER_FIELD_ORDER,
   LOAN_SUBMIT_FIELD_ORDER,
+  LOAN_OPTIONAL_FIELD_ORDER,
   ADMIN_CONTACT_FIELD_ORDER,
   MAX_DOWN_PAYMENT_PCT_CHAT,
   emptyLoanState,
@@ -659,6 +660,10 @@ export async function handleLoanChatTurn(conversation, message) {
     loanState = {
       ...loanState,
       fields: { ...loanState.fields, [fieldKey]: parsed.value },
+      optionalAsked: {
+        ...(loanState.optionalAsked || {}),
+        ...(LOAN_OPTIONAL_FIELD_ORDER.includes(fieldKey) ? { [fieldKey]: true } : {}),
+      },
     };
     await updateChatConversationState(conversation.id, {
       mode: LOAN_CHAT_MODES.CONTACT_INTAKE,
