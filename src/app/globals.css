@@ -539,3 +539,11 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
 video:not([controls]) {
   -webkit-appearance: none;
 }
+
+/* SBC verified-store seal — keep above chatbot (bottom-left) on maxmotors.sa */
+.sbc-verify-seal,
+.sbc-verify-seal iframe,
+[class*="sbc-verify"],
+[id*="sbc-verify"] {
+  z-index: 9999 !important;
+}
