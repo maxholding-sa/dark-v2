@@ -6,7 +6,6 @@ import { arSA } from "@clerk/localizations";
 import { generateJsonLd, SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
-import SbcVerifySeal from "@/components/SbcVerifySeal";
 import { headers } from "next/headers";
 import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
 
@@ -146,8 +145,15 @@ export default async function RootLayout({ children }) {
             {children}
           </ClientWrapper>
 
-          {/* Saudi Business Center verified store seal (domain: maxmotors.sa) */}
-          <SbcVerifySeal />
+          <div
+            className="sbc-verify-seal"
+            data-token="dlJYOGw3L0J5dzdXMktXUnAzWHdnQT09"
+            data-position="bottom-left"
+          />
+          <Script
+            src="https://eauthenticate.saudibusiness.gov.sa/EAuthSealApi/seal.js"
+            strategy="afterInteractive"
+          />
 
           <Script
             id="maxmotors-organization-jsonld"
