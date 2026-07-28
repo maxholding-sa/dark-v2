@@ -543,7 +543,22 @@ video:not([controls]) {
 /* SBC verified-store seal — keep above chatbot (bottom-left) on maxmotors.sa */
 .sbc-verify-seal,
 .sbc-verify-seal iframe,
+.sbc-verify-fallback,
 [class*="sbc-verify"],
 [id*="sbc-verify"] {
   z-index: 9999 !important;
+}
+
+.sbc-verify-seal {
+  position: fixed;
+  left: 1rem;
+  bottom: 6.5rem;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .sbc-verify-seal {
+    left: 1.5rem;
+    bottom: 7.5rem;
+  }
 }
