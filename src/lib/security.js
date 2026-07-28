@@ -46,6 +46,7 @@ const scriptSources = [
   "https://sc-static.net",
   "https://www.clarity.ms",
   "https://static.klaviyo.com",
+  "https://eauthenticate.saudibusiness.gov.sa",
 ].filter(Boolean);
 
 const connectSources = [
@@ -57,6 +58,7 @@ const connectSources = [
   "https://www.facebook.com",
   "https://analytics.tiktok.com",
   "https://*.clarity.ms",
+  "https://eauthenticate.saudibusiness.gov.sa",
 ];
 
 const frameSources = [
@@ -84,7 +86,7 @@ export const securityHeaders = [
       `script-src ${scriptSources.join(" ")}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://img.clerk.com https://placehold.co https://www.facebook.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://img.clerk.com https://placehold.co https://www.facebook.com https://eauthenticate.saudibusiness.gov.sa https://*.saudibusiness.gov.sa",
       "media-src 'self' blob: https://*.supabase.co",
       `connect-src ${connectSources.join(" ")}`,
       `frame-src ${frameSources.join(" ")}`,

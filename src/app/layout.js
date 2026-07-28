@@ -145,6 +145,17 @@ export default async function RootLayout({ children }) {
             {children}
           </ClientWrapper>
 
+          {/* Saudi Business Center verified store seal */}
+          <div
+            className="sbc-verify-seal"
+            data-token="dlJYOGw3L0J5dzdXMktXUnAzWHdnQT09"
+            data-position="bottom-left"
+          />
+          <Script
+            src="https://eauthenticate.saudibusiness.gov.sa/EAuthSealApi/seal.js"
+            strategy="afterInteractive"
+          />
+
           <Script
             id="maxmotors-organization-jsonld"
             type="application/ld+json"
