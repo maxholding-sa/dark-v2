@@ -51,6 +51,17 @@ if [[ ! -f "$APP_DIR/.env" ]]; then
   exit 1
 fi
 
+# NEXT_PUBLIC_* is baked in at build time — never ship the legacy Crown Auto domain.
+echo "==> Ensuring production site URL is https://maxmotors.sa"
+for key in NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_BASE_URL; do
+  if grep -q "^${key}=" .env; then
+    sed -i "s|^${key}=.*|${key}=https://maxmotors.sa|" .env
+  else
+    echo "${key}=https://maxmotors.sa" >> .env
+  fi
+done
+grep -E '^(NEXT_PUBLIC_SITE_URL|NEXT_PUBLIC_BASE_URL)=' .env || true
+
 echo "==> Checking Supabase / database connectivity"
 if ! node scripts/vps-check-data.cjs; then
   echo ""

@@ -1,4 +1,9 @@
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa").replace(/\/$/, "");
+const resolveSiteUrl = (raw = process.env.NEXT_PUBLIC_SITE_URL) => {
+  const url = String(raw || "https://maxmotors.sa").trim().replace(/\/$/, "");
+  if (!url || /crown-?auto/i.test(url)) return "https://maxmotors.sa";
+  return url;
+};
+const SITE_URL = resolveSiteUrl();
 
 const parseOrigin = (value) => {
   if (!value) return null;

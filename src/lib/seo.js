@@ -3,11 +3,20 @@
  * Market: Saudi Arabia
  */
 
+const CANONICAL_SITE_URL = "https://maxmotors.sa";
+
+/** Resolve public site URL; never emit the legacy crown-auto domain in share metadata. */
+export const resolveSiteUrl = (raw = process.env.NEXT_PUBLIC_SITE_URL) => {
+  const url = String(raw || CANONICAL_SITE_URL).trim().replace(/\/$/, "");
+  if (!url || /crown-?auto/i.test(url)) return CANONICAL_SITE_URL;
+  return url;
+};
+
 export const SITE_CONFIG = {
   name: "ماكس موتورز",
   englishName: "maxmotors",
   description: "ماكس موتورز - منصة سعودية لشراء السيارات الجديدة والمستعملة، حجز تجربة القيادة، ومقارنة العروض التمويلية بثقة وسهولة.",
-  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa").replace(/\/$/, ""),
+  url: resolveSiteUrl(),
   locale: "ar-SA",
   lang: "ar",
   defaultOgImage: "/logo.JPG",

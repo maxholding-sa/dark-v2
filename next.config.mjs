@@ -7,7 +7,12 @@ process.env.GLOBBY_OPTIONS = JSON.stringify({
   followSymlinkedDirectories: false,
 });
 
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://maxmotors.sa").replace(/\/$/, "");
+const resolveSiteUrl = (raw = process.env.NEXT_PUBLIC_SITE_URL) => {
+  const url = String(raw || "https://maxmotors.sa").trim().replace(/\/$/, "");
+  if (!url || /crown-?auto/i.test(url)) return "https://maxmotors.sa";
+  return url;
+};
+const siteUrl = resolveSiteUrl();
 
 const parseHostname = (value) => {
   if (!value) return null;

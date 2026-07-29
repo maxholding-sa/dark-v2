@@ -4,7 +4,7 @@ import LoadingBar from "@/components/LoadingBar";
 import CarFilters from "./_components/CarFilters";
 import CarListings from "./_components/CarListings";
 import CarsPageWrapper from "./_components/CarsPageWrapper";
-import { generateMetadata, SAUDI_MARKET_KEYWORDS } from "@/lib/seo";
+import { generateMetadata, SAUDI_MARKET_KEYWORDS, SITE_CONFIG } from "@/lib/seo";
 
 export const metadata = generateMetadata({
   title: "تصفح وشراء السيارات في السعودية | ماكس موتورز",
@@ -16,7 +16,7 @@ export const metadata = generateMetadata({
     "أسعار السيارات",
     ...SAUDI_MARKET_KEYWORDS.brands,
   ],
-  canonicalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://maxmotors.sa'}/cars`,
+  canonicalUrl: `${SITE_CONFIG.url}/cars`,
   ogType: "website",
 });
 
