@@ -2,7 +2,7 @@
 
 import { serializedCarsData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModel } from "@/lib/gemini";
 
 // Function to convert File to base64
 async function fileToBase64(file) {
@@ -295,17 +295,12 @@ export async function processAiImageSearch(formData) {
       throw new Error("No image file provided");
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-    // Using gemini-2.5-flash with retry logic for 503 errors
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: {
-        temperature: 0.4,
-        topK: 32,
-        topP: 1,
-        maxOutputTokens: 1024,
-      },
+    // Using stable flash alias with retry logic for 503 errors
+    const model = getGeminiModel({
+      temperature: 0.4,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 1024,
     });
 
     // converting the image into base64 string

@@ -40,18 +40,12 @@ export async function processCarImageWithAI(formData) {
       throw new Error("No image file provided");
     }
 
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-    // Using gemini-2.5-flash - latest model
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: {
-        temperature: 0.4,
-        topK: 32,
-        topP: 1,
-        maxOutputTokens: 2048,
-      },
+    const { getGeminiModel } = await import("@/lib/gemini");
+    const model = getGeminiModel({
+      temperature: 0.4,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 2048,
     });
 
     // converting the image into base64 string

@@ -1,9 +1,9 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { serializedCarsData } from "@/lib/helper";
+import { getGeminiModel } from "@/lib/gemini";
 import {
   ensureChatConversation,
   appendChatMessages,
@@ -39,7 +39,6 @@ import {
 import { parseBudgetFromQuery } from "@/lib/car-search";
 import { getPublicMandebs } from "@/actions/mandeb";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // قاموس للكتابات البديلة والأخطاء الإملائية الشائعة في اللغة العربية
 const arabicSpellingVariations = {
@@ -801,9 +800,6 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       );
     }
 
-    // Initialize the model - using gemini-1.5-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     // Build conversation history context first to understand context
     let previousCarsContext = "";
     let conversationText = "";
@@ -832,6 +828,23 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     let contactActions = null;
     let salaryContext = "";
 
+    if (intents.greeting) {
+      const greetingReply = {
+        success: true,
+        message:
+          "مرحباً بك في ماكس موتورز! 👋 كيف أقدر أساعدك اليوم؟\nيمكنني مساعدتك في البحث عن سيارة، التمويل والتقسيط، أو حجز تجربة قيادة.",
+        cars: [],
+        offers: [],
+        conversationId: conversation.id,
+        mode: conversation.mode,
+      };
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        { role: "assistant", content: greetingReply.message, payload: {} },
+      ]);
+      return greetingReply;
+    }
+
     if (intents.contact) {
       contactActions = await buildContactActions(storeInfo);
       const contactReply = {
@@ -854,6 +867,9 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       ]);
       return contactReply;
     }
+
+    // Initialize Gemini only when we need AI (stable flash alias)
+    const model = getGeminiModel();
 
     let relevantCars = [];
     const salaryIntent = wantsSalaryRecommendation(correctedMessage);
@@ -1275,7 +1291,7 @@ export async function getCarRecommendations(preferences) {
       ]
     });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = getGeminiModel();
 
     // Format available cars for the AI
     const carsData = availableCars.map(car => ({
