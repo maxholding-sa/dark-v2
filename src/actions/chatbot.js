@@ -558,6 +558,27 @@ ${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (i
   }).join('\n\n');
 }
 
+/** Greetings / thanks / short chitchat — not inventory searches. */
+function isGreetingOrChitchat(text = "") {
+  const t = String(text).trim();
+  if (!t) return true;
+
+  if (
+    /^(مرحبا|مرحباً|مرحبه|اهلا|أهلا|أهلاً|اهلاً|السلام\s*عليكم|وعليكم\s*السلام|هلا|هلاو|هاي|hello|hi|hey|صباح\s*الخير|مساء\s*الخير|كيفك|كيف\s*حالك|شلونك|شكرا|شكراً|مشكور|thanks|thank\s*you|ok|تمام|حسنا|طيب|اوكي)[\s!.؟]*$/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+
+  // Very short messages without clear car/search keywords
+  const hasInventoryCue =
+    /سيار|تمويل|تقسيط|سعر|عرض|ماركة|موديل|تويوتا|هيونداي|نيسان|كيا|bmw|مرسيدس|لكزس|فاخر|اقتصاد|راتب|قسط|car|toyota|hyundai|nissan|kia/i.test(
+      t
+    );
+  return t.length <= 12 && !hasInventoryCue && !/\d/.test(t);
+}
+
 function detectChatIntents(text) {
   const contact =
     /تواصل|اتصال|اتصل|رقم|جوال|هاتف|واتساب|واتس|whatsapp|phone|call|مندوب|مناديب|موظف|خدمة\s*عملاء|customer\s*service/i.test(
@@ -584,8 +605,17 @@ function detectChatIntents(text) {
       text
     ) ||
       /ابحث عن أحدث عروض|أبحث عن أحدث عروض/i.test(text));
+  const greeting = isGreetingOrChitchat(text);
 
-  return { contact, corporate, financing, compare, economical, latestOffers };
+  return {
+    contact,
+    corporate,
+    financing,
+    compare,
+    economical,
+    latestOffers,
+    greeting,
+  };
 }
 
 async function fetchLatestOfferCars() {
@@ -900,7 +930,14 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       logger.debug("[chatbot] Added sample cars for corporate context");
     }
 
-    const needsContactFallback = relevantCars.length === 0 && !salaryIntent;
+    // Greetings must not be treated as failed car searches.
+    if (intents.greeting && relevantCars.length === 0) {
+      relevantCars = await fetchLatestOfferCars();
+      logger.debug("[chatbot] Greeting — loaded sample cars for context");
+    }
+
+    const needsContactFallback =
+      relevantCars.length === 0 && !salaryIntent && !intents.greeting;
     if (needsContactFallback) {
       contactActions = await buildContactActions(storeInfo);
     }
@@ -919,6 +956,15 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
         : "";
 
     let intentInstructions = "";
+    if (intents.greeting) {
+      intentInstructions += `
+موضوع الرسالة: **تحية / محادثة عامة**.
+- رحّب بالعميل بلطف وقدّم نفسك كمساعد ماكس موتورز.
+- اشرح باختصار كيف تساعده (بحث سيارات، تمويل، تجربة قيادة، تواصل).
+- يمكنك الإشارة لوجود سيارات متاحة دون الإصرار على عرض قائمة طويلة.
+- لا تقل إن قاعدة البيانات فارغة أو أنه لا توجد سيارات مطابقة.
+`;
+    }
     if (budget.maxPrice != null || budget.minPrice != null) {
       intentInstructions += `
 موضوع الرسالة: **فلترة حسب الميزانية**.
@@ -1138,7 +1184,8 @@ ${priceContext}
 
     // Parse the response to extract which cars to show
     let cleanedText = text.trim();
-    let carsToShow = relevantCars; // Default: show all cars
+    // Greetings: don't dump inventory cards unless the model explicitly picks some
+    let carsToShow = intents.greeting ? [] : relevantCars;
     
     // Check if AI specified which cars to show
     const carsMarkerMatch = cleanedText.match(/\[CARS_TO_SHOW\]([\d,\s]+)/);
