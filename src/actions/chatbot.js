@@ -19,11 +19,23 @@ import {
   showCarsForLoanSelection,
 } from "@/actions/chat-loan";
 import {
+  startCompareFlow,
+  selectCarForCompare,
+  handleCompareCarSearch,
+  handleChangeCompareRequest,
+} from "@/actions/chat-compare";
+import {
   LOAN_CHAT_MODES,
   emptyLoanState,
   wantsFinancingFlow,
   wantsCancelLoanFlow,
 } from "@/lib/chat-loan-intake";
+import {
+  isCompareMode,
+  wantsCompareFlow,
+  wantsCancelCompareFlow,
+  parseChangeCompareSlot,
+} from "@/lib/chat-compare";
 import {
   searchCarsForChat,
   fetchEconomicalCarsForChat,
@@ -44,12 +56,13 @@ import { getPublicMandebs } from "@/actions/mandeb";
 const arabicSpellingVariations = {
   // أخطاء شائعة في كلمات السيارات
   "هايلوكس": "هايلكس",
-  "هايلوكز": "هايلكس", 
+  "هايلوكز": "هايلكس",
   "هيلكس": "هايلكس",
   "هيلوكس": "هايلكس",
+  "هليكس": "هايلكس",
   "هاي لوكس": "هايلكس",
   "هاي لكس": "هايلكس",
-  
+
   // أخطاء في ماركات السيارات
   "تويتا": "تويوتا",
   "تايوتا": "تويوتا",
@@ -437,36 +450,28 @@ const arabicSpellingVariations = {
 };
 
 // دالة لتصحيح الأخطاء الإملائية والكتابة البديلة
+// يستبدل كلمات كاملة فقط — استبدال الجزء الداخلي يفسد الصحيح
+// (مثال: مفتاح "كامر" داخل "كامري" كان ينتج "كامريي")
 function correctArabicSpelling(text) {
-  if (!text || typeof text !== 'string') return text;
-  
+  if (!text || typeof text !== "string") return text;
+
   let correctedText = text;
-  
-  // ترتيب المفاتيح من الأطول إلى الأقصر لتجنب التداخل
-  const sortedKeys = Object.keys(arabicSpellingVariations).sort((a, b) => b.length - a.length);
-  
-  sortedKeys.forEach(incorrect => {
+  const sortedKeys = Object.keys(arabicSpellingVariations).sort(
+    (a, b) => b.length - a.length
+  );
+
+  sortedKeys.forEach((incorrect) => {
     const correct = arabicSpellingVariations[incorrect];
-    
-    // إذا كانت الكلمة موجودة في النص، استبدلها
-    // استخدام regex للكلمات الإنجليزية للتأكد من التطابق الكامل
-    if (correctedText.includes(incorrect)) {
-      // للكلمات الإنجليزية، استخدم word boundaries
-      if (/^[a-zA-Z]+$/.test(incorrect)) {
-        // كلمة إنجليزية - استخدم word boundaries
-        const regex = new RegExp(`\\b${incorrect}\\b`, 'gi');
-        correctedText = correctedText.replace(regex, correct);
-      } else {
-        // كلمة عربية - استخدم الطريقة البسيطة
-        correctedText = correctedText.split(incorrect).join(correct);
-      }
-    }
+    if (!incorrect || incorrect === correct) return;
+    if (!correctedText.includes(incorrect)) return;
+
+    const escaped = incorrect.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // حدود كلمة: بداية/نهاية أو مسافة (يعمل للعربية والإنجليزية)
+    const regex = new RegExp(`(^|\\s)(${escaped})(?=\\s|$)`, "gi");
+    correctedText = correctedText.replace(regex, `$1${correct}`);
   });
-  
-  // تنظيف المسافات الزائدة
-  correctedText = correctedText.replace(/\s+/g, ' ').trim();
-  
-  return correctedText;
+
+  return correctedText.replace(/\s+/g, " ").trim();
 }
 
 async function searchCarsInDatabase(query, conversationHistory = []) {
@@ -483,13 +488,14 @@ async function buildContactActions(store = null) {
   const mandebsResult = await getPublicMandebs().catch(() => ({ success: false, data: [] }));
   const mandebs = mandebsResult?.success ? mandebsResult.data || [] : [];
 
-  if (!storeInfo?.phone && !storeInfo?.whatsapp && mandebs.length === 0) {
+  if (!storeInfo?.phone && !storeInfo?.whatsapp && !storeInfo?.email && mandebs.length === 0) {
     return null;
   }
 
   return {
     phone: storeInfo?.phone || null,
     whatsapp: storeInfo?.whatsapp || null,
+    email: storeInfo?.email || null,
     mandebs: mandebs.map((m) => ({
       id: m.id,
       name: m.name,
@@ -715,6 +721,13 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     }
 
     if (action === "select_car" && actionPayload.carId) {
+      if (isCompareMode(conversation.mode)) {
+        return selectCarForCompare(
+          conversation,
+          actionPayload.carId,
+          message || null
+        );
+      }
       return selectCarForLoan(conversation, actionPayload.carId, message || null);
     }
     if (action === "select_offer" && actionPayload.offerId != null) {
@@ -727,7 +740,11 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       });
     }
 
-    if (wantsCancelLoanFlow(message) && conversation.mode !== LOAN_CHAT_MODES.IDLE) {
+    const wantsCancel =
+      (wantsCancelLoanFlow(message) || wantsCancelCompareFlow(message)) &&
+      conversation.mode !== LOAN_CHAT_MODES.IDLE;
+    if (wantsCancel) {
+      const wasCompare = isCompareMode(conversation.mode);
       await updateChatConversationState(conversation.id, {
         mode: LOAN_CHAT_MODES.IDLE,
         loanState: emptyLoanState(),
@@ -735,7 +752,9 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       conversation = await getConversationById(conversation.id);
       const cancelReply = {
         success: true,
-        message: "تم إلغاء مسار التمويل. كيف يمكنني مساعدتك؟",
+        message: wasCompare
+          ? "تم إلغاء المقارنة. كيف يمكنني مساعدتك؟"
+          : "تم إلغاء مسار التمويل. كيف يمكنني مساعدتك؟",
         cars: [],
         offers: [],
         conversationId: conversation.id,
@@ -787,13 +806,39 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       return startLoanFlow(conversation, { cars: [], message });
     }
 
+    // Change first/second car after (or during) a comparison
+    if (parseChangeCompareSlot(correctedMessage)) {
+      const changeReply = await handleChangeCompareRequest(
+        conversation,
+        correctedMessage
+      );
+      if (changeReply) return changeReply;
+    }
+
+    // Compare: ask for car 1, then car 2, then compare
+    if (
+      wantsCompareFlow(correctedMessage) &&
+      conversation.mode === LOAN_CHAT_MODES.IDLE
+    ) {
+      return startCompareFlow(conversation, { message });
+    }
+
     // While choosing a car for financing, search what the customer asked for
     if (conversation.mode === LOAN_CHAT_MODES.CAR_SELECT) {
-      const matchedCars = await searchCarsInDatabase(
-        correctedMessage,
-        conversationHistory
-      );
+      // Use only the current message — history often has intent phrases
+      // ("أريد تمويل") that break AND token matching.
+      const matchedCars = await searchCarsInDatabase(correctedMessage, []);
       return showCarsForLoanSelection(
+        conversation,
+        matchedCars.slice(0, 8),
+        message
+      );
+    }
+
+    // While collecting cars for comparison
+    if (isCompareMode(conversation.mode)) {
+      const matchedCars = await searchCarsInDatabase(correctedMessage, []);
+      return handleCompareCarSearch(
         conversation,
         matchedCars.slice(0, 8),
         message
@@ -933,14 +978,6 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       );
     }
 
-    if (intents.compare && relevantCars.length < 2) {
-      const sample = await fetchLatestOfferCars();
-      if (sample.length >= 2) {
-        relevantCars = sample;
-        logger.debug("[chatbot] Compare intent using latest cars");
-      }
-    }
-
     if (intents.corporate && relevantCars.length === 0) {
       relevantCars = await fetchLatestOfferCars();
       logger.debug("[chatbot] Added sample cars for corporate context");
@@ -994,14 +1031,6 @@ ${budget.minPrice != null ? `- الحد الأدنى للسعر: ${budget.minPri
 موضوع الرسالة: **ترشيح حسب الراتب والالتزامات**.
 - اعرض فقط السيارات المؤهلة ضمن حد التحمل الشهري (35% من الدخل المتاح بعد الالتزامات).
 - وضّح أن التقدير مبني على افتراضات تمويل أولية ويمكن تحسينه بإكمال بيانات التمويل.
-`;
-    }
-    if (intents.compare) {
-      intentInstructions += `
-موضوع الرسالة: **مقارنة بين موديلات**.
-- اسأل العميل بلطف عن **موديلين أو أكثر** يريد مقارنتها بالاسم (مثلاً: كامري مقابل ألتيما)، أو قارِن بين سيارتين **من القائمة أدناه** إذا وُجد أكثر من خيار.
-- قدّم مقارنة منظمة (سعر، سنة، وقود، ناقل حركة، هيكل، تمييز) باستخدام **نفس أسماء الماركة والموديل كما في القاعدة**.
-- لا تخترع سيارات غير موجودة في القائمة أو في سياق المحادثة السابقة.
 `;
     }
     if (intents.economical) {

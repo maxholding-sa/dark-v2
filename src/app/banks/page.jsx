@@ -1,7 +1,10 @@
 import React from "react";
+import Link from "next/link";
 import BankCard from "@/components/BankCard";
 import { getBanks } from "@/actions/banks";
 import { generateMetadata } from "@/lib/seo";
+import { Button } from "@/components/ui/button";
+import { Banknote } from "lucide-react";
 
 export const metadata = generateMetadata({
   title: "العروض التمويلية للسيارات | ماكس موتورز",
@@ -22,9 +25,21 @@ export default async function BanksPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
               العروض التمويلية
             </h1>
-            <p className="text-yellow-600 text-base max-w-2xl mx-auto">
+            <p className="text-yellow-600 text-base max-w-2xl mx-auto mb-6">
               اكتشف جميع العروض التمويلية المتاحة لتمويل سيارتك
             </p>
+            <Button
+              asChild
+              className="bg-yellow-700 hover:bg-yellow-800 text-white font-bold"
+            >
+              <Link
+                href="/loan-request"
+                className="inline-flex items-center gap-2"
+              >
+                <Banknote className="h-4 w-4" />
+                طلب قرض مباشرة
+              </Link>
+            </Button>
           </div>
         </section>
 

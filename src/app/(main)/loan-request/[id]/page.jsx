@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import LoanRequestForm from './_components/LoanRequestForm';
+import LoanRequestForm from '../_components/LoanRequestForm';
 import { getCarById } from '@/actions/car-details';
 import { generateMetadata as buildMetadata } from '@/lib/seo';
 

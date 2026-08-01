@@ -26,9 +26,23 @@ import {
   getMaxDownPaymentSar,
   resolveDownPaymentSar,
 } from "@/lib/generate-islamic-offers";
+import { getStoreInfo } from "@/actions/site-management";
 import { Currency, User, Mail, Phone, MessageSquare, Calendar, ChevronLeft, ChevronRight, Upload, CheckCircle, Car, File, Key, Lock, Banknote, TrendingUp, AlertTriangle, Shield, Target, Award, BarChart3, DollarSign, Percent, Clock, Star } from "lucide-react";
 
 const MAX_DOWN_PAYMENT_PCT = LOAN_CALCULATOR_META.maxDownPaymentPct;
+const CURRENT_HIJRI_YEAR = 1447;
+const CURRENT_GREGORIAN_YEAR = 2026;
+
+const cleanPhoneNumber = (value) => String(value || "").replace(/\D/g, "");
+
+const isAdminContactPricingBlock = (reason) => {
+  if (!reason) return false;
+  if (reason.includes("جاري تحميل")) return false;
+  if (reason.includes("أقصى دفعة")) return false;
+  if (reason.includes("أعلى دفعة")) return false;
+  if (reason.includes("أقل من سعر")) return false;
+  return true;
+};
 
 const formatBalloonPolicy = (offer) =>
   offer.loanPolicy || (offer.balloonPayment > 0 ? "دفعة أخيرة حسب جهة التمويل" : "غير محدد");
@@ -95,10 +109,10 @@ const createInitialFormData = (car) => {
   return {
     idNumber: "",
     idImage: null,
-    carMake: car.make,
-    carModel: car.model,
-    carCategory: car.category || "",
-    carYear: car.year.toString(),
+    carMake: car?.make || "",
+    carModel: car?.model || "",
+    carCategory: car?.category || "",
+    carYear: car?.year != null ? String(car.year) : "",
     mobileNumber: "",
     birthDateType: "hijri",
     birthMonth: "",
@@ -217,18 +231,32 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
   </div>
 );
 
-const LoanRequestForm = ({ car }) => {
+const LoanRequestForm = ({ car: initialCar = null }) => {
+  const allowCarSelect = !initialCar;
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState(() => createInitialFormData(car));
-  const carPriceValue = useMemo(() => getCarPrice(car, formData), [car, formData.loanAmount]);
+  const [selectedCar, setSelectedCar] = useState(initialCar);
+  const [formData, setFormData] = useState(() => createInitialFormData(initialCar));
+  const carPriceValue = useMemo(
+    () => getCarPrice(selectedCar, formData),
+    [selectedCar, formData.loanAmount]
+  );
+
+  const [makes, setMakes] = useState([]);
+  const [models, setModels] = useState([]);
+  const [years, setYears] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [carLookupLoading, setCarLookupLoading] = useState(false);
+  const [carLookupError, setCarLookupError] = useState("");
 
   useLayoutEffect(() => {
-    setFormData((prev) => syncDownPaymentFormData(car, prev));
-  }, [car, car?.id, car?.price, currentStep]);
+    setFormData((prev) => syncDownPaymentFormData(selectedCar, prev));
+  }, [selectedCar, selectedCar?.id, selectedCar?.price, currentStep]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [banks, setBanks] = useState([]);
   const [banksLoading, setBanksLoading] = useState(true);
+  const [storeContact, setStoreContact] = useState({ phone: null, whatsapp: null, email: null });
   const [selectedOffers, setSelectedOffers] = useState([]);
   const [comparisonAnalysis, setComparisonAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -236,17 +264,208 @@ const LoanRequestForm = ({ car }) => {
   const [selectedOffer, setSelectedOffer] = useState(null);
 
   const offerResult = useMemo(
-    () => generateIslamicOffers({ banks, formData, car }),
-    [banks, formData, car]
+    () => generateIslamicOffers({ banks, formData, car: selectedCar }),
+    [banks, formData, selectedCar]
   );
 
+  useEffect(() => {
+    if (!allowCarSelect) return;
+
+    const loadMakes = async () => {
+      try {
+        const response = await fetch("/api/car-makes");
+        const data = await response.json();
+        setMakes(data.makes || []);
+      } catch (error) {
+        console.error("Error fetching car makes:", error);
+        setMakes([]);
+      }
+    };
+
+    loadMakes();
+  }, [allowCarSelect]);
+
+  useEffect(() => {
+    if (!allowCarSelect || !formData.carMake) {
+      setModels([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const loadModels = async () => {
+      setOptionsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/car-models?make=${encodeURIComponent(formData.carMake)}`,
+          { signal: controller.signal }
+        );
+        const data = await response.json();
+        setModels(data.models || []);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error fetching car models:", error);
+          setModels([]);
+        }
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadModels();
+    return () => controller.abort();
+  }, [allowCarSelect, formData.carMake]);
+
+  useEffect(() => {
+    if (!allowCarSelect || !formData.carMake || !formData.carModel) {
+      setYears([]);
+      setCategories([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const loadYearsAndCategories = async () => {
+      setOptionsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          make: formData.carMake,
+          model: formData.carModel,
+        });
+        if (formData.carYear) params.set("year", formData.carYear);
+
+        const [yearsRes, categoriesRes] = await Promise.all([
+          fetch(
+            `/api/car-years?make=${encodeURIComponent(formData.carMake)}&model=${encodeURIComponent(formData.carModel)}`,
+            { signal: controller.signal }
+          ),
+          fetch(`/api/car-categories?${params.toString()}`, { signal: controller.signal }),
+        ]);
+
+        const yearsData = await yearsRes.json();
+        const categoriesData = await categoriesRes.json();
+        setYears(yearsData.years || []);
+        setCategories(categoriesData.categories || []);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error fetching car years/categories:", error);
+          setYears([]);
+          setCategories([]);
+        }
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadYearsAndCategories();
+    return () => controller.abort();
+  }, [allowCarSelect, formData.carMake, formData.carModel, formData.carYear]);
+
+  useEffect(() => {
+    if (!allowCarSelect) return;
+    if (categories.length === 1 && formData.carCategory !== categories[0]) {
+      setFormData((prev) => ({ ...prev, carCategory: categories[0] }));
+    }
+  }, [allowCarSelect, categories, formData.carCategory]);
+
+  useEffect(() => {
+    if (!allowCarSelect) return;
+    if (!formData.carMake || !formData.carModel || !formData.carYear) {
+      setSelectedCar(null);
+      setCarLookupError("");
+      return;
+    }
+
+    if (categories.length > 1 && !formData.carCategory) {
+      setSelectedCar(null);
+      setCarLookupError("يرجى اختيار فئة السيارة");
+      return;
+    }
+
+    const controller = new AbortController();
+    const resolveCar = async () => {
+      setCarLookupLoading(true);
+      setCarLookupError("");
+      try {
+        const params = new URLSearchParams({
+          make: formData.carMake,
+          model: formData.carModel,
+          year: formData.carYear,
+        });
+        if (formData.carCategory) params.set("category", formData.carCategory);
+
+        const response = await fetch(`/api/car-search?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+          setSelectedCar(null);
+          setCarLookupError(result.message || "لم يتم العثور على سيارة بهذه المواصفات");
+          return;
+        }
+
+        setSelectedCar(result.data);
+        setFormData((prev) =>
+          syncDownPaymentFormData(result.data, {
+            ...prev,
+            loanAmount: String(result.data.price ?? prev.loanAmount ?? ""),
+            carCategory: prev.carCategory || result.data.category || "",
+          })
+        );
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error searching car:", error);
+          setSelectedCar(null);
+          setCarLookupError("حدث خطأ أثناء البحث عن السيارة");
+        }
+      } finally {
+        setCarLookupLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(resolveCar, 200);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [
+    allowCarSelect,
+    formData.carMake,
+    formData.carModel,
+    formData.carYear,
+    formData.carCategory,
+    categories.length,
+  ]);
+
+  const handleCarFieldChange = (field, value) => {
+    setSelectedCar(null);
+    setCarLookupError("");
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (field === "carMake") {
+        next.carModel = "";
+        next.carYear = "";
+        next.carCategory = "";
+        next.loanAmount = "";
+      } else if (field === "carModel") {
+        next.carYear = "";
+        next.carCategory = "";
+        next.loanAmount = "";
+      } else if (field === "carYear") {
+        next.carCategory = "";
+        next.loanAmount = "";
+      }
+
+      return next;
+    });
+  };
 
   const selectOfferAndProceed = (offer) => {
     setFormData(prev => ({
       ...prev,
       downPayment: offer.downPayment.toString(),
       loanTerm: Math.floor(offer.termMonths / 12).toString(),
-      loanAmount: String(car.price),
+      loanAmount: String(selectedCar?.price ?? prev.loanAmount),
     }));
     setSelectedOffer(offer);
     if (typeof window !== "undefined" && window.__lastFinancingScenario?.inputs) {
@@ -295,7 +514,7 @@ const LoanRequestForm = ({ car }) => {
             employerSector: formData.employerSector,
             hasRealEstateFinance: formData.hasRealEstateFinance,
             hasCreditDefault: formData.hasCreditDefault,
-            carPrice: car.price,
+            carPrice: selectedCar?.price,
             gender: formData.gender,
             birthYear: formData.birthYear,
           }
@@ -343,6 +562,24 @@ const LoanRequestForm = ({ car }) => {
     fetchBanks();
   }, []);
 
+  useEffect(() => {
+    const fetchStoreContact = async () => {
+      try {
+        const result = await getStoreInfo();
+        if (result.success && result.data) {
+          setStoreContact({
+            phone: result.data.phone || null,
+            whatsapp: result.data.whatsapp || null,
+            email: result.data.email || null,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching store contact:", error);
+      }
+    };
+    fetchStoreContact();
+  }, []);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -352,7 +589,7 @@ const LoanRequestForm = ({ car }) => {
 
   const handleDownPaymentChange = (rawValue) => {
     setFormData((prev) => {
-      const carPrice = getCarPrice(car, prev);
+      const carPrice = getCarPrice(selectedCar, prev);
       const maxAllowed = getMaxDownPaymentSar(carPrice);
 
       if (rawValue === "") {
@@ -402,7 +639,18 @@ const LoanRequestForm = ({ car }) => {
         }
         break;
       case 1:
-        // Car details are pre-filled and disabled, no validation needed
+        if (!formData.carMake || !formData.carModel || !formData.carYear) {
+          toast.error("يرجى اختيار ماركة وموديل وسنة السيارة");
+          return false;
+        }
+        if (allowCarSelect && categories.length > 1 && !formData.carCategory) {
+          toast.error("يرجى اختيار فئة السيارة");
+          return false;
+        }
+        if (!selectedCar?.id) {
+          toast.error(carLookupError || "يرجى اختيار سيارة متوفرة من القائمة");
+          return false;
+        }
         break;
       case 2:
         if (!formData.mobileNumber || !formData.birthMonth || !formData.birthYear || !formData.gender) {
@@ -438,7 +686,7 @@ const LoanRequestForm = ({ car }) => {
     if (!validateCurrentStep() || currentStep >= steps.length - 1) return;
 
     if (currentStep === 3) {
-      setFormData((prev) => syncDownPaymentFormData(car, prev));
+      setFormData((prev) => syncDownPaymentFormData(selectedCar, prev));
     }
 
     setCurrentStep((step) => step + 1);
@@ -457,6 +705,11 @@ const LoanRequestForm = ({ car }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedCar?.id) {
+      toast.error("يرجى اختيار السيارة أولاً");
+      setCurrentStep(1);
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -469,12 +722,12 @@ const LoanRequestForm = ({ car }) => {
           ...formData,
           mobileNumber: "+966" + formData.mobileNumber,
           selectedOffer,
-          carId: car.id,
+          carId: selectedCar.id,
           carDetails: {
-            year: car.year,
-            make: car.make,
-            model: car.model,
-            price: car.price,
+            year: selectedCar.year,
+            make: selectedCar.make,
+            model: selectedCar.model,
+            price: selectedCar.price,
           },
         }),
       });
@@ -496,7 +749,9 @@ const LoanRequestForm = ({ car }) => {
 
   const handleCloseModal = () => {
     setShowSuccessModal(false);
-    setFormData(createInitialFormData(car));
+    setSelectedCar(initialCar);
+    setFormData(createInitialFormData(initialCar));
+    setCarLookupError("");
     setCurrentStep(0);
   };
 
@@ -558,49 +813,163 @@ const LoanRequestForm = ({ car }) => {
             </h3>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
-                <Input
-                  id="carMake"
-                  type="text"
-                  value={formData.carMake}
-                  disabled
-                  placeholder="أدخل ماركة السيارة"
-                />
-              </div>
+              {allowCarSelect ? (
+                <>
+                  <div>
+                    <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
+                    <Select
+                      value={formData.carMake || undefined}
+                      onValueChange={(value) => handleCarFieldChange("carMake", value)}
+                    >
+                      <SelectTrigger id="carMake" className="w-full">
+                        <SelectValue placeholder="اختر الماركة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {makes.map((make) => (
+                          <SelectItem key={make} value={make}>
+                            {make}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
-                <Input
-                  id="carModel"
-                  type="text"
-                  value={formData.carModel}
-                  disabled
-                  placeholder="أدخل موديل السيارة"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
+                    <Select
+                      value={formData.carModel || undefined}
+                      onValueChange={(value) => handleCarFieldChange("carModel", value)}
+                      disabled={!formData.carMake}
+                    >
+                      <SelectTrigger id="carModel" className="w-full">
+                        <SelectValue placeholder={formData.carMake ? "اختر الموديل" : "اختر الماركة أولاً"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.map((model) => (
+                          <SelectItem key={model} value={model}>
+                            {model}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="carCategory" className="mb-2">فئة السيارة</Label>
-                <Input
-                  id="carCategory"
-                  type="text"
-                  value={formData.carCategory}
-                  disabled
-                  placeholder="أدخل فئة السيارة"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
+                    <Select
+                      value={formData.carYear || undefined}
+                      onValueChange={(value) => handleCarFieldChange("carYear", value)}
+                      disabled={!formData.carModel}
+                    >
+                      <SelectTrigger id="carYear" className="w-full">
+                        <SelectValue placeholder={formData.carModel ? "اختر السنة" : "اختر الموديل أولاً"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
-                <Input
-                  id="carYear"
-                  type="number"
-                  value={formData.carYear}
-                  disabled
-                  placeholder="أدخل سنة صنع السيارة"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="carCategory" className="mb-2">
+                      فئة السيارة{categories.length > 1 ? " *" : ""}
+                    </Label>
+                    <Select
+                      value={formData.carCategory || undefined}
+                      onValueChange={(value) => handleCarFieldChange("carCategory", value)}
+                      disabled={!formData.carYear || categories.length === 0}
+                    >
+                      <SelectTrigger id="carCategory" className="w-full">
+                        <SelectValue
+                          placeholder={
+                            !formData.carYear
+                              ? "اختر السنة أولاً"
+                              : categories.length === 0
+                                ? "لا توجد فئات"
+                                : "اختر الفئة"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(optionsLoading || carLookupLoading) && (
+                    <p className="text-sm text-white/70">جاري تحميل بيانات السيارة...</p>
+                  )}
+                  {carLookupError && !carLookupLoading && (
+                    <p className="text-sm text-red-400">{carLookupError}</p>
+                  )}
+                  {selectedCar?.id && !carLookupLoading && (
+                    <div className="rounded-lg border border-yellow-700/50 bg-yellow-950/30 p-3 text-sm text-white/90">
+                      <p className="font-semibold text-yellow-500 mb-1">السيارة المختارة</p>
+                      <p>
+                        {selectedCar.year} {selectedCar.make} {selectedCar.model}
+                        {selectedCar.category ? ` — ${selectedCar.category}` : ""}
+                      </p>
+                      {Number(selectedCar.price) > 0 && (
+                        <p className="mt-1">السعر: {formatSaudiRiyalReact(selectedCar.price)}</p>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
+                    <Input
+                      id="carMake"
+                      type="text"
+                      value={formData.carMake}
+                      disabled
+                      placeholder="أدخل ماركة السيارة"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
+                    <Input
+                      id="carModel"
+                      type="text"
+                      value={formData.carModel}
+                      disabled
+                      placeholder="أدخل موديل السيارة"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="carCategory" className="mb-2">فئة السيارة</Label>
+                    <Input
+                      id="carCategory"
+                      type="text"
+                      value={formData.carCategory}
+                      disabled
+                      placeholder="أدخل فئة السيارة"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
+                    <Input
+                      id="carYear"
+                      type="number"
+                      value={formData.carYear}
+                      disabled
+                      placeholder="أدخل سنة صنع السيارة"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         );
@@ -909,7 +1278,7 @@ const LoanRequestForm = ({ car }) => {
 
         const allOffers = offerResult.offers;
         const scenarioInputs = offerResult.scenarioInputs;
-        const carPrice = carPriceValue || getCarPrice(car, formData);
+        const carPrice = carPriceValue || getCarPrice(selectedCar, formData);
         const maxDownPaymentSar = getMaxDownPaymentSar(carPrice);
         const defaultDownPaymentSar = Number(getDefaultDownPaymentSar(carPrice)) || 0;
         const downPaymentInputValue = getDownPaymentInputValue(formData);
@@ -937,7 +1306,7 @@ const LoanRequestForm = ({ car }) => {
                 value={downPaymentInputValue}
                 onChange={(e) => handleDownPaymentChange(e.target.value)}
                 onBlur={(e) => {
-                  const carPriceOnBlur = getCarPrice(car, formData);
+                  const carPriceOnBlur = getCarPrice(selectedCar, formData);
                   const maxAllowed = getMaxDownPaymentSar(carPriceOnBlur);
                   const entered = Number(e.target.value);
                   if (!Number.isFinite(entered) || entered < 0) {
@@ -975,6 +1344,37 @@ const LoanRequestForm = ({ car }) => {
         );
 
         if (offerResult.pricingBlocked) {
+          const showAdminContact = isAdminContactPricingBlock(offerResult.pricingBlockReason);
+          const carLabel = [
+            selectedCar?.year || formData.carYear,
+            selectedCar?.make || formData.carMake,
+            selectedCar?.model || formData.carModel,
+            selectedCar?.category || formData.carCategory,
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const carId = selectedCar?.id;
+          const carUrl =
+            carId && typeof window !== "undefined"
+              ? `${window.location.origin}/cars/${carId}`
+              : carId
+                ? `/cars/${carId}`
+                : null;
+          const whatsappMessage = [
+            "السلام عليكم، أحتاج مساعدة بخصوص طلب تمويل.",
+            carLabel ? `السيارة: ${carLabel}` : null,
+            "السبب: يرجى التواصل مع الادمن لتحديد السعر",
+            carUrl ? `الرابط: ${carUrl}` : "الرابط:",
+          ]
+            .filter(Boolean)
+            .join("\n");
+          const whatsappHref = storeContact.whatsapp
+            ? `https://wa.me/${cleanPhoneNumber(storeContact.whatsapp)}?text=${encodeURIComponent(whatsappMessage)}`
+            : null;
+          const phoneHref = storeContact.phone
+            ? `tel:${cleanPhoneNumber(storeContact.phone)}`
+            : null;
+
           return (
             <div className="space-y-6">
               {downPaymentEditor}
@@ -987,8 +1387,45 @@ const LoanRequestForm = ({ car }) => {
                   {offerResult.pricingBlockReason}
                 </p>
                 <p className="text-xs text-white/60">
-                  ماركة السيارة: {car.make} · فئة التأمين المحفوظة: {car.insuranceSegment || "غير محددة"}
+                  ماركة السيارة: {selectedCar?.make || formData.carMake} · فئة التأمين المحفوظة: {selectedCar?.insuranceSegment || "غير محددة"}
                 </p>
+                {showAdminContact && (
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
+                    {whatsappHref && (
+                      <Button
+                        asChild
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                          <MessageSquare className="h-4 w-4 ml-2" />
+                          تواصل مع الإدارة عبر واتساب
+                        </a>
+                      </Button>
+                    )}
+                    {phoneHref && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="border-amber-500/50 text-amber-100 hover:bg-amber-900/40"
+                      >
+                        <a href={phoneHref}>
+                          <Phone className="h-4 w-4 ml-2" />
+                          اتصال بالإدارة
+                        </a>
+                      </Button>
+                    )}
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="border-amber-500/50 text-amber-100 hover:bg-amber-900/40"
+                    >
+                      <Link href="/contact">
+                        <Mail className="h-4 w-4 ml-2" />
+                        صفحة التواصل
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="flex justify-start pt-6">
                 <Button
@@ -1524,6 +1961,7 @@ const LoanRequestForm = ({ car }) => {
                   <Button
                     type="button"
                     onClick={nextStep}
+                    disabled={currentStep === 1 && (carLookupLoading || (allowCarSelect && !selectedCar?.id))}
                     className="bg-yellow-700 hover:bg-yellow-800 text-white flex items-center gap-2"
                   >
                     التالي

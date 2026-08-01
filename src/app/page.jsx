@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronDown, Car, Calendar, Shield } from "lucide-react";
+import { ChevronLeft, ChevronDown, Car, Calendar, Shield, Banknote } from "lucide-react";
 import Image from "next/image";
 import { getCommercialCars, getEconomicCars, getLuxuryCars, getOfferCars } from "@/actions/home";
 import { getFeaturedBrands } from "@/actions/featured-brands";
@@ -172,6 +172,17 @@ export default async function Home() {
           </div>
           <div className="relative z-30 overflow-visible md:animate-none animate-fade-in-up animation-delay-400">
             <HomeSearch />
+          </div>
+          <div className="mt-6 animate-fade-in-up animation-delay-400">
+            <LinkWithLoader href="/loan-request">
+              <Button
+                size="lg"
+                className="bg-yellow-700 hover:bg-yellow-800 text-white font-bold px-8 gap-2"
+              >
+                <Banknote className="h-5 w-5" />
+                طلب قرض مباشرة
+              </Button>
+            </LinkWithLoader>
           </div>
         </div>
       </section>

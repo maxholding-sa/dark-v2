@@ -18,6 +18,7 @@ const baseNavItems = [
   { name: "من نحن", href: "/about", dynamic: true },
   { name: "السيارات", href: "/cars" },
   { name: "البنوك", href: "/banks" },
+  { name: "طلب قرض", href: "/loan-request" },
   { name: "الشركات", href: "/companies" },
   { name: "اراء العملاء", href: "/reviews" },
   { name: "مقالات", href: "/articles" },

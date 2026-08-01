@@ -38,21 +38,21 @@ function cleanPhoneNumber(phone) {
 function ChatContactActions({ contactActions }) {
   if (!contactActions) return null;
 
-  const { phone, whatsapp, mandebs = [] } = contactActions;
-  const hasStoreContact = phone || whatsapp;
+  const { phone, whatsapp, email, mandebs = [] } = contactActions;
+  const hasStoreContact = phone || whatsapp || email;
 
   if (!hasStoreContact && mandebs.length === 0) return null;
 
   return (
     <div className="mt-2 w-full max-w-[95%] space-y-2">
       {hasStoreContact ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2">
           {phone ? (
             <a
               href={`tel:${cleanPhoneNumber(phone)}`}
-              className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+              className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 w-fit max-w-full"
             >
-              📞 اتصال
+              📞 هاتف: {phone}
             </a>
           ) : null}
           {whatsapp ? (
@@ -60,9 +60,17 @@ function ChatContactActions({ contactActions }) {
               href={`https://wa.me/${cleanPhoneNumber(whatsapp)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 w-fit max-w-full"
             >
-              💬 واتساب
+              💬 واتساب: {whatsapp}
+            </a>
+          ) : null}
+          {email ? (
+            <a
+              href={`mailto:${email}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-3 py-2 text-xs font-medium text-white hover:bg-sky-700 w-fit max-w-full break-all"
+            >
+              ✉️ بريد: {email}
             </a>
           ) : null}
         </div>
@@ -98,6 +106,55 @@ function ChatContactActions({ contactActions }) {
           ))}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function CompareResult({ comparison }) {
+  if (!comparison?.rows?.length) return null;
+
+  const shortLabel = (label, fallback) => {
+    const text = String(label || fallback || "").trim();
+    if (text.length <= 22) return text;
+    return `${text.slice(0, 20)}…`;
+  };
+
+  return (
+    <div className="mt-2 w-full max-w-[95%] space-y-2">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[320px] border-collapse text-right text-[11px] sm:text-xs">
+            <thead>
+              <tr className="bg-zinc-900 text-white">
+                <th className="px-2 py-2 font-semibold whitespace-nowrap">المواصفة</th>
+                <th className="px-2 py-2 font-semibold">
+                  {shortLabel(comparison.car1Label, "السيارة 1")}
+                </th>
+                <th className="px-2 py-2 font-semibold">
+                  {shortLabel(comparison.car2Label, "السيارة 2")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.rows.map((row) => (
+                <tr
+                  key={row.key || row.label}
+                  className={`border-t border-gray-100 ${
+                    row.differs ? "bg-amber-50/80" : "bg-white"
+                  } ${row.highlight ? "font-semibold" : ""}`}
+                >
+                  <td className="px-2 py-1.5 text-gray-700 whitespace-nowrap">{row.label}</td>
+                  <td className="px-2 py-1.5 text-gray-900 [overflow-wrap:anywhere]">{row.a}</td>
+                  <td className="px-2 py-1.5 text-gray-900 [overflow-wrap:anywhere]">{row.b}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="border-t border-gray-100 bg-gray-50 px-2 py-1 text-[10px] text-gray-500">
+          الصفوف المظللة = اختلاف بين السيارتين
+        </p>
+      </div>
     </div>
   );
 }
@@ -138,6 +195,9 @@ function mapLoadedMessages(rows) {
     fieldPrompt: msg.fieldPrompt || msg.payload?.fieldPrompt || null,
     loanSubmitted: msg.loanSubmitted || msg.payload?.loanSubmitted || null,
     contactActions: msg.contactActions || msg.payload?.contactActions || null,
+    carSelectAction:
+      msg.carSelectAction || msg.payload?.carSelectAction || null,
+    comparison: msg.comparison || msg.payload?.comparison || null,
   }));
 }
 
@@ -384,6 +444,8 @@ export default function ChatBot({ onOpenChange }) {
       fieldPrompt: result?.fieldPrompt || null,
       loanSubmitted: result?.loanSubmitted || null,
       contactActions: result?.contactActions || null,
+      carSelectAction: result?.carSelectAction || null,
+      comparison: result?.comparison || null,
     };
   };
 
@@ -445,11 +507,14 @@ export default function ChatBot({ onOpenChange }) {
     await sendMessage(text);
   };
 
-  const handleSelectCar = async (carId) => {
-    await sendMessage("اختيار سيارة للتمويل", {
-      action: "select_car",
-      actionPayload: { carId },
-    });
+  const handleSelectCar = async (carId, purpose = "loan") => {
+    await sendMessage(
+      purpose === "compare" ? "اختيار سيارة للمقارنة" : "اختيار سيارة للتمويل",
+      {
+        action: "select_car",
+        actionPayload: { carId },
+      }
+    );
   };
 
   const handleSelectOffer = async (offerId) => {
@@ -694,6 +759,10 @@ export default function ChatBot({ onOpenChange }) {
                       </p>
                     </div>
 
+                    {message.comparison ? (
+                      <CompareResult comparison={message.comparison} />
+                    ) : null}
+
                     {message.cars?.length > 0 && (
                       <div className="mt-2 space-y-2 w-full max-w-[95%]">
                         {message.cars.map((car) => (
@@ -731,20 +800,34 @@ export default function ChatBot({ onOpenChange }) {
                                 <ExternalLink className="h-4 w-4 text-gray-400" />
                               </div>
                             </Link>
+                            {message.carSelectAction !== "none" && (
                             <div className="px-2 pb-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={isTyping}
-                                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
-                                onClick={() => handleSelectCar(car.id)}
-                              >
-                                <Banknote className="h-3.5 w-3.5 ml-1" />
-                                {Number(car.price) > 0
-                                  ? "موّل هذه السيارة"
-                                  : "تواصل مع الإدارة للتسعير"}
-                              </Button>
+                              {message.carSelectAction === "compare" ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={isTyping}
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                                  onClick={() => handleSelectCar(car.id, "compare")}
+                                >
+                                  اختر للمقارنة
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={isTyping}
+                                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
+                                  onClick={() => handleSelectCar(car.id, "loan")}
+                                >
+                                  <Banknote className="h-3.5 w-3.5 ml-1" />
+                                  {Number(car.price) > 0
+                                    ? "موّل هذه السيارة"
+                                    : "تواصل مع الإدارة للتسعير"}
+                                </Button>
+                              )}
                             </div>
+                            )}
                           </div>
                         ))}
                       </div>

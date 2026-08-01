@@ -32,6 +32,9 @@ function mapMessage(row) {
     offers: row.payload?.offers || [],
     fieldPrompt: row.payload?.fieldPrompt || null,
     loanSubmitted: row.payload?.loanSubmitted || null,
+    carSelectAction: row.payload?.carSelectAction || null,
+    contactActions: row.payload?.contactActions || null,
+    comparison: row.payload?.comparison || null,
   };
 }
 

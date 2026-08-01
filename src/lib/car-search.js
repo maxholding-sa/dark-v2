@@ -94,7 +94,7 @@ const SEARCH_ALIASES = [
   ["spectre", "سبيكتر", "سبكتر"],
   ["camry", "كامري", "كامرى", "كامر"],
   ["corolla", "كورولا", "كورلا", "كوروللا"],
-  ["hilux", "هايلكس", "هيلكس", "هايلوكس"],
+  ["hilux", "هايلكس", "هيلكس", "هايلوكس", "هليكس", "هيلوكس", "hilix"],
   ["highlander", "هايلاندر", "هايلندر", "هاي لاندر"],
   ["land cruiser", "لاندكروزر", "لاند كروزر", "جيب تويوتا"],
   ["yaris", "يارس", "ياريس"],
@@ -257,7 +257,7 @@ function isAliasMatch(normalizedTerm, normalizedAlias) {
   return false;
 }
 
-function expandTerm(term) {
+export function expandTerm(term) {
   const normalizedTerm = normalizeSearchText(term);
   const variants = new Set(buildArabicSpellingVariants(term));
 

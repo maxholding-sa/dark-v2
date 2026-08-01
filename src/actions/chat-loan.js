@@ -59,6 +59,7 @@ function assistantReply(content, payload = {}) {
     offers: payload.offers || [],
     fieldPrompt: payload.fieldPrompt || null,
     loanSubmitted: payload.loanSubmitted || null,
+    contactActions: payload.contactActions || null,
     mode: payload.mode,
     conversationId: payload.conversationId,
     payload,
@@ -78,9 +79,20 @@ async function persistTurn(conversationId, userText, reply) {
         offers: reply.offers || [],
         fieldPrompt: reply.fieldPrompt || null,
         loanSubmitted: reply.loanSubmitted || null,
+        contactActions: reply.contactActions || null,
+        carSelectAction: reply.carSelectAction || null,
       },
     },
   ]);
+}
+
+function buildStoreContactActions(store) {
+  if (!store) return null;
+  const phone = store.phone || null;
+  const whatsapp = store.whatsapp || null;
+  const email = store.email || null;
+  if (!phone && !whatsapp && !email) return null;
+  return { phone, whatsapp, email, mandebs: [] };
 }
 
 function enrichFieldPrompt(fieldKey, loanState) {
@@ -200,20 +212,17 @@ export async function startLoanFlow(conversation, { cars = [], message } = {}) {
 
 function formatAdminContactLines(store) {
   if (!store) {
-    return "يرجى التواصل مع إدارة ماكس موتورز عبر قنوات التواصل في الموقع.";
+    return "يرجى التواصل مع إدارة ماكس موتورز عبر الأزرار أدناه أو قنوات الموقع.";
   }
-  const lines = [
-    store.phone && `📞 هاتف: ${store.phone}`,
-    store.whatsapp && `💬 واتساب: ${store.whatsapp}`,
-    store.email && `✉️ بريد: ${store.email}`,
-  ].filter(Boolean);
-  return lines.length
-    ? lines.join("\n")
+  const hasAny = store.phone || store.whatsapp || store.email;
+  return hasAny
+    ? "استخدم أزرار التواصل أدناه للاتصال أو الواتساب أو البريد."
     : "يرجى التواصل مع إدارة ماكس موتورز عبر قنوات التواصل في الموقع.";
 }
 
 async function startAdminContactFlow(conversation, car, userText = null) {
   const store = await db.storeInfo.findFirst().catch(() => null);
+  const contactActions = buildStoreContactActions(store);
   const loanState = {
     ...emptyLoanState(),
     ...(conversation.loanState || {}),
@@ -239,6 +248,7 @@ async function startAdminContactFlow(conversation, car, userText = null) {
     {
       cars: [serializeCarForChat(car)],
       fieldPrompt,
+      contactActions,
       mode: LOAN_CHAT_MODES.ADMIN_CONTACT,
       conversationId: conversation.id,
       adminContact: true,
@@ -309,7 +319,7 @@ export async function showCarsForLoanSelection(conversation, cars, message) {
   const reply = assistantReply(
     serialized.length
       ? `وجدت ${serialized.length} سيارة حسب طلبك.\nاختر السيارة التي تريد تمويلها بزر «موّل هذه السيارة»، أو اكتب وصفاً أدق.`
-      : "لم أجد سيارات مطابقة حالياً.\nجرّب كتابة الماركة أو الموديل بشكل أوضح (مثال: تويوتا كامري، لكزس ES).",
+      : "لم أجد تطابقاً واضحاً في المخزون الحالي.\nجرّب الماركة أو الموديل عربي/إنجليزي (مثال: تويوتا كامري، Camry، لكزس).",
     {
       cars: serialized,
       mode: LOAN_CHAT_MODES.CAR_SELECT,
