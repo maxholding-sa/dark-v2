@@ -241,15 +241,25 @@ export async function searchCarsForChat(query, conversationHistory = []) {
       cars.length === 0 &&
       buildPrismaCarSearchConditions(searchText).length === 0
     ) {
-      cars = await queryCarsPrisma(
-        {
-          AND: [
-            { status: "AVAILABLE" },
-            ...(buildPriceFilter(budget) ? [{ price: buildPriceFilter(budget) }] : []),
-          ],
-        },
-        [{ featured: "desc" }, { createdAt: "desc" }]
-      );
+      // Only dump featured inventory when the query looks like a car browse request
+      const looksLikeBrowse =
+        /سيار|عروض|متوفر|مخزون|عرض|cars?|available|show|أبي|ابغى|أريد|اريد|وريني|شوف/i.test(
+          searchText
+        ) &&
+        !/تواصل|أرقام|ارقام|اتصال|رقم|جوال|هاتف|واتساب|contact|phone|راتب|قسط|مقارن|أفضل|افضل/i.test(
+          searchText
+        );
+      if (looksLikeBrowse || budget?.maxPrice != null || budget?.minPrice != null) {
+        cars = await queryCarsPrisma(
+          {
+            AND: [
+              { status: "AVAILABLE" },
+              ...(buildPriceFilter(budget) ? [{ price: buildPriceFilter(budget) }] : []),
+            ],
+          },
+          [{ featured: "desc" }, { createdAt: "desc" }]
+        );
+      }
     }
 
     // Smart fallback: known aliases, unknown inventory names, typos, AR/EN

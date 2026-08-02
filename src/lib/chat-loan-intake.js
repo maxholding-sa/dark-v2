@@ -314,10 +314,46 @@ export function buildFieldPromptPayload(fieldKey) {
   };
 }
 
+/**
+ * True only when the customer wants to *start a financing application*,
+ * not when they are exploring salary, max installment, or general Q&A.
+ */
 export function wantsFinancingFlow(message) {
-  return /تقسيط|تمويل|قرض|قسط|أقساط|عرض تمويلي|احسب.*(قسط|تمويل)|موّل|مولني|أبي تمويل|ابغى تمويل|loan|finance|installment/i.test(
-    String(message || "")
-  );
+  const t = String(message || "");
+  if (!t.trim()) return false;
+
+  // Exploring affordability / installment budget → do NOT start the wizard
+  if (
+    /راتب|راتبي|دخلي|حسب\s*راتبي|ماذا\s*يعطيني|وش\s*يعطيني|اقدر\s*اشتري|أقدر\s*أشتري|salary|afford|income/i.test(
+      t
+    )
+  ) {
+    return false;
+  }
+  if (
+    /(?:قسط|أقساط|قسطها|قسطه).{0,40}(?:حد\s*اقصى|كحد|أقصى|اقصى|لا\s*يتجاوز|ما\s*يزيد|تحت|أقل|اقل|max)|(?:حد\s*اقصى|كحد|أقصى).{0,20}(?:قسط|أقساط)/i.test(
+      t
+    )
+  ) {
+    return false;
+  }
+
+  // Explicit apply / start financing
+  if (
+    /موّل|مولني|أبي\s*تمويل|ابغى\s*تمويل|أريد\s*تمويل|اريد\s*تمويل|طلب\s*تمويل|قدّم\s*طلب|قدم\s*طلب|ابدأ\s*التمويل|ابدأ\s*تمويل|عرض\s*تمويلي|start\s*loan|apply\s*(for\s*)?(loan|financ)/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+
+  // Soft: تقسيط/تمويل/قرض without a bare installment-amount explore
+  if (/تقسيط|تمويل|قرض|loan|finance/i.test(t)) {
+    return true;
+  }
+
+  // Bare "قسط/أقساط/installment" alone used to steal salary & budget queries — skip
+  return false;
 }
 
 export function wantsCancelLoanFlow(message) {

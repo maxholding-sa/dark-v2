@@ -21,7 +21,58 @@ export function isCompareState(state) {
 }
 
 export function wantsCompareFlow(message) {
-  return /مقارنة|قارن|مقارنه|compare|versus|\bvs\b|ضد\b|بين\s*موديل/i.test(
+  return /مقارنة|قارن|مقارنه|compare|versus|\bvs\b|ضد\b|بين\s*موديل|الفرق\s*بين|فرق\s*بين|مواصفات.*بين|موصفات.*بين|قارن.*مواصفات|قارن.*موصفات/i.test(
+    String(message || "")
+  );
+}
+
+/**
+ * Extract two car/brand phrases from a compare utterance, if present.
+ * e.g. "مقارنة بين لكزس وكامري" → { a: "لكزس", b: "كامري" }
+ *
+ * Requires whitespace before the connector «و» so we don't split words
+ * like الموصفات or brands ending in و (برادو).
+ */
+export function parseCompareEntities(message) {
+  const t = String(message || "").trim();
+  if (!t) return null;
+
+  const clean = (s) =>
+    String(s)
+      .replace(
+        /مقارنة|مقارنه|قارن|الفرق|فرق|بين|من ناحية|من ناحيه|المواصفات|الموصفات|مواصفات|موصفات|فئة|فئه|الاستندر|ستاندرد|standard|الستاندرد|محتاج|أريد|اريد|ناحية|ناحيه/gi,
+        " "
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const patterns = [
+    // بين X و Y  (most common Arabic form)
+    /بين\s+(.+?)\s+و\s*(.+?)(?=\s+من\s+|\s+في\s+|\s+حسب\s+|[.؟!،]|$)/i,
+    // قارن / مقارنة X و Y
+    /(?:قارن|مقارنة|مقارنه)\s+(.+?)\s+و\s*(.+?)(?=\s+من\s+|\s+في\s+|\s+حسب\s+|[.؟!،]|$)/i,
+    // الفرق بين is covered by the بين pattern above
+    // English / vs
+    /(.+?)\s+(?:versus|\bvs\.?\b|ضد)\s+(.+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = t.match(pattern);
+    if (!match?.[1] || !match?.[2]) continue;
+
+    const a = clean(match[1]);
+    const b = clean(match[2]);
+    if (a.length >= 2 && b.length >= 2 && a !== b) {
+      return { a, b };
+    }
+  }
+
+  return null;
+}
+
+/** Ranking / "which is best" among shown options — not a fresh inventory dump. */
+export function wantsRankingAmongResults(message) {
+  return /(?:أي|اي|أيهما|ايهما|أيهم|ايهم|أنسب|انسب|أفضل|افضل|أحسن|احسن).{0,30}(?:أفضل|افضل|أحسن|احسن|أنسب|انسب|مناسب)|أفضل\s*من\s*حيث|افضل\s*من\s*حيث|which\s*(?:is\s*)?(?:best|better)|best\s*(?:among|of)/i.test(
     String(message || "")
   );
 }
@@ -224,7 +275,7 @@ export function buildComparisonRows(car1, car2) {
 }
 
 export function buildComparisonIntro(car1, car2) {
-  return `📊 مقارنة تفصيلية بين:\n1️⃣ **${carLabel(car1)}**\n2️⃣ **${carLabel(car2)}**\n\nراجع الجدول أدناه.\nيمكنك تغيير أي سيارة بالزر أو بكتابة: «تغيير السيارة الأولى» / «تغيير السيارة الثانية».`;
+  return `مقارنة تفصيلية بين:\n١) **${carLabel(car1)}**\n٢) **${carLabel(car2)}**\n\nراجع الجدول أدناه.\nيمكنك تغيير أي سيارة بالزر أو بكتابة: «تغيير السيارة الأولى» / «تغيير السيارة الثانية».`;
 }
 
 export function buildComparisonPayload(car1, car2) {

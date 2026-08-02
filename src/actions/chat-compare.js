@@ -10,12 +10,15 @@ import {
   carLabel,
   isCompareState,
   parseChangeCompareSlot,
+  parseCompareEntities,
 } from "@/lib/chat-compare";
 import { emptyLoanState } from "@/lib/chat-loan-intake";
 import {
   appendChatMessages,
   updateChatConversationState,
 } from "@/actions/chat-conversation";
+import { searchCarsForChat } from "@/lib/chat-car-search";
+import { parseBudgetFromQuery } from "@/lib/car-search";
 
 function serializeCarForChat(car) {
   if (!car) return null;
@@ -111,16 +114,78 @@ function changeCompareButtons() {
   };
 }
 
+/** Pick the best representative car from search hits (prefer priced + featured). */
+function pickBestCar(cars = []) {
+  if (!cars?.length) return null;
+  const scored = [...cars].sort((a, b) => {
+    const priceA = Number(a.price) || 0;
+    const priceB = Number(b.price) || 0;
+    const hasPriceA = priceA > 0 ? 1 : 0;
+    const hasPriceB = priceB > 0 ? 1 : 0;
+    if (hasPriceB !== hasPriceA) return hasPriceB - hasPriceA;
+    if (!!b.featured !== !!a.featured) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+    return priceA - priceB;
+  });
+  return serializeCarForChat(scored[0]);
+}
+
+/**
+ * Try to resolve two named entities into inventory cars and finish immediately.
+ */
+export async function tryOneShotCompare(conversation, message) {
+  const entities = parseCompareEntities(message);
+  if (!entities) return null;
+
+  const [carsA, carsB] = await Promise.all([
+    searchCarsForChat(entities.a, []),
+    searchCarsForChat(entities.b, []),
+  ]);
+
+  const car1 = pickBestCar(carsA);
+  const car2 = pickBestCar(carsB);
+
+  if (!car1 || !car2) return null;
+  if (String(car1.id) === String(car2.id)) return null;
+
+  return finishCompare(
+    conversation,
+    { ...emptyCompareState(), car1, car2, completed: false },
+    message
+  );
+}
+
 export async function startCompareFlow(conversation, { message } = {}) {
+  // One-shot: "قارن لكزس وكامري" → compare table immediately
+  if (message) {
+    const oneShot = await tryOneShotCompare(conversation, message);
+    if (oneShot) return oneShot;
+  }
+
+  const budget = parseBudgetFromQuery(message || "");
+  let starterCars = [];
+  if (budget.maxPrice != null || budget.minPrice != null) {
+    starterCars = (await searchCarsForChat(message || "", []))
+      .slice(0, 8)
+      .map(serializeCarForChat)
+      .filter(Boolean);
+  }
+
   await updateChatConversationState(conversation.id, {
     mode: COMPARE_CHAT_MODES.SELECT_1,
     loanState: emptyCompareState(),
   });
 
+  const budgetHint =
+    budget.maxPrice != null
+      ? `\n(ميزانية حتى ${Number(budget.maxPrice).toLocaleString("en-US")} ر.س)`
+      : "";
+
   const reply = assistantReply(
-    "حسناً، لنقارن بين سيارتين 📊\n\nأولاً: ما هي **السيارة الأولى**؟\nاكتب الماركة أو الموديل (مثال: كامري، ألتيما، هايلكس...)",
+    starterCars.length
+      ? `تمام، لنقارن بين سيارتين.${budgetHint}\n\nاختر **السيارة الأولى** من الخيارات، أو اكتب الماركة/الموديل (مثال: تويوتا، كامري، برادو).`
+      : `تمام، لنقارن بين سيارتين.\n\nما هي **السيارة الأولى**؟\nاكتب الماركة أو الموديل (مثال: تويوتا، لكزس، كامري، برادو).\nأو اكتب الاثنتين معاً مثل: «قارن لي بين برادو ولاندكروزر»`,
     {
-      cars: [],
+      cars: starterCars,
       mode: COMPARE_CHAT_MODES.SELECT_1,
       conversationId: conversation.id,
       carSelectAction: "compare",

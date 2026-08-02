@@ -16,18 +16,17 @@ import {
   selectCarForLoan,
   selectOfferForLoan,
   handleLoanChatTurn,
-  showCarsForLoanSelection,
 } from "@/actions/chat-loan";
 import {
   startCompareFlow,
   selectCarForCompare,
   handleCompareCarSearch,
   handleChangeCompareRequest,
+  tryOneShotCompare,
 } from "@/actions/chat-compare";
 import {
   LOAN_CHAT_MODES,
   emptyLoanState,
-  wantsFinancingFlow,
   wantsCancelLoanFlow,
 } from "@/lib/chat-loan-intake";
 import {
@@ -35,6 +34,8 @@ import {
   wantsCompareFlow,
   wantsCancelCompareFlow,
   parseChangeCompareSlot,
+  wantsRankingAmongResults,
+  parseCompareEntities,
 } from "@/lib/chat-compare";
 import {
   searchCarsForChat,
@@ -44,14 +45,15 @@ import {
 } from "@/lib/chat-car-search";
 import {
   filterCarsByAffordability,
+  filterCarsByMaxInstallment,
   parseAffordabilityFromText,
+  parseMaxInstallmentFromText,
   wantsSalaryRecommendation,
+  wantsInstallmentBudget,
   getMaxAffordableMonthlyPayment,
 } from "@/lib/chat-affordability";
 import { parseBudgetFromQuery } from "@/lib/car-search";
 import { getPublicMandebs } from "@/actions/mandeb";
-
-
 // قاموس للكتابات البديلة والأخطاء الإملائية الشائعة في اللغة العربية
 const arabicSpellingVariations = {
   // أخطاء شائعة في كلمات السيارات
@@ -586,7 +588,7 @@ function isGreetingOrChitchat(text = "") {
 
 function detectChatIntents(text) {
   const contact =
-    /تواصل|اتصال|اتصل|رقم|جوال|هاتف|واتساب|واتس|whatsapp|phone|call|مندوب|مناديب|موظف|خدمة\s*عملاء|customer\s*service/i.test(
+    /تواصل|أرقام|ارقام|اتصال|اتصل|رقم|جوال|هاتف|تليفون|موبايل|واتساب|واتس|whatsapp|phone|call|contact|numbers?|مندوب|مناديب|موظف|خدمة\s*عملاء|customer\s*service|كيف\s*أتواصل|كيف\s*اتواصل/i.test(
       text
     );
   const corporate =
@@ -599,7 +601,10 @@ function detectChatIntents(text) {
       text
     );
   const compare =
-    /مقارنة|قارن|مقارنه|compare|versus|\bvs\b|ضد\b|بين\s*موديل/i.test(text);
+    /مقارنة|قارن|مقارنه|compare|versus|\bvs\b|ضد\b|بين\s*موديل|الفرق\s*بين|مواصفات|موصفات/i.test(
+      text
+    );
+  const ranking = wantsRankingAmongResults(text);
   const economical =
     /اقتصاد|توفير|وقود|استهلاك|رخيص|cheap|fuel|اقتصادية|أفضل\s*سيارة\s*اقتصاد/i.test(
       text
@@ -617,6 +622,7 @@ function detectChatIntents(text) {
     corporate,
     financing,
     compare,
+    ranking,
     economical,
     latestOffers,
     greeting,
@@ -798,15 +804,56 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     const shouldShowCorrection = correctedMessage !== message;
     logger.debug("[chatbot] Spell check result", { corrected: shouldShowCorrection });
 
-    // Financing: ask for car first, then show matching cars for selection
-    if (
-      wantsFinancingFlow(correctedMessage) &&
-      conversation.mode === LOAN_CHAT_MODES.IDLE
-    ) {
-      return startLoanFlow(conversation, { cars: [], message });
+    const earlyIntents = detectChatIntents(correctedMessage);
+    const salaryIntentEarly = wantsSalaryRecommendation(correctedMessage);
+    const installmentBudgetEarly = wantsInstallmentBudget(correctedMessage);
+    const affordabilityEarly = parseAffordabilityFromText(correctedMessage);
+    const maxInstallmentEarly = parseMaxInstallmentFromText(correctedMessage);
+
+    // Leave financing car-select for free chat — but KEEP compare mode active
+    if (conversation.mode === LOAN_CHAT_MODES.CAR_SELECT) {
+      await updateChatConversationState(conversation.id, {
+        mode: LOAN_CHAT_MODES.IDLE,
+        loanState: emptyLoanState(),
+      });
+      conversation = await getConversationById(conversation.id);
     }
 
-    // Change first/second car after (or during) a comparison
+    // Contact shortcut (also exits compare if needed)
+    if (earlyIntents.contact) {
+      if (isCompareMode(conversation.mode)) {
+        await updateChatConversationState(conversation.id, {
+          mode: LOAN_CHAT_MODES.IDLE,
+          loanState: emptyLoanState(),
+        });
+        conversation = await getConversationById(conversation.id);
+      }
+      const storeInfoEarly = await fetchStoreInfoForChatbot();
+      const contactActionsEarly = await buildContactActions(storeInfoEarly);
+      const contactMessage = earlyIntents.corporate
+        ? "يسعدنا اهتمامكم بعروض الشركات والمؤسسات! 🏢 نوفر أسطولاً متنوعاً وأسعاراً خاصة للجهات. تواصلوا معنا عبر الأزرار أدناه لنعد لكم عرضاً مخصصاً."
+        : "يسعدنا تواصلك معنا! 😊 اسألني أي شيء عن السيارات أو التمويل، أو تواصل مباشرة عبر الأزرار أدناه.";
+      const contactReply = {
+        success: true,
+        message: contactMessage,
+        cars: [],
+        offers: [],
+        contactActions: contactActionsEarly,
+        conversationId: conversation.id,
+        mode: conversation.mode,
+      };
+      await appendChatMessages(conversation.id, [
+        { role: "user", content: message, payload: null },
+        {
+          role: "assistant",
+          content: contactReply.message,
+          payload: { contactActions: contactActionsEarly },
+        },
+      ]);
+      return contactReply;
+    }
+
+    // Change first/second car after a finished comparison
     if (parseChangeCompareSlot(correctedMessage)) {
       const changeReply = await handleChangeCompareRequest(
         conversation,
@@ -815,49 +862,56 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       if (changeReply) return changeReply;
     }
 
-    // Compare: ask for car 1, then car 2, then compare
+    // One-shot: "قارن لكزس وكامري" → table immediately
+    if (parseCompareEntities(correctedMessage)) {
+      const oneShot = await tryOneShotCompare(conversation, correctedMessage);
+      if (oneShot) return oneShot;
+    }
+
+    // Start compare wizard when user wants to compare but didn't name both cars
     if (
       wantsCompareFlow(correctedMessage) &&
-      conversation.mode === LOAN_CHAT_MODES.IDLE
+      conversation.mode === LOAN_CHAT_MODES.IDLE &&
+      !salaryIntentEarly &&
+      !installmentBudgetEarly
     ) {
-      return startCompareFlow(conversation, { message });
+      return startCompareFlow(conversation, { message: correctedMessage });
     }
 
-    // While choosing a car for financing, search what the customer asked for
-    if (conversation.mode === LOAN_CHAT_MODES.CAR_SELECT) {
-      // Use only the current message — history often has intent phrases
-      // ("أريد تمويل") that break AND token matching.
-      const matchedCars = await searchCarsInDatabase(correctedMessage, []);
-      return showCarsForLoanSelection(
-        conversation,
-        matchedCars.slice(0, 8),
-        message
-      );
-    }
-
-    // While collecting cars for comparison
+    // Active compare: treat the message as car 1 / car 2 search
     if (isCompareMode(conversation.mode)) {
-      const matchedCars = await searchCarsInDatabase(correctedMessage, []);
-      return handleCompareCarSearch(
-        conversation,
-        matchedCars.slice(0, 8),
-        message
-      );
+      if (salaryIntentEarly || installmentBudgetEarly) {
+        await updateChatConversationState(conversation.id, {
+          mode: LOAN_CHAT_MODES.IDLE,
+          loanState: emptyLoanState(),
+        });
+        conversation = await getConversationById(conversation.id);
+      } else {
+        const matchedCars = await searchCarsInDatabase(correctedMessage, []);
+        return handleCompareCarSearch(
+          conversation,
+          matchedCars.slice(0, 8),
+          message
+        );
+      }
     }
 
     // Build conversation history context first to understand context
     let previousCarsContext = "";
+    let previousCars = [];
     let conversationText = "";
     if (conversationHistory.length > 0) {
       conversationText = "\n\nسياق المحادثة السابقة:\n";
-      conversationHistory.slice(-6).forEach((msg) => {
-        // Only keep last 6 messages for context
+      conversationHistory.slice(-8).forEach((msg) => {
         conversationText += `${msg.sender === "user" ? "العميل" : "المساعد"}: ${msg.text}\n`;
       });
-      
+
       // Get cars from the last bot response for context
-      const lastBotMessage = [...conversationHistory].reverse().find(msg => msg.sender === "bot");
+      const lastBotMessage = [...conversationHistory]
+        .reverse()
+        .find((msg) => msg.sender === "bot");
       if (lastBotMessage && lastBotMessage.cars && lastBotMessage.cars.length > 0) {
+        previousCars = lastBotMessage.cars;
         previousCarsContext = `\n\nالسيارات المعروضة في الرد السابق:\n${formatCarsForAI(lastBotMessage.cars)}`;
         logger.debug("[chatbot] Using cars from previous context", {
           count: lastBotMessage.cars.length,
@@ -872,110 +926,77 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     const storeInfo = await fetchStoreInfoForChatbot();
     let contactActions = null;
     let salaryContext = "";
-
-    if (intents.greeting) {
-      const greetingReply = {
-        success: true,
-        message:
-          "مرحباً بك في ماكس موتورز! 👋 كيف أقدر أساعدك اليوم؟\nيمكنني مساعدتك في البحث عن سيارة، التمويل والتقسيط، أو حجز تجربة قيادة.",
-        cars: [],
-        offers: [],
-        conversationId: conversation.id,
-        mode: conversation.mode,
-      };
-      await appendChatMessages(conversation.id, [
-        { role: "user", content: message, payload: null },
-        { role: "assistant", content: greetingReply.message, payload: {} },
-      ]);
-      return greetingReply;
-    }
-
-    if (intents.contact) {
-      contactActions = await buildContactActions(storeInfo);
-      const contactReply = {
-        success: true,
-        message:
-          "يسعدنا تواصلك معنا! يمكنك الاتصال أو مراسلتنا عبر واتساب مباشرة من الأزرار أدناه، أو اختيار أحد مناديب المبيعات.",
-        cars: [],
-        offers: [],
-        contactActions,
-        conversationId: conversation.id,
-        mode: conversation.mode,
-      };
-      await appendChatMessages(conversation.id, [
-        { role: "user", content: message, payload: null },
-        {
-          role: "assistant",
-          content: contactReply.message,
-          payload: { contactActions },
-        },
-      ]);
-      return contactReply;
-    }
-
-    // Initialize Gemini only when we need AI (stable flash alias)
+    // Initialize Gemini (free conversation — always AI unless shortcuts above)
     const model = getGeminiModel();
 
     let relevantCars = [];
-    const salaryIntent = wantsSalaryRecommendation(correctedMessage);
-    const affordability = parseAffordabilityFromText(correctedMessage);
+    const salaryIntent = salaryIntentEarly;
+    const affordability = affordabilityEarly;
+    const maxInstallment = maxInstallmentEarly;
+    const installmentIntent = installmentBudgetEarly;
 
-    if (salaryIntent && !affordability.netSalary) {
-      const salaryPrompt = {
-        success: true,
-        message:
-          "يسعدني أرشّح لك سيارة مناسبة لراتبك! 📊\nأرسل لي:\n- صافي راتبك الشهري بالريال\n- مجموع التزاماتك الشهرية (اكتب 0 إن لم يوجد)\n\nمثال: راتبي 7000 والتزاماتي 1000",
-        cars: [],
-        offers: [],
-        conversationId: conversation.id,
-        mode: conversation.mode,
-      };
-      await appendChatMessages(conversation.id, [
-        { role: "user", content: message, payload: null },
-        { role: "assistant", content: salaryPrompt.message, payload: {} },
-      ]);
-      return salaryPrompt;
-    }
-
-    if (salaryIntent && affordability.netSalary) {
-      const banks = await fetchBanksForChatbot();
-      const allCars = await fetchAllAvailableCarsForChat(50);
-      relevantCars = await filterCarsByAffordability(
-        allCars,
-        banks,
-        affordability.netSalary,
-        affordability.totalMonthlyObligations
-      );
-      const maxPayment = getMaxAffordableMonthlyPayment(
-        affordability.netSalary,
-        affordability.totalMonthlyObligations
-      );
-      salaryContext = `\n\n=== ترشيح حسب الراتب (DTI ${35}%) ===
+    try {
+      if (salaryIntent && affordability.netSalary) {
+        const banksForFilter = await fetchBanksForChatbot();
+        const allCars = await fetchAllAvailableCarsForChat(50);
+        relevantCars = await filterCarsByAffordability(
+          allCars,
+          banksForFilter,
+          affordability.netSalary,
+          affordability.totalMonthlyObligations
+        );
+        const maxPayment = getMaxAffordableMonthlyPayment(
+          affordability.netSalary,
+          affordability.totalMonthlyObligations
+        );
+        salaryContext = `\n\n=== ترشيح حسب الراتب (DTI ${35}%) ===
 - صافي الراتب: ${Number(affordability.netSalary).toLocaleString("ar-SA")} ر.س
 - الالتزامات الشهرية: ${Number(affordability.totalMonthlyObligations).toLocaleString("ar-SA")} ر.س
 - أقصى قسط شهري مقبول تقريباً: ${maxPayment.toLocaleString("ar-SA")} ر.س
-- السيارات أدناه مُصفّاة بناءً على عروض تمويل فعلية (افتراضات: قطاع حكومي مدني، بدون دفعة أولى)
-- إذا أراد العميل دقة أعلى، وجّهه لإكمال بيانات التمويل داخل المحادثة`;
-      logger.debug("[chatbot] Salary-based filtering applied", {
-        count: relevantCars.length,
-      });
-    } else if (intents.economical) {
-      relevantCars = await fetchEconomicalCars(budget.maxPrice);
-      logger.debug("[chatbot] Using economical car set");
-    } else if (intents.latestOffers) {
-      relevantCars = await fetchLatestOfferCars();
-      if (budget.maxPrice != null) {
-        relevantCars = relevantCars.filter(
-          (car) => Number(car.price) <= budget.maxPrice
+- السيارات أدناه مُصفّاة بناءً على عروض تمويل فعلية (افتراضات تقديرية)`;
+        logger.debug("[chatbot] Salary-based filtering applied", {
+          count: relevantCars.length,
+        });
+      } else if (installmentIntent && maxInstallment) {
+        const banksForFilter = await fetchBanksForChatbot();
+        const allCars = await fetchAllAvailableCarsForChat(50);
+        relevantCars = await filterCarsByMaxInstallment(
+          allCars,
+          banksForFilter,
+          maxInstallment
+        );
+        salaryContext = `\n\n=== فلترة حسب أقصى قسط شهري ===
+- أقصى قسط شهري مطلوب: ${Number(maxInstallment).toLocaleString("ar-SA")} ر.س`;
+        logger.debug("[chatbot] Max-installment filtering applied", {
+          count: relevantCars.length,
+          maxInstallment,
+        });
+      } else if (intents.ranking && previousCars.length > 0) {
+        relevantCars = previousCars;
+        logger.debug("[chatbot] Ranking among previously shown cars", {
+          count: relevantCars.length,
+        });
+      } else if (intents.economical) {
+        relevantCars = await fetchEconomicalCars(budget.maxPrice);
+        logger.debug("[chatbot] Using economical car set");
+      } else if (intents.latestOffers) {
+        relevantCars = await fetchLatestOfferCars();
+        if (budget.maxPrice != null) {
+          relevantCars = relevantCars.filter(
+            (car) => Number(car.price) <= budget.maxPrice
+          );
+        }
+        logger.debug("[chatbot] Using latest offers car set");
+      } else if (!intents.greeting) {
+        logger.debug("[chatbot] Searching database with conversation context");
+        relevantCars = await searchCarsInDatabase(
+          correctedMessage,
+          conversationHistory
         );
       }
-      logger.debug("[chatbot] Using latest offers car set");
-    } else {
-      logger.debug("[chatbot] Searching database with conversation context");
-      relevantCars = await searchCarsInDatabase(
-        correctedMessage,
-        conversationHistory
-      );
+    } catch (filterError) {
+      logger.error("[chatbot] Car filtering failed", filterError);
+      relevantCars = [];
     }
 
     if (intents.corporate && relevantCars.length === 0) {
@@ -983,114 +1004,98 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       logger.debug("[chatbot] Added sample cars for corporate context");
     }
 
-    // Greetings must not be treated as failed car searches.
-    if (intents.greeting && relevantCars.length === 0) {
-      relevantCars = await fetchLatestOfferCars();
-      logger.debug("[chatbot] Greeting — loaded sample cars for context");
-    }
-
     const needsContactFallback =
-      relevantCars.length === 0 && !salaryIntent && !intents.greeting;
-    if (needsContactFallback) {
+      relevantCars.length === 0 &&
+      !salaryIntent &&
+      !installmentIntent &&
+      !intents.greeting &&
+      !intents.ranking &&
+      !intents.financing &&
+      !intents.compare;
+
+    // Contacts only for corporate / real dead-end — never on compare Q&A
+    if (needsContactFallback || intents.corporate) {
       contactActions = await buildContactActions(storeInfo);
     }
 
     logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
 
-    const banks = intents.financing ? await fetchBanksForChatbot() : [];
+    // Always provide banks + store for free conversation
+    const banks = await fetchBanksForChatbot();
+    const banksContext = `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`;
+    const storeContactContext = `\n\n=== بيانات التواصل الرسمية للمعرض ===\n${formatStoreForAI(storeInfo)}`;
 
-    const banksContext = intents.financing
-      ? `\n\n=== بيانات البنوك والتمويل (من جدول البنوك في لوحة التحكم) ===\n${formatBanksForAI(banks)}`
-      : "";
-
-    const storeContactContext =
-      intents.financing || intents.corporate
-        ? `\n\n=== بيانات التواصل الرسمية للمعرض (من إعدادات المتجر) ===\n${formatStoreForAI(storeInfo)}`
-        : "";
-
-    let intentInstructions = "";
+    let intentInstructions = `
+أسلوب المحادثة: **محادثة حرة طبيعية**.
+- تحدّث كمستشار مبيعات ودود، ليس كقائمة أوامر أو معالج خطوات إجباري.
+- أجب على سؤال العميل مباشرة دون إجباره على مسار تمويل أو اختيار مرحلي.
+- اطرح سؤالاً توضيحياً واحداً فقط عند الحاجة ثم أكمل المساعدة.
+`;
     if (intents.greeting) {
       intentInstructions += `
-موضوع الرسالة: **تحية / محادثة عامة**.
-- رحّب بالعميل بلطف وقدّم نفسك كمساعد ماكس موتورز.
-- اشرح باختصار كيف تساعده (بحث سيارات، تمويل، تجربة قيادة، تواصل).
-- يمكنك الإشارة لوجود سيارات متاحة دون الإصرار على عرض قائمة طويلة.
-- لا تقل إن قاعدة البيانات فارغة أو أنه لا توجد سيارات مطابقة.
+موضوع الرسالة: **تحية**.
+- رحّب باختصار وقدّم نفسك، واسأل كيف تساعد دون سرد قائمة طويلة.
 `;
     }
     if (budget.maxPrice != null || budget.minPrice != null) {
       intentInstructions += `
-موضوع الرسالة: **فلترة حسب الميزانية**.
-- النتائج مُصفّاة مسبقاً حسب الميزانية المطلوبة — لا تذكر سيارات خارج هذا النطاق.
-${budget.maxPrice != null ? `- الحد الأقصى للسعر: ${budget.maxPrice.toLocaleString("ar-SA")} ر.س` : ""}
-${budget.minPrice != null ? `- الحد الأدنى للسعر: ${budget.minPrice.toLocaleString("ar-SA")} ر.س` : ""}
+موضوع الرسالة: **ميزانية**.
+${budget.maxPrice != null ? `- الحد الأقصى: ${budget.maxPrice.toLocaleString("ar-SA")} ر.س` : ""}
+${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocaleString("ar-SA")} ر.س` : ""}
+`;
+    }
+    if (salaryIntent && !affordability.netSalary && !maxInstallment) {
+      intentInstructions += `
+موضوع الرسالة: **راتب بدون رقم** — اطلب بلطف صافي الراتب والالتزامات في جملة قصيرة طبيعية.
 `;
     }
     if (salaryIntent && affordability.netSalary) {
       intentInstructions += `
-موضوع الرسالة: **ترشيح حسب الراتب والالتزامات**.
-- اعرض فقط السيارات المؤهلة ضمن حد التحمل الشهري (35% من الدخل المتاح بعد الالتزامات).
-- وضّح أن التقدير مبني على افتراضات تمويل أولية ويمكن تحسينه بإكمال بيانات التمويل.
+موضوع الرسالة: **ترشيح حسب الراتب** — رشّح من القائمة المؤهلة واذكر أن التقدير أولي.
+`;
+    }
+    if (installmentIntent && maxInstallment) {
+      intentInstructions += `
+موضوع الرسالة: **حد قسط ${Number(maxInstallment).toLocaleString("ar-SA")} ر.س** — رشّح من القائمة.
+`;
+    }
+    if (intents.ranking) {
+      intentInstructions += `
+موضوع الرسالة: **أيهم أفضل** — توصية واضحة مع سبب قصير.
+`;
+    }
+    if (intents.compare && !intents.ranking) {
+      intentInstructions += `
+موضوع الرسالة: **مقارنة** — قارن نصياً (سعر، سنة، هيكل، وقود، مقاعد).
 `;
     }
     if (intents.economical) {
       intentInstructions += `
-موضوع الرسالة: **أفضل اقتصادية في السعر والوقود**.
-- ركّز على **أقل الأسعار** وأنواع الوقود **المنطقية للتوفير** (هجين، بنزين، إلخ) حسب بيانات القائمة فقط.
+موضوع الرسالة: **اقتصادية**.
 `;
     }
     if (intents.latestOffers) {
       intentInstructions += `
-موضوع الرسالة: **أحدث العروض والسيارات المتوفرة حالياً**.
-- قدّم السيارات كأحدث إضافات أو عروض مميزة حسب ترتيب القائمة (⭐ مميزة ثم الأحدث وصولاً).
+موضوع الرسالة: **أحدث العروض**.
 `;
     }
     if (intents.financing) {
       intentInstructions += `
-موضوع الرسالة: **التقسيط أو التمويل البنكي والشروط**.
-- اشرح التمويل **اعتماداً على بيانات البنوك في القسم أعلاه** (نسبة الفائدة، سياسة التمويل إن وُجدت).
-- التفاصيل النهائية والموافقة من عند البنك؛ يمكن للعميل متابعة طلب التمويل من صفحة السيارة عند توفر النموذج.
-- استخدم بيانات التواصل للمعرض عند الحاجة لتوجيه العميل.
+موضوع الرسالة: **تمويل / تقسيط**.
+- اشرح من بيانات البنوك. لا تبدأ استبياناً — إن أراد طلباً قل له يضغط «موّل هذه السيارة» على البطاقة.
 `;
     }
     if (intents.corporate) {
       intentInstructions += `
-موضوع الرسالة: **عروض الشركات والمؤسسات**.
-- ركّز على **التنسيق عبر قنوات التواصل الرسمية** في قسم «بيانات التواصل» أعلاه (هاتف، واتساب، بريد).
-- لا تخترع أرقاماً أو سياسات غير مذكورة في البيانات المقدمة.
+موضوع الرسالة: **شركات** — وجّه لقنوات التواصل الرسمية.
 `;
     }
     if (needsContactFallback) {
       intentInstructions += `
-موضوع الرسالة: **لا توجد نتائج كافية**.
-- أخبر العميل بوضوح أنك لا تملك معلومات كافية أو لا توجد سيارات مطابقة حالياً.
-- لا تخترع سيارات أو أسعاراً أو مواصفات غير موجودة في البيانات.
-- وجّه العميل للتواصل مع الفريق عبر الأزرار التي ستظهر له.
+لا توجد سيارات مطابقة — أجب بصدق واقترح بدائل أو تواصل دون اختراع بيانات.
 `;
     }
-
-    if (relevantCars.length === 0 && needsContactFallback) {
-      const fallbackMessage =
-        "عذراً، لا أملك معلومات كافية أو لا توجد سيارات مطابقة لطلبك حالياً في قاعدة بياناتنا. يمكنك التواصل مع فريقنا مباشرة عبر الأزرار أدناه وسنساعدك بشكل أفضل.";
-      await appendChatMessages(conversation.id, [
-        { role: "user", content: message, payload: null },
-        {
-          role: "assistant",
-          content: fallbackMessage,
-          payload: { contactActions },
-        },
-      ]);
-      return {
-        success: true,
-        message: fallbackMessage,
-        cars: [],
-        offers: [],
-        contactActions,
-        conversationId: conversation.id,
-        mode: conversation.mode,
-      };
-    }
-
+    // Always go through Gemini for free conversation (even with zero cars)
     // Format car data for the AI
     const carsContext = formatCarsForAI(relevantCars);
     logger.debug("[chatbot] Formatted cars context for AI");
@@ -1132,48 +1137,36 @@ ${budget.minPrice != null ? `- الحد الأدنى للسعر: ${budget.minPri
       priceContext = `\n\nالسيارات المتوفرة حالياً في قاعدة البيانات (نتائج البحث الحالية):\n${formatCarsForAI(relevantCars)}`;
     }
 
-    // Create a context-aware prompt with car dealership information
-    const systemContext = `أنت مساعد ذكي لمنصة ماكس موتورز، منصة سعودية متخصصة في بيع السيارات الجديدة وتقديم حلول التمويل في المملكة العربية السعودية.
+    // Create a free-conversation prompt with dealership context
+    const systemContext = `أنت مساعد محادثة حرة لمنصة ماكس موتورز (معرض سيارات سعودي للبيع والتمويل).
 ${intentInstructions}
 معلومات عن المنصة:
 ${buildPlatformInfoForAI(storeInfo)}
 
-دورك:
-- الرد على استفسارات العملاء بشكل ودود ومفيد
-- مساعدة العملاء في العثور على السيارة المناسبة
-- شرح خدمات المنصة
-- تقديم معلومات عن العلامات التجارية والموديلات المتوفرة في قاعدة البيانات
-- المساعدة في حجز تجربة القيادة
-- عرض تفاصيل السيارات المتوفرة
-- **استخدم سياق المحادثة السابقة والسيارات المعروضة سابقاً للإجابة على الأسئلة التالية**
-- **إذا سأل العميل عن لون أو ميزة معينة، ارجع للسيارات المعروضة في الرد السابق**
-- **عندما يسأل العميل "ما السيارات المتوفرة؟" انظر للسياق السابق واعرض السيارات المناسبة فقط من القائمة أدناه**
+دورك في المحادثة الحرة:
+- أجب كإنسان خبير ودود — حوار طبيعي متصل بالسياق السابق
+- افهم نية العميل حتى لو صيغت بشكل عام أو بأخطاء إملائية
+- ساعد في: البحث، الأسعار، المواصفات، المقارنة، القسط حسب الراتب، التمويل، التواصل، تجربة القيادة
+- استخدم السيارات المعروضة سابقاً إن سأل عن «أفضل» أو لون أو فرق بينها
+- لا تجبر العميل على معالج تمويل؛ اشرح ثم اقترح زر «موّل هذه السيارة» إن رغب
 
-قواعد الرد المهمة:
-- استخدم اللغة العربية الفصحى البسيطة
-- كن ودوداً ومحترفاً
-- **إذا لم تكن المعلومة في البيانات المقدمة، قل بوضوح أنك لا تعرف — لا تخترع إجابات**
-- **لا تذكر سيارات أو أسعاراً غير موجودة في قائمة النتائج أدناه**
-- عند عرض معلومات سيارة، قدم التفاصيل كاملة مع السعر والمواصفات بتنسيق احترافي
-- **لا تعرض الروابط أو URLs في ردودك أبداً** - المستخدم سيرى بطاقات السيارات المنسقة في الواجهة
-- **لا تذكر "رابط السيارة" أو "عرض السيارة" أو أي URLs في النص**
-- ركز على وصف السيارات وميزاتها ومواصفاتها فقط
-- استخدم الإيموجي بشكل معتدل لجعل الردود أكثر ودية
-- استخدم **النص** لتمييز المعلومات المهمة مثل أسماء السيارات والأسعار (مثال: **تويوتا كامري 2024** بسعر **85,000 ر.س**)
-- اعرض المعلومات بطريقة منظمة وجذابة دون ذكر الروابط أو الصور
-- **مهم جداً**: فقط عندما يكون هناك سيارات متوفرة وتحدثت عنها، أضف في نهاية ردك سطر جديد يبدأ بـ [CARS_TO_SHOW] متبوعاً بأرقام السيارات التي ذكرتها مفصولة بفواصل
-- **لا تضيف [CARS_TO_SHOW] إذا لم تكن هناك سيارات متوفرة أو لم تذكر سيارات محددة في ردك**
-- مثال: إذا تحدثت عن السيارة 1 والسيارة 3، أضف: [CARS_TO_SHOW]1,3
-- **قاعدة حاسمة**: عند ذكر أسماء السيارات في ردك، استخدم **بالضبط** نفس أسماء العلامات التجارية والموديلات الموجودة في قاعدة البيانات أعلاه
+قواعد الرد:
+- عربية فصحى بسيطة وواضحة
+- أجب على السؤال أولاً ثم اقترح الخطوة التالية باختصار
+- لا تخترع سيارات أو أسعار أو أرقام تواصل غير موجودة في البيانات
+- لا تعرض روابط/URLs — الواجهة تعرض البطاقات
+- استخدم **النص** للأسماء والأسعار المهمة
+- عند ذكر سيارات من القائمة، أضف في النهاية: [CARS_TO_SHOW]1,3 (أرقام السيارات التي ذكرتها)
+- لا تضف [CARS_TO_SHOW] إن لم تذكر سيارات
+- أسماء الماركات/الموديلات يجب أن تطابق القائمة حرفياً
 ${banksContext}${storeContactContext}${salaryContext}
 ${previousCarsContext}
 
-السيارات المتوفرة حالياً في قاعدة البيانات (نتائج البحث الحالية):
-${carsContext}
+السيارات ذات الصلة بالطلب الحالي:
+${carsContext || "لا توجد نتائج سيارات مطابقة لهذا الطلب في المخزون حالياً."}
 ${priceContext}
 
-الآن، قم بالرد على رسالة العميل التالية:`;
-
+الآن، رد على رسالة العميل:`;
     const prompt = `${systemContext}${conversationText}\n\nرسالة العميل الحالية: ${correctedMessage}${shouldShowCorrection ? ` (تم تصحيح من: ${message})` : ''}`;
 
     // Generate response with retry logic for 503 errors
@@ -1229,8 +1222,15 @@ ${priceContext}
 
     // Parse the response to extract which cars to show
     let cleanedText = text.trim();
-    // Greetings: don't dump inventory cards unless the model explicitly picks some
-    let carsToShow = intents.greeting ? [] : relevantCars;
+    // Don't dump full inventory unless the model picks cars (or salary/installment results)
+    const forceShowFiltered =
+      (salaryIntent && affordability.netSalary) ||
+      (installmentIntent && maxInstallment);
+    let carsToShow = intents.greeting
+      ? []
+      : forceShowFiltered
+        ? relevantCars.slice(0, 8)
+        : [];
     
     // Check if AI specified which cars to show
     const carsMarkerMatch = cleanedText.match(/\[CARS_TO_SHOW\]([\d,\s]+)/);
@@ -1249,8 +1249,17 @@ ${priceContext}
       
       // Remove the marker from the displayed text
       cleanedText = cleanedText.replace(/\[CARS_TO_SHOW\][\d,\s]+/, '').trim();
+    } else if (
+      !forceShowFiltered &&
+      !intents.greeting &&
+      relevantCars.length > 0 &&
+      /سيار|موديل|ماركة|تويوتا|هيونداي|لكزس|كامري|برادو|toyota|lexus|camry|hyundai/i.test(
+        cleanedText
+      )
+    ) {
+      // Model talked about cars but forgot the marker — show top matches
+      carsToShow = relevantCars.slice(0, Math.min(6, relevantCars.length));
     }
-
     // Save chat log to database for analytics + full conversation history
     try {
       const clerkUserId = await resolveClerkUserId();

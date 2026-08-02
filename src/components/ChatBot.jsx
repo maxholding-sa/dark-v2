@@ -24,12 +24,12 @@ import Image from "next/image";
 import { formatSaudiRiyalText } from "@/lib/helper";
 
 const PROACTIVE_GREETING =
-  "👋 أهلاً، أنا مساعد MAX AI\nأقدر أساعدك في اختيار سيارة أو حساب التمويل حسب راتبك";
+  "👋 أهلاً، أنا مساعد MAX AI\nتكلّم بحرية — أقدر أساعدك بأي استفسار عن السيارات أو التمويل";
 const PROACTIVE_INTERVAL_MS = 8000;
 const SESSION_KEY = "max_chat_session_id";
 const CONVERSATION_KEY = "max_chat_conversation_id";
 const WELCOME_TEXT =
-  "مرحباً! أنا مساعد ماكس موتورز الذكي. 🚗\nأساعدك في استعراض السيارات الجديدة المتوفرة، حساب التمويل، وحجز تجربة القيادة.\nكيف يمكنني مساعدتك اليوم؟";
+  "مرحباً! أنا مساعد ماكس موتورز 🚗\nمحادثة حرة — اسألني عن أي سيارة، مقارنة، قسط حسب راتبك، أو التمويل.\nكيف أقدر أساعدك؟";
 
 function cleanPhoneNumber(phone) {
   return String(phone || "").replace(/[^0-9]/g, "");
@@ -239,31 +239,31 @@ export default function ChatBot({ onOpenChange }) {
     },
     {
       id: 4,
-      text: "أريد مقارنة بين موديلات السيارات المختلفة",
-      icon: "📊",
-      description: "مقارنة الموديلات",
+      text: "اريد مقارنة بين سيارتين",
+      icon: "⚖️",
+      description: "مقارنة بين سيارتين",
     },
     {
       id: 5,
-      text: "أريد تمويل سيارة",
-      icon: "🏦",
-      description: "اختر سيارة ثم احسب العروض",
-    },
-    {
-      id: 6,
-      text: "أريد التواصل بخصوص عروض الشركات والمؤسسات؟",
-      icon: "🏢",
-      description: "عروض الشركات والمؤسسات",
-    },
-    {
-      id: 7,
       text: "رشّح لي سيارة حسب راتبي 7000 ريال",
       icon: "💼",
       description: "ترشيح حسب الراتب",
     },
     {
+      id: 6,
+      text: "أبي سيارة قسطها 1500 كحد أقصى",
+      icon: "🏦",
+      description: "حسب القسط الشهري",
+    },
+    {
+      id: 7,
+      text: "أريد التواصل بخصوص عروض الشركات والمؤسسات؟",
+      icon: "🏢",
+      description: "عروض الشركات",
+    },
+    {
       id: 8,
-      text: "أريد رقم الواتساب للتواصل",
+      text: "أبي أرقام التواصل",
       icon: "📞",
       description: "بيانات التواصل",
     },
@@ -639,7 +639,7 @@ export default function ChatBot({ onOpenChange }) {
               </div>
               <div className="min-w-0">
                 <h3 className="font-bold text-sm md:text-base truncate">مساعد ماكس موتورز</h3>
-                <p className="text-[11px] text-yellow-100">تمويل + سجل محادثات</p>
+                <p className="text-[11px] text-yellow-100">محادثة حرة + سجل</p>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
