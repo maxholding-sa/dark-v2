@@ -1,5 +1,5 @@
 import { normalizeSearchText, expandTerm } from "@/lib/car-search";
-import { generateOpenAIText } from "@/lib/openai";
+import { getGeminiModel } from "@/lib/gemini";
 
 function levenshtein(a, b) {
   const s = String(a || "");
@@ -150,7 +150,7 @@ export function fuzzyMatchInventory(query, catalog, { limit = 8, minScore = 0.64
 }
 
 /**
- * Ask OpenAI to map a free-text query onto inventory makes/models.
+ * Ask Gemini to map a free-text query onto inventory makes/models.
  * Used when exact + fuzzy search find nothing (Arabic↔English, rare names).
  */
 export async function aiResolveInventoryMatches(query, catalog, { limit = 5 } = {}) {
@@ -161,6 +161,11 @@ export async function aiResolveInventoryMatches(query, catalog, { limit = 5 } = 
   const pairs = catalog.pairs.slice(0, 200).map((p) => `${p.make} | ${p.model}`);
 
   try {
+    const model = getGeminiModel({
+      temperature: 0,
+      maxOutputTokens: 400,
+    });
+
     const prompt = `You help a Saudi car dealership chatbot map a customer search to inventory.
 
 User query: """${q}"""
@@ -181,12 +186,8 @@ Rules:
 
 JSON:`;
 
-    const text = await generateOpenAIText({
-      system: "Return only valid JSON. No markdown fences.",
-      user: prompt,
-      temperature: 0,
-      maxTokens: 400,
-    });
+    const result = await model.generateContent(prompt);
+    const text = result?.response?.text?.() || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return [];
 

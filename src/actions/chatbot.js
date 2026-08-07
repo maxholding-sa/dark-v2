@@ -3,7 +3,7 @@
 import { db } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { serializedCarsData } from "@/lib/helper";
-import { generateOpenAIText } from "@/lib/openai";
+import { getGeminiModel } from "@/lib/gemini";
 import {
   ensureChatConversation,
   appendChatMessages,
@@ -444,61 +444,11 @@ const arabicSpellingVariations = {
   
   "كيلو": "كيلومتر",
   "كيلو متر": "كيلومتر",
+  "كم": "كيلومتر",
   "ك.م": "كيلومتر",
   "كيلوو": "كيلومتر",
-
-  // لهجة سعودية / خليجية → معنى فصيح للفهم والبحث
-  "ابغى": "أريد",
-  "أبغى": "أريد",
-  "ابغي": "أريد",
-  "أبغي": "أريد",
-  "ابي": "أريد",
-  "أبي": "أريد",
-  "ابيه": "أريد",
-  "أبيه": "أريد",
-  "يبغى": "يريد",
-  "يبي": "يريد",
-  "تبغى": "تريد",
-  "تبي": "تريد",
-  "ما ابغى": "لا أريد",
-  "ما أبي": "لا أريد",
-  "ما ابي": "لا أريد",
-  "مو ابغى": "لا أريد",
-  "مو ببغى": "لا أريد",
-  "وش": "ماذا",
-  "ايش": "ماذا",
-  "ليش": "لماذا",
-  "ليه": "لماذا",
-  "وين": "أين",
-  "هالحين": "الآن",
-  "الحين": "الآن",
-  "دحين": "الآن",
-  "الحين بس": "الآن فقط",
-  "عشان": "لأن",
-  "علشان": "لأن",
-  "وريني": "أرني",
-  "ورني": "أرني",
-  "شوفلي": "أرني",
-  "شوف لي": "أرني",
-  "قلي": "أخبرني",
-  "قولي": "أخبرني",
-  "كم السعر": "ما السعر",
-  "بكم": "بكم",
-  "قد ايش": "كم",
-  "قد إيش": "كم",
-  "كذا": "هكذا",
-  "جذي": "هكذا",
-  "زين": "جيد",
-  "تمام": "حسناً",
-  "طيب": "حسناً",
-  "خلاص": "حسناً",
-  "يلا": "هيا",
-  "ترا": "اعلم أن",
-  "عقب": "بعد",
-  "قدام": "أمام",
-  "فلوس": "مال",
-  "دراهم": "مال",
-  "اقساط": "أقساط",
+  
+  // إضافة المزيد من التصحيحات حسب الحاجة
 };
 
 // دالة لتصحيح الأخطاء الإملائية والكتابة البديلة
@@ -587,29 +537,38 @@ async function getAveragePriceByMake(make) {
   }
 }
 
-// Compact car context for faster OpenAI latency (no images/URLs/long blurbs)
+// Helper function to format car data for AI context
 function formatCarsForAI(cars) {
   if (cars.length === 0) return "لا توجد سيارات متاحة حالياً تطابق البحث.";
 
-  return cars.slice(0, 8).map((car, index) => {
+  return cars.map((car, index) => {
+    const carUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cars/${car.id}`;
+    const mainImage = car.images && car.images.length > 0 ? car.images[0] : null;
+    
     const hasPrice = Number(car.price) > 0;
-    const price = hasPrice
-      ? `${Number(car.price).toLocaleString("ar-SA")} ر.س`
-      : "غير محدد — تواصل للإدارة";
-    const bits = [
-      `${index + 1}) ${car.make} ${car.model} ${car.year}`,
-      `سعر: ${price}`,
-      car.mileage != null ? `كم: ${Number(car.mileage).toLocaleString("en-US")}` : null,
-      car.color ? `لون: ${car.color}` : null,
-      car.fuelType ? `وقود: ${car.fuelType}` : null,
-      car.transmission ? `ناقل: ${car.transmission}` : null,
-      car.bodyType ? `هيكل: ${car.bodyType}` : null,
-      car.seats ? `مقاعد: ${car.seats}` : null,
-      car.isLuxury ? "فاخرة" : null,
-      car.featured ? "مميزة" : null,
-    ].filter(Boolean);
-    return bits.join(" | ");
-  }).join("\n");
+
+    return `
+سيارة ${index + 1}:
+العلامة التجارية: ${car.make}
+الموديل: ${car.model}
+سنة الصنع: ${car.year}
+السعر: ${
+      hasPrice
+        ? `${Number(car.price).toLocaleString("ar-SA")} ر.س`
+        : "غير محدد — يتطلب التواصل مع الإدارة للتسعير (لا تصلح لحساب قسط أو ميزانية)"
+    }
+المسافة المقطوعة: ${car.mileage.toLocaleString()} كم
+اللون: ${car.color}
+نوع الوقود: ${car.fuelType}
+ناقل الحركة: ${car.transmission}
+نوع الهيكل: ${car.bodyType}
+عدد المقاعد: ${car.seats || 'غير محدد'}
+الوصف: ${car.description}
+رابط السيارة: ${carUrl}
+${mainImage ? `الصورة الرئيسية: ${mainImage}` : ''}
+${car.featured ? 'تصنيف: ⭐ سيارة مميزة' : ''}
+${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)' : ''}`;
+  }).join('\n\n');
 }
 
 /**
@@ -978,10 +937,8 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     let conversationText = "";
     if (conversationHistory.length > 0) {
       conversationText = "\n\nسياق المحادثة السابقة:\n";
-      // Keep history short for faster OpenAI latency
-      conversationHistory.slice(-4).forEach((msg) => {
-        const short = String(msg.text || "").slice(0, 280);
-        conversationText += `${msg.sender === "user" ? "العميل" : "المساعد"}: ${short}\n`;
+      conversationHistory.slice(-8).forEach((msg) => {
+        conversationText += `${msg.sender === "user" ? "العميل" : "المساعد"}: ${msg.text}\n`;
       });
 
       // Get cars from the last bot response for context
@@ -990,7 +947,7 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
         .find((msg) => msg.sender === "bot");
       if (lastBotMessage && lastBotMessage.cars && lastBotMessage.cars.length > 0) {
         previousCars = lastBotMessage.cars;
-        previousCarsContext = `\n\nالسيارات المعروضة في الرد السابق:\n${formatCarsForAI(lastBotMessage.cars.slice(0, 6))}`;
+        previousCarsContext = `\n\nالسيارات المعروضة في الرد السابق:\n${formatCarsForAI(lastBotMessage.cars)}`;
         logger.debug("[chatbot] Using cars from previous context", {
           count: lastBotMessage.cars.length,
         });
@@ -1004,6 +961,9 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     const storeInfo = await fetchStoreInfoForChatbot();
     let contactActions = null;
     let salaryContext = "";
+    // Initialize Gemini (free conversation — always AI unless shortcuts above)
+    const model = getGeminiModel();
+
     let relevantCars = [];
     const salaryIntent = salaryIntentEarly;
     const affordability = affordabilityEarly;
@@ -1095,22 +1055,16 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
 
     logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
 
-    // Always provide store; banks only when financing/salary/installment (keeps prompts smaller/faster)
-    const banks =
-      intents.financing || salaryIntent || installmentIntent
-        ? await fetchBanksForChatbot()
-        : [];
-    const banksContext =
-      banks.length > 0
-        ? `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`
-        : "";
+    // Always provide banks + store for free conversation
+    const banks = await fetchBanksForChatbot();
+    const banksContext = `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`;
     const storeContactContext = `\n\n=== بيانات التواصل الرسمية للمعرض ===\n${formatStoreForAI(storeInfo)}`;
 
     let intentInstructions = `
-أسلوب: محادثة حرة سريعة وطبيعية باللهجة السعودية المفهومة.
-- افهم اللهجة السعودية/الخليجية مباشرة (ابغى=أريد، أبي=أريد، وش/ايش=ماذا، ليش=لماذا، وين=أين، الحين=الآن، وريني=أرني، عشان=لأن، بكم=كم السعر).
-- لا تطلب من العميل الفصحى؛ افهم قصده ولو كتب عامية أو بأخطاء.
-- أجب مباشرة باختصار (٣–٦ أسطر غالباً)، سؤال توضيحي واحد فقط عند الحاجة.
+أسلوب المحادثة: **محادثة حرة طبيعية**.
+- تحدّث كمستشار مبيعات ودود، ليس كقائمة أوامر أو معالج خطوات إجباري.
+- أجب على سؤال العميل مباشرة دون إجباره على مسار تمويل أو اختيار مرحلي.
+- اطرح سؤالاً توضيحياً واحداً فقط عند الحاجة ثم أكمل المساعدة.
 `;
     if (intents.greeting) {
       intentInstructions += `
@@ -1181,7 +1135,7 @@ ${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocale
 - اعتذر بجملة واحدة قصيرة، ثم **ادعُ العميل صراحةً للتواصل مع فريقنا عبر الأزرار أدناه** ليجيبه موظف مختص.
 - لا تنهِ الرد باعتذار فقط ودون أي طريقة للتواصل.
 `;
-    // Always go through OpenAI for free conversation (even with zero cars)
+    // Always go through Gemini for free conversation (even with zero cars)
     // Format car data for the AI
     const carsContext = formatCarsForAI(relevantCars);
     logger.debug("[chatbot] Formatted cars context for AI");
@@ -1224,79 +1178,87 @@ ${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocale
     }
 
     // Create a free-conversation prompt with dealership context
-    const systemContext = `أنت مساعد سريع لماكس موتورز (معرض سيارات سعودي).
+    const systemContext = `أنت مساعد محادثة حرة لمنصة ماكس موتورز (معرض سيارات سعودي للبيع والتمويل).
 ${intentInstructions}
-معلومات المنصة:
+معلومات عن المنصة:
 ${buildPlatformInfoForAI(storeInfo)}
 
-افهم اللهجة السعودية جيداً: ابغى/أبي = أريد، يبغى = يريد، وش/ايش = ماذا، ليش = لماذا، وين = أين، الحين = الآن، وريني = أرني، عشان = لأن، زين/تمام = جيد، مو = ليس، ما أبي = لا أريد.
+دورك في المحادثة الحرة:
+- أجب كإنسان خبير ودود — حوار طبيعي متصل بالسياق السابق
+- افهم نية العميل حتى لو صيغت بشكل عام أو بأخطاء إملائية
+- ساعد في: البحث، الأسعار، المواصفات، المقارنة، القسط حسب الراتب، التمويل، التواصل، تجربة القيادة
+- استخدم السيارات المعروضة سابقاً إن سأل عن «أفضل» أو لون أو فرق بينها
+- لا تجبر العميل على معالج تمويل؛ اشرح ثم اقترح زر «موّل هذه السيارة» إن رغب
 
 قواعد الرد:
-- عربية بسيطة قريبة من اللهجة السعودية، واضحة ومختصرة
-- أجب على السؤال أولاً ثم اقترح خطوة قصيرة إن لزم
-- لا تخترع سيارات أو أسعار أو أرقام تواصل
-- لا تعرض روابط/URLs
+- عربية فصحى بسيطة وواضحة
+- أجب على السؤال أولاً ثم اقترح الخطوة التالية باختصار
+- لا تخترع سيارات أو أسعار أو أرقام تواصل غير موجودة في البيانات
+- لا تعرض روابط/URLs — الواجهة تعرض البطاقات
 - استخدم **النص** للأسماء والأسعار المهمة
-- عند ذكر سيارات من القائمة أضف في النهاية: [CARS_TO_SHOW]1,3
+- عند ذكر سيارات من القائمة، أضف في النهاية: [CARS_TO_SHOW]1,3 (أرقام السيارات التي ذكرتها)
 - لا تضف [CARS_TO_SHOW] إن لم تذكر سيارات
-- أسماء الماركات/الموديلات تطابق القائمة حرفياً
+- أسماء الماركات/الموديلات يجب أن تطابق القائمة حرفياً
 ${banksContext}${storeContactContext}${salaryContext}
 ${previousCarsContext}
 
-السيارات ذات الصلة:
-${carsContext || "لا توجد نتائج مطابقة حالياً."}
-${priceContext}`;
-    const userPrompt = `${conversationText}\n\nرسالة العميل: ${correctedMessage}${shouldShowCorrection ? ` (تصحيح من: ${message})` : ""}`;
+السيارات ذات الصلة بالطلب الحالي:
+${carsContext || "لا توجد نتائج سيارات مطابقة لهذا الطلب في المخزون حالياً."}
+${priceContext}
 
-    // Generate response with limited retries for speed
-    logger.debug("[chatbot] Sending prompt to OpenAI");
+الآن، رد على رسالة العميل:`;
+    const prompt = `${systemContext}${conversationText}\n\nرسالة العميل الحالية: ${correctedMessage}${shouldShowCorrection ? ` (تم تصحيح من: ${message})` : ''}`;
 
-    let text = "";
+    // Generate response with retry logic for 503 errors
+    logger.debug("[chatbot] Sending prompt to Gemini AI");
+
+    let result;
     let lastError;
-    const maxRetries = 1;
+    const maxRetries = 3;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        text = await generateOpenAIText({
-          system: systemContext,
-          user: userPrompt,
-          temperature: 0.35,
-          maxTokens: 450,
-        });
+        result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
         logger.debug("[chatbot] AI response received", { responseLength: text.length });
         break; // Success, exit retry loop
       } catch (error) {
         lastError = error;
-        logger.error("[chatbot] OpenAI error", {
+        logger.error("[chatbot] Gemini AI error", {
           attempt: attempt + 1,
           maxAttempts: maxRetries + 1,
           message: error.message,
-          status: error.status,
         });
 
-        // 503 = overloaded, 429 = rate limited. Both are transient when
-        // it is the per-minute bucket; a hard quota will still fall through
+        // 503 = model overloaded, 429 = rate limited. Both are transient when
+        // it is the per-minute bucket; a per-day quota will still fall through
         // to the contact-actions reply below.
-        const status = error.status ?? error?.response?.status;
         const isOverloaded =
-          status === 503 ||
-          error.message?.includes("503") ||
-          error.message?.includes("Service Unavailable");
+          error.status === 503 ||
+          error.message?.includes('503') ||
+          error.message?.includes('Service Unavailable');
         const isRateLimited =
-          status === 429 ||
-          error.message?.includes("429") ||
-          /Too Many Requests|rate.?limit|quota/i.test(error.message || "");
+          error.status === 429 ||
+          error.message?.includes('429') ||
+          /Too Many Requests|quota/i.test(error.message || '');
 
         if (isOverloaded || isRateLimited) {
           if (attempt < maxRetries) {
-            const delayMs = 600;
+            // Honour the server's own retryDelay when it sends one.
+            const suggested = Number(
+              error.message?.match(/retry in ([\d.]+)s/i)?.[1]
+            );
+            const delayMs = Number.isFinite(suggested)
+              ? Math.ceil(suggested * 1000) + 250
+              : Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
             logger.info("[chatbot] Model unavailable, retrying", {
               reason: isRateLimited ? "rate-limit" : "overloaded",
               delayMs,
               nextAttempt: attempt + 2,
               maxAttempts: maxRetries + 1,
             });
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            await new Promise(resolve => setTimeout(resolve, delayMs));
             continue;
           }
           logger.warn("[chatbot] Max retries reached", {
@@ -1309,9 +1271,12 @@ ${priceContext}`;
     }
 
     // If we get here without a successful result, throw the last error
-    if (!text) {
-      throw lastError || new Error("Empty OpenAI response");
+    if (!result) {
+      throw lastError;
     }
+
+    const response = await result.response;
+    const text = response.text();
 
     // Parse the response to extract which cars to show
     let cleanedText = text.trim();
@@ -1436,6 +1401,8 @@ export async function getCarRecommendations(preferences) {
       ]
     });
 
+    const model = getGeminiModel();
+
     // Format available cars for the AI
     const carsData = availableCars.map(car => ({
       id: car.id,
@@ -1465,10 +1432,9 @@ ${JSON.stringify(carsData, null, 2)}
 
 استخدم اللغة العربية وكن واضحاً ومختصراً.`;
 
-    const text = await generateOpenAIText({
-      system: "أنت مستشار سيارات في ماكس موتورز. أجب بالعربية باختصار ووضوح.",
-      user: prompt,
-    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
 
     return {
       success: true,
