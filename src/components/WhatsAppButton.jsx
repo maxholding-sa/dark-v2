@@ -2,9 +2,8 @@
 
 import { FaWhatsapp } from "react-icons/fa";
 
-// Sits on the left, clear of the chat launcher on the right and stacked above
-// the Saudi Business Center seal, which anchors itself to the bottom-left corner.
-const DEFAULT_BOTTOM_OFFSET = "bottom-32 md:bottom-36";
+// Sits on the left, above the Saudi Business Center seal and clear of the chat launcher.
+const DEFAULT_BOTTOM_OFFSET = "bottom-20 md:bottom-24";
 const DEFAULT_SIDE_OFFSET = "left-4 md:left-6";
 
 export default function WhatsAppButton({ phoneNumber, className = "", fixed = true, text = "", label = "", bottomOffset = DEFAULT_BOTTOM_OFFSET, sideOffset = DEFAULT_SIDE_OFFSET, enabled = true }) {

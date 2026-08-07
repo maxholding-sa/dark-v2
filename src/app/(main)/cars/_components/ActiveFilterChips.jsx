@@ -109,7 +109,7 @@ const ActiveFilterChips = ({ priceRange }) => {
         <button
           type="button"
           onClick={clearAll}
-          className="text-xs text-gray-500 hover:text-yellow-500 transition-colors underline underline-offset-2"
+          className="text-xs text-gray-500 hover:text-gold transition-colors underline underline-offset-2"
         >
           مسح الكل
         </button>

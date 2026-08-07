@@ -50,7 +50,7 @@ export default async function ReviewsPage({ searchParams }) {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
             آراء العملاء
           </h1>
-          <p className="text-yellow-600 text-base max-w-2xl mx-auto">
+          <p className="text-gold text-base max-w-2xl mx-auto">
             اقرأ تجارب العملاء الحقيقية والتقييمات الصادقة لخدماتنا
           </p>
         </div>

@@ -157,7 +157,7 @@ export default function Contact() {
               <div className="space-y-4">
                 {storeInfo?.address && (
                   <div className="flex items-center gap-4">
-                    <div className="bg-yellow-500 p-3 rounded-full">
+                    <div className="bg-gold p-3 rounded-full">
                       <MapPin size={24} className="text-black" />
                     </div>
                     <div>
@@ -171,12 +171,12 @@ export default function Contact() {
 
                 {storeInfo?.phone && (
                   <div className="flex items-center gap-4">
-                    <div className="bg-yellow-500 p-3 rounded-full">
+                    <div className="bg-gold p-3 rounded-full">
                       <Phone size={24} className="text-black" />
                     </div>
                     <div>
                       <p className="font-semibold text-lg">اتصل بنا</p>
-                      <a href={`tel:${storeInfo.phone}`} className="text-gray-300 hover:text-yellow-500 transition-colors">
+                      <a href={`tel:${storeInfo.phone}`} className="text-gray-300 hover:text-gold transition-colors">
                         {storeInfo.phone}
                       </a>
                     </div>
@@ -199,12 +199,12 @@ export default function Contact() {
 
                 {storeInfo?.email && (
                   <div className="flex items-center gap-4">
-                    <div className="bg-yellow-500 p-3 rounded-full">
+                    <div className="bg-gold p-3 rounded-full">
                       <Mail size={24} className="text-black" />
                     </div>
                     <div>
                       <p className="font-semibold text-lg">البريد الإلكتروني</p>
-                      <a href={`mailto:${storeInfo.email}`} className="text-gray-300 hover:text-yellow-500 transition-colors">
+                      <a href={`mailto:${storeInfo.email}`} className="text-gray-300 hover:text-gold transition-colors">
                         {storeInfo.email}
                       </a>
                     </div>
@@ -234,7 +234,7 @@ export default function Contact() {
                 : `https://www.google.com/maps/search/?api=1&query=24.6367746,46.7726612`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-400 font-semibold transition-all group"
+              className="inline-flex items-center gap-2 text-gold hover:text-gold-light font-semibold transition-all group"
             >
               فتح في خرائط جوجل
               <span className="group-hover:translate-x-[-4px] transition-transform">←</span>

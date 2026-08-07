@@ -146,7 +146,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('startLoading'));
               }}
-              className={`text-white hover:text-yellow-600 transition-colors text-sm font-medium ${item.name === "تواصل معنا" ? "mr-6" : ""
+              className={`text-white hover:text-gold transition-colors text-sm font-medium ${item.name === "تواصل معنا" ? "mr-6" : ""
                 }`}
             >
               {item.name}

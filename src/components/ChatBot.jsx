@@ -626,7 +626,7 @@ export default function ChatBot({ onOpenChange }) {
 
       {isOpen && (
         <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:right-6 md:left-auto w-full md:w-[26rem] h-[80vh] md:h-[640px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-yellow-600 text-white rounded-t-2xl p-3 md:p-4 flex justify-between items-center gap-2">
+          <div className="bg-gold text-white rounded-t-2xl p-3 md:p-4 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="rounded-full overflow-hidden shrink-0">
                 <Image
@@ -639,14 +639,14 @@ export default function ChatBot({ onOpenChange }) {
               </div>
               <div className="min-w-0">
                 <h3 className="font-bold text-sm md:text-base truncate">مساعد ماكس موتورز</h3>
-                <p className="text-[11px] text-yellow-100">محادثة حرة + سجل</p>
+                <p className="text-[11px] text-gold-light">محادثة حرة + سجل</p>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 onClick={handleNewChat}
-                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                className="hover:bg-gold-dark rounded-full p-2 transition"
                 aria-label="محادثة جديدة"
                 title="محادثة جديدة"
               >
@@ -655,7 +655,7 @@ export default function ChatBot({ onOpenChange }) {
               <button
                 type="button"
                 onClick={() => setShowHistory((v) => !v)}
-                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                className="hover:bg-gold-dark rounded-full p-2 transition"
                 aria-label="سجل المحادثات"
                 title="سجل المحادثات"
               >
@@ -664,7 +664,7 @@ export default function ChatBot({ onOpenChange }) {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="hover:bg-yellow-700 rounded-full p-2 transition"
+                className="hover:bg-gold-dark rounded-full p-2 transition"
                 aria-label="إغلاق الدردشة"
               >
                 <X className="h-5 w-5" />
@@ -678,7 +678,7 @@ export default function ChatBot({ onOpenChange }) {
                 <h4 className="text-sm font-semibold">محادثاتي السابقة</h4>
                 <button
                   type="button"
-                  className="text-xs text-yellow-500"
+                  className="text-xs text-gold"
                   onClick={() => setShowHistory(false)}
                 >
                   رجوع للمحادثة
@@ -696,8 +696,8 @@ export default function ChatBot({ onOpenChange }) {
                     onClick={() => handleLoadConversation(item.id)}
                     className={`w-full text-right rounded-xl border p-3 transition ${
                       item.id === conversationId
-                        ? "border-yellow-600 bg-yellow-950/40"
-                        : "border-white/10 bg-zinc-950 hover:border-yellow-700/60"
+                        ? "border-gold bg-gold-dark/40"
+                        : "border-white/10 bg-zinc-950 hover:border-gold-dark/60"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -725,7 +725,7 @@ export default function ChatBot({ onOpenChange }) {
                     <div
                       className={`max-w-[85%] rounded-2xl p-2.5 md:p-3 ${
                         message.sender === "user"
-                          ? "bg-yellow-600 text-white rounded-bl-none"
+                          ? "bg-gold text-white rounded-bl-none"
                           : "bg-white text-gray-900 rounded-br-none shadow-md border border-gray-200"
                       }`}
                     >
@@ -740,7 +740,7 @@ export default function ChatBot({ onOpenChange }) {
                               type="button"
                               disabled={isTyping}
                               onClick={() => handleQuickOption(opt.label || opt.value)}
-                              className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200"
+                              className="text-xs px-2.5 py-1 rounded-full bg-gold-light text-gold-dark border border-gold-light hover:bg-gold-light"
                             >
                               {opt.label || opt.value}
                             </button>
@@ -749,7 +749,7 @@ export default function ChatBot({ onOpenChange }) {
                       ) : null}
                       <p
                         className={`text-xs mt-1 ${
-                          message.sender === "user" ? "text-yellow-100" : "text-gray-400"
+                          message.sender === "user" ? "text-gold-light" : "text-gray-400"
                         }`}
                       >
                         {message.timestamp.toLocaleTimeString("ar-SA", {
@@ -817,7 +817,7 @@ export default function ChatBot({ onOpenChange }) {
                                   type="button"
                                   size="sm"
                                   disabled={isTyping}
-                                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
+                                  className="w-full bg-gold hover:bg-gold-dark text-white text-xs"
                                   onClick={() => handleSelectCar(car.id, "loan")}
                                 >
                                   <Banknote className="h-3.5 w-3.5 ml-1" />
@@ -838,10 +838,10 @@ export default function ChatBot({ onOpenChange }) {
                         {message.offers.slice(0, 8).map((offer) => (
                           <div
                             key={offer.id}
-                            className="rounded-lg border border-yellow-700/70 bg-zinc-950 p-3 text-right"
+                            className="rounded-lg border border-gold-dark/70 bg-zinc-950 p-3 text-right"
                           >
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <p className="text-sm font-semibold text-yellow-500">
+                              <p className="text-sm font-semibold text-gold">
                                 {offer.bankName}
                               </p>
                               <p className="text-xs text-white/60">
@@ -954,7 +954,7 @@ export default function ChatBot({ onOpenChange }) {
                   <Button
                     type="submit"
                     size="icon"
-                    className="rounded-full bg-yellow-600 hover:bg-yellow-700 text-white h-10 w-10"
+                    className="rounded-full bg-gold hover:bg-gold-dark text-white h-10 w-10"
                     disabled={isTyping || !inputMessage.trim()}
                   >
                     <Send className="h-4 w-4" />

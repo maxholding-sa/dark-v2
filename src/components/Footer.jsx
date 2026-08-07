@@ -218,7 +218,7 @@ const Footer = ({ initialData }) => {
                         : `https://www.google.com/maps/search/?api=1&query=24.6367746,46.7726612`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-yellow-500 hover:text-yellow-400 text-xs font-semibold mt-1 block transition-colors"
+                      className="text-gold hover:text-gold-light text-xs font-semibold mt-1 block transition-colors"
                     >
                       عرض الموقع على الخارطة
                     </a>

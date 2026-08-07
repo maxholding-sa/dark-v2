@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isBenignRequestError } from "@/lib/is-benign-request-error";
 
 /**
  * Last-resort boundary: catches failures in the root layout itself, where the
@@ -8,8 +9,20 @@ import { useEffect } from "react";
  */
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
+    if (isBenignRequestError(error)) {
+      reset();
+      return;
+    }
     console.error("[global-error]", error);
-  }, [error]);
+  }, [error, reset]);
+
+  if (isBenignRequestError(error)) {
+    return (
+      <html lang="ar" dir="rtl">
+        <body style={{ margin: 0, background: "#000" }} />
+      </html>
+    );
+  }
 
   return (
     <html lang="ar" dir="rtl">

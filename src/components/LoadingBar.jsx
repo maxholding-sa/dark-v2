@@ -11,14 +11,14 @@ const LoadingBar = ({ fullScreen = true, className = "", size = "md" }) => {
   const content = (
     <div className={`relative flex flex-col items-center justify-center gap-2 ${className}`}>
       {/* Deep Glow */}
-      <div className={`absolute inset-0 rounded-full bg-yellow-500/20 animate-pulse ${size === 'sm' ? 'blur-[15px]' : 'blur-[60px] md:blur-[100px]'}`}></div>
+      <div className={`absolute inset-0 rounded-full bg-gold/20 animate-pulse ${size === 'sm' ? 'blur-[15px]' : 'blur-[60px] md:blur-[100px]'}`}></div>
       <img
         src="/web.gif"
         alt="Loading..."
         className={`relative ${sizeClasses[size]} pointer-events-none brightness-110 object-contain`}
       />
       {size !== 'sm' && (
-        <span className="text-yellow-500 text-[10px] font-black animate-pulse drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">
+        <span className="text-gold text-[10px] font-black animate-pulse drop-shadow-[0_0_8px_rgba(201,162,39,0.5)]">
           جاري التحميل
         </span>
       )}
@@ -30,7 +30,7 @@ const LoadingBar = ({ fullScreen = true, className = "", size = "md" }) => {
   return (
     <div className="fixed top-0 left-0 w-full h-full bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[100] pointer-events-none animate-in fade-in zoom-in duration-150">
       {/* Top Progress Line */}
-      <div className="fixed top-0 left-0 h-[4px] bg-yellow-500 shadow-[0_0_15px_#eab308] animate-progress-fast w-full origin-left transition-transform"></div>
+      <div className="fixed top-0 left-0 h-[4px] bg-gold shadow-[0_0_15px_#c9a227] animate-progress-fast w-full origin-left transition-transform"></div>
       {content}
     </div>
   );

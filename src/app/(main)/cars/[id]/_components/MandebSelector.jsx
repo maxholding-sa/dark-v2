@@ -62,7 +62,7 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
 
                 {loading ? (
                     <div className="flex justify-center items-center py-10">
-                        <Loader2 className="h-8 w-8 animate-spin text-yellow-600" />
+                        <Loader2 className="h-8 w-8 animate-spin text-gold" />
                     </div>
                 ) : mandebs.length > 0 ? (
                     <div className="grid gap-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -73,11 +73,11 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
                             >
                                 <CardContent className="p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="bg-yellow-600/10 p-3 rounded-full group-hover:bg-yellow-600/20 transition-colors">
-                                            <User className="h-6 w-6 text-yellow-600" />
+                                        <div className="bg-gold/10 p-3 rounded-full group-hover:bg-gold/20 transition-colors">
+                                            <User className="h-6 w-6 text-gold" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-lg text-white group-hover:text-yellow-500 transition-colors">
+                                            <h4 className="font-bold text-lg text-white group-hover:text-gold transition-colors">
                                                 {mandeb.name}
                                             </h4>
                                             <div className="flex items-center gap-1 text-zinc-400 text-sm mt-1">
@@ -90,7 +90,7 @@ const MandebSelector = ({ isOpen, onOpenChange, car }) => {
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            className="flex-1 text-yellow-600 hover:text-yellow-500 hover:bg-yellow-600/10 sm:flex-none"
+                                            className="flex-1 text-gold hover:text-gold hover:bg-gold/10 sm:flex-none"
                                             onClick={() => handleWhatsappClick(mandeb)}
                                         >
                                             <MessageCircle className="ml-2 h-4 w-4" />

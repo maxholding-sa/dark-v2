@@ -39,7 +39,7 @@ function cleanText(value = "") {
     .trim();
 }
 
-function SectionImage({ src, alt, fallback, glowClass = "bg-yellow-500/10" }) {
+function SectionImage({ src, alt, fallback, glowClass = "bg-gold/10" }) {
   const imageSrc = src || fallback;
   if (!imageSrc) return null;
 
@@ -61,7 +61,7 @@ function SectionHeading({ title }) {
   return (
     <div className="flex items-center justify-end mb-6">
       <h2 className="text-4xl font-bold text-white">{title}</h2>
-      <div className="w-12 h-1 bg-yellow-500 mr-4" />
+      <div className="w-12 h-1 bg-gold mr-4" />
     </div>
   );
 }
@@ -173,9 +173,9 @@ export default function AboutPageContent({ page }) {
                 return (
                   <div
                     key={feature.id}
-                    className="group p-8 rounded-3xl bg-black border border-white/5 hover:border-yellow-500/50 transition-all duration-500 shadow-xl hover:-translate-y-2 text-right"
+                    className="group p-8 rounded-3xl bg-black border border-white/5 hover:border-gold/50 transition-all duration-500 shadow-xl hover:-translate-y-2 text-right"
                   >
-                    <div className="bg-yellow-500 text-black rounded-2xl w-14 h-14 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+                    <div className="bg-gold text-black rounded-2xl w-14 h-14 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                       <Icon className="h-7 w-7" />
                     </div>
                     <h3 className="text-xl font-bold mb-4 text-white">{feature.title}</h3>
@@ -192,7 +192,7 @@ export default function AboutPageContent({ page }) {
 
       {/* CTA */}
       <section ref={addToRefs} className="py-24 px-6 md:px-12 relative overflow-hidden scroll-animate">
-        <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-transparent to-transparent -z-10" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-gold/10 via-transparent to-transparent -z-10" />
         <div className="container mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">{page.ctaTitle}</h2>
           <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto whitespace-pre-line">
@@ -201,7 +201,7 @@ export default function AboutPageContent({ page }) {
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Button
               size="lg"
-              className="bg-yellow-500 text-black hover:bg-yellow-600 font-bold px-10 h-14 rounded-full"
+              className="bg-gold text-black hover:bg-gold-dark font-bold px-10 h-14 rounded-full"
               asChild
             >
               <Link href="/cars">تصفح السيارات الآن</Link>

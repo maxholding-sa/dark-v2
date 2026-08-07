@@ -11,7 +11,7 @@ const ReviewCard = ({ review }) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-4 h-4 ${i < rating ? "text-yellow-400 fill-current" : "text-white-300"}`}
+        className={`w-4 h-4 ${i < rating ? "text-gold-light fill-current" : "text-white-300"}`}
       />
     ));
   };

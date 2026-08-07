@@ -176,7 +176,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
     className={`relative border-2 rounded-lg p-3 sm:p-4 ${
       recommended
         ? "border-green-500 ring-2 ring-green-500/30 bg-gradient-to-br from-green-950/50 to-black"
-        : "border-yellow-700 bg-black"
+        : "border-gold-dark bg-black"
     }`}
   >
     {recommended ? (
@@ -196,7 +196,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
               className="h-7 w-7 rounded-md object-contain bg-white/10 p-1 sm:h-8 sm:w-8"
             />
           ) : null}
-          <span className="inline-flex items-center rounded-full border border-yellow-700/70 bg-yellow-950/50 px-2 py-1 text-[10px] font-semibold text-yellow-200 sm:px-3 sm:text-xs">
+          <span className="inline-flex items-center rounded-full border border-gold-dark/70 bg-gold-dark/50 px-2 py-1 text-[10px] font-semibold text-gold-light sm:px-3 sm:text-xs">
             مقدم من {offer.bankName || "البنك"}
           </span>
         </div>
@@ -204,7 +204,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
           {offer.categoryTitle ? `عرض ${offer.categoryTitle}` : "عرض تمويلي"}
         </span>
       </div>
-      <p className={`text-sm font-bold sm:text-lg ${recommended ? "text-green-400" : "text-yellow-800"}`}>
+      <p className={`text-sm font-bold sm:text-lg ${recommended ? "text-green-400" : "text-gold-dark"}`}>
         قسطك الشهري المتوقع يبدأ من {formatOfferMoneyRounded(offer.monthlyPayment)}
       </p>
       <p className="hidden text-xs leading-relaxed text-white/60 sm:block">
@@ -254,7 +254,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
     </p>
     <Button
       className={`mt-3 w-full text-xs text-white sm:text-sm ${
-        recommended ? "bg-green-600 hover:bg-green-700" : "bg-yellow-700 hover:bg-yellow-800"
+        recommended ? "bg-green-600 hover:bg-green-700" : "bg-gold-dark hover:bg-gold-dark"
       }`}
       onClick={() => onSelect(offer)}
     >
@@ -999,8 +999,8 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                     <p className="text-sm text-red-400">{carLookupError}</p>
                   )}
                   {selectedCar?.id && !carLookupLoading && (
-                    <div className="rounded-lg border border-yellow-700/50 bg-yellow-950/30 p-3 text-sm text-white/90">
-                      <p className="font-semibold text-yellow-500 mb-1">السيارة المختارة</p>
+                    <div className="rounded-lg border border-gold-dark/50 bg-gold-dark/30 p-3 text-sm text-white/90">
+                      <p className="font-semibold text-gold mb-1">السيارة المختارة</p>
                       <p>
                         {selectedCar.year} {selectedCar.make} {selectedCar.model}
                         {selectedCar.category ? ` — ${selectedCar.category}` : ""}
@@ -1409,7 +1409,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         if (banksLoading) {
           return (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="w-10 h-10 border-4 border-yellow-700 border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-gold-dark border-t-transparent rounded-full animate-spin" />
               <p className="text-white/70 text-sm">جاري تحميل البنوك...</p>
             </div>
           );
@@ -1429,7 +1429,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 <Button
                   type="button"
                   onClick={() => setBanksReloadKey((key) => key + 1)}
-                  className="bg-yellow-700 text-white hover:bg-yellow-800"
+                  className="bg-gold-dark text-white hover:bg-gold-dark"
                 >
                   إعادة المحاولة
                 </Button>
@@ -1457,7 +1457,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         const enteredDownPaymentPct = carPrice > 0 ? (enteredDownPayment / carPrice) * 100 : 0;
         const remainingLoanAmount = Math.max(0, carPrice - enteredDownPayment);
         const downPaymentEditor = (
-          <div className="rounded-xl border border-yellow-700/60 bg-yellow-950/30 p-4 space-y-4 text-right">
+          <div className="rounded-xl border border-gold-dark/60 bg-gold-dark/30 p-4 space-y-4 text-right">
             <div className="space-y-1">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Banknote className="h-5 w-5" />
@@ -1675,7 +1675,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
 
             {offersByBank.map((section) => (
               <div key={section.id} className="space-y-4">
-                <h4 className="text-md font-semibold text-yellow-700">عروض {section.title}</h4>
+                <h4 className="text-md font-semibold text-gold-dark">عروض {section.title}</h4>
                 <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   {section.offers
                     .filter((offer) => offer.id !== recommendedOffer?.id)
@@ -1692,7 +1692,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
             {/* Selected Offers for Comparison */}
             {selectedOffers.length > 0 && (
               <div className="space-y-4">
-                <h4 className="text-md font-semibold text-yellow-700">العروض المختارة للمقارنة</h4>
+                <h4 className="text-md font-semibold text-gold-dark">العروض المختارة للمقارنة</h4>
                 <div className="grid grid-cols-1 gap-4">
                   {selectedOffers.map((offer) => (
                     <div key={offer.id} className="border-2 rounded-lg p-4 border-green-500 bg-white">
@@ -1741,7 +1741,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
 
                 {/* AI Analysis Results */}
                 {comparisonAnalysis && (
-                  <div className="bg-gradient-to-br from-yellow-50/80 via-yellow-100/80 to-yellow-200/80 border-2 border-yellow-200 rounded-xl p-6 shadow-lg backdrop-blur-lg">
+                  <div className="bg-gradient-to-br from-yellow-50/80 via-gold-light/80 to-gold-light/80 border-2 border-gold-light rounded-xl p-6 shadow-lg backdrop-blur-lg">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-full">
                         <TrendingUp className="h-6 w-6 text-white" />
@@ -2076,7 +2076,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-yellow-700 h-2 rounded-full transition-all duration-300"
+                className="bg-gold-dark h-2 rounded-full transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               ></div>
             </div>
@@ -2089,12 +2089,12 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
               return (
                 <div key={index} className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    index <= currentStep ? 'bg-yellow-700 text-white' : 'bg-gray-200 text-gray-500'
+                    index <= currentStep ? 'bg-gold-dark text-white' : 'bg-gray-200 text-gray-500'
                   }`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <span className={`text-xs mt-1 text-center ${
-                    index <= currentStep ? 'text-yellow-700 font-medium' : 'text-gray-500'
+                    index <= currentStep ? 'text-gold-dark font-medium' : 'text-gray-500'
                   }`}>
                     {step.title}
                   </span>
@@ -2124,7 +2124,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 {currentStep === steps.length - 1 ? (
                   <Button
                     type="submit"
-                    className="bg-yellow-700 hover:bg-yellow-800 text-white flex items-center gap-2"
+                    className="bg-gold-dark hover:bg-gold-dark text-white flex items-center gap-2"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "جاري التسجيل..." : "سجل الطلب"}
@@ -2134,7 +2134,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                     type="button"
                     onClick={nextStep}
                     disabled={currentStep === 1 && (carLookupLoading || (allowCarSelect && !selectedCar?.id))}
-                    className="bg-yellow-700 hover:bg-yellow-800 text-white flex items-center gap-2"
+                    className="bg-gold-dark hover:bg-gold-dark text-white flex items-center gap-2"
                   >
                     التالي
                     <ChevronLeft className="h-4 w-4" />
@@ -2159,7 +2159,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 <Link href="/">
                   <Button
                     onClick={handleCloseModal}
-                    className="bg-yellow-700 hover:bg-yellow-800 text-white px-6 py-2"
+                    className="bg-gold-dark hover:bg-gold-dark text-white px-6 py-2"
                   >
                     موافق
                   </Button>

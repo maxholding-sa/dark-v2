@@ -177,7 +177,7 @@ export default async function Home() {
             <LinkWithLoader href="/loan-request">
               <Button
                 size="lg"
-                className="bg-yellow-700 hover:bg-yellow-800 text-white font-bold px-8 gap-2"
+                className="bg-gold-dark hover:bg-gold-dark text-white font-bold px-8 gap-2"
               >
                 <Banknote className="h-5 w-5" />
                 طلب قرض مباشرة
@@ -189,7 +189,7 @@ export default async function Home() {
 
       {/* About Section */}
       <section className="py-12 md:py-20 px-6 md:px-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-blue-500/5 rounded-3xl -z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-blue-500/5 rounded-3xl -z-10"></div>
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="flex flex-col md:flex-row md:[direction:ltr] items-center gap-8 md:gap-16">
             {/* Logo — top on mobile, LEFT on desktop */}
@@ -217,7 +217,7 @@ export default async function Home() {
                 </div>
                 <div className="pt-2 md:pt-4">
                   <LinkWithLoader href="/about">
-                    <Button size="lg" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-full shadow-2xl hover:shadow-yellow-500/25 transform hover:scale-105 transition-all duration-300 border-2 border-yellow-400/50">
+                    <Button size="lg" className="bg-gradient-to-r from-gold to-gold hover:from-gold hover:to-gold-dark text-black font-bold px-8 py-4 rounded-full shadow-2xl hover:shadow-gold/25 transform hover:scale-105 transition-all duration-300 border-2 border-gold-light/50">
                       اعرف المزيد
                     </Button>
                   </LinkWithLoader>
@@ -297,8 +297,8 @@ export default async function Home() {
                 { icon: <Calendar className="h-8 w-8" />, title: "اختبار قيادة سهل", text: "احجز اختبار القيادة عبر الإنترنت في دقائق، مع خيارات جدولة مرنة." },
                 { icon: <Shield className="h-8 w-8" />, title: "عملية آمنة", text: "قوائم موثقة وعملية حجز آمنة لراحة بالك." }
               ].map((item, idx) => (
-                <div key={idx} className="text-center p-8 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 hover:border-yellow-500/50 transition-all duration-500">
-                  <div className="bg-yellow-500 text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                <div key={idx} className="text-center p-8 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 hover:border-gold/50 transition-all duration-500">
+                  <div className="bg-gold text-black rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
                     {item.icon}
                   </div>
                   <h3 className="text-xl font-bold mb-4 text-white">{item.title}</h3>
@@ -352,7 +352,7 @@ export default async function Home() {
                     key={index}
                     className="group border-b border-white/10 last:border-b-0"
                   >
-                    <summary className="flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-right text-lg font-medium transition-colors outline-none hover:text-yellow-500 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <summary className="flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-right text-lg font-medium transition-colors outline-none hover:text-gold cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                       <span className="flex-1">{faq.question}</span>
                       <ChevronDown className="text-white/60 pointer-events-none size-4 shrink-0 translate-y-1 transition-transform duration-200 group-open:rotate-180" />
                     </summary>
@@ -374,7 +374,7 @@ export default async function Home() {
               <h2 className="text-5xl font-bold mb-8 text-white">ابدأ رحلتك اليوم</h2>
               <p className="text-xl text-white/80 mb-12">انضم إلى آلاف المستخدمين الذين وجدوا سيارة أحلامهم عبر منصتنا.</p>
               <LinkWithLoader href="/cars">
-                <Button size="lg" className="bg-yellow-500 text-black hover:bg-yellow-600 font-bold px-12 py-8 rounded-full text-xl shadow-2xl">
+                <Button size="lg" className="bg-gold text-black hover:bg-gold font-bold px-12 py-8 rounded-full text-xl shadow-2xl">
                   تصفح السيارات الآن
                 </Button>
               </LinkWithLoader>

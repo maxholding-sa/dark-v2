@@ -20,7 +20,7 @@ const FilterChip = ({ label, isSelected, onClick }) => (
     className={cn(
       "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 border",
       isSelected
-        ? "bg-yellow-600/20 text-yellow-400 border-yellow-600/50 hover:bg-yellow-600/30"
+        ? "bg-gold/20 text-gold-light border-gold/50 hover:bg-gold/30"
         : "bg-gray-900 text-gray-300 border-gray-700 hover:border-gray-500 hover:text-white"
     )}
   >
@@ -99,7 +99,7 @@ const CarFiltersControl = ({
             <span className="flex items-center gap-2">
               نطاق السعر
               {isPriceFiltered && (
-                <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                <span className="h-2 w-2 rounded-full bg-gold" />
               )}
             </span>
           </AccordionTrigger>
@@ -126,7 +126,7 @@ const CarFiltersControl = ({
                 step={100}
                 value={priceRange}
                 onValueChange={(value) => onFilterChange("priceRange", value)}
-                className="[&_[data-slot=slider-range]]:bg-yellow-600 [&_[data-slot=slider-thumb]]:border-yellow-600 [&_[data-slot=slider-thumb]]:bg-yellow-500"
+                className="[&_[data-slot=slider-range]]:bg-gold [&_[data-slot=slider-thumb]]:border-gold [&_[data-slot=slider-thumb]]:bg-gold"
               />
             </div>
           </AccordionContent>
@@ -151,7 +151,7 @@ const CarFiltersControl = ({
                 <span className="flex items-center gap-2">
                   {section.title}
                   {section.currentValue && (
-                    <span className="inline-flex items-center rounded-full bg-yellow-600/20 text-yellow-400 text-[10px] px-2 py-0.5 font-normal">
+                    <span className="inline-flex items-center rounded-full bg-gold/20 text-gold-light text-[10px] px-2 py-0.5 font-normal">
                       {section.currentValue}
                     </span>
                   )}

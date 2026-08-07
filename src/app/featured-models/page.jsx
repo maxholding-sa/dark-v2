@@ -22,7 +22,7 @@ export default async function FeaturedModelsPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
             الموديلات المميزة
           </h1>
-          <p className="text-yellow-600 text-base max-w-2xl mx-auto">
+          <p className="text-gold text-base max-w-2xl mx-auto">
             استكشف جميع فئات السيارات وتصفح المركبات حسب نوع الهيكل
           </p>
         </div>

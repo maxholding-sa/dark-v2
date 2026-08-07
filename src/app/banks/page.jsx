@@ -25,12 +25,12 @@ export default async function BanksPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
               العروض التمويلية
             </h1>
-            <p className="text-yellow-600 text-base max-w-2xl mx-auto mb-6">
+            <p className="text-gold text-base max-w-2xl mx-auto mb-6">
               اكتشف جميع العروض التمويلية المتاحة لتمويل سيارتك
             </p>
             <Button
               asChild
-              className="bg-yellow-700 hover:bg-yellow-800 text-white font-bold"
+              className="bg-gold-dark hover:bg-gold text-white font-bold"
             >
               <Link
                 href="/loan-request"

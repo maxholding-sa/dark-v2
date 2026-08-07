@@ -142,7 +142,7 @@ const CarCard = ({ car, isFeatured }) => {
 
         <div className={`flex flex-wrap gap-1 ${isFeatured ? "mb-2 md:mb-3" : "mb-3 md:mb-4"}`}>
           {priorityLabel && (
-            <Badge className="bg-yellow-500 text-black border-yellow-500 hover:bg-yellow-600">
+            <Badge className="bg-gold text-black border-gold hover:bg-gold">
               {priorityLabel}
             </Badge>
           )}

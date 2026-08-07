@@ -97,7 +97,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
                         طلبات الشركات
                     </h1>
-                    <p className="text-yellow-600 text-base max-w-2xl mx-auto">
+                    <p className="text-gold text-base max-w-2xl mx-auto">
                         حلول سيارات متكاملة للشركات والمؤسسات بأسعار تنافسية وخدمات استثنائية
                     </p>
                 </div>
@@ -110,9 +110,9 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                         {features.map((feature, index) => (
                             <div
                                 key={index}
-                                className="group p-8 rounded-3xl bg-zinc-950 border border-white/5 hover:border-yellow-500/50 transition-all duration-500 shadow-xl"
+                                className="group p-8 rounded-3xl bg-zinc-950 border border-white/5 hover:border-gold/50 transition-all duration-500 shadow-xl"
                             >
-                                <div className="bg-yellow-500 text-black rounded-2xl w-14 h-14 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+                                <div className="bg-gold text-black rounded-2xl w-14 h-14 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                                     <feature.icon className="h-7 w-7" />
                                 </div>
                                 <h3 className="text-xl font-bold mb-4 text-white">{feature.title}</h3>
@@ -127,9 +127,9 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
             <section className="py-12 px-6 md:px-12 bg-zinc-950">
                 <div className="container mx-auto max-w-4xl">
                     <div className="flex items-center justify-center mb-10">
-                        <div className="w-12 h-1 bg-yellow-500 ml-4"></div>
+                        <div className="w-12 h-1 bg-gold ml-4"></div>
                         <h2 className="text-3xl font-bold text-white">كيف تعمل الخدمة؟</h2>
-                        <div className="w-12 h-1 bg-yellow-500 mr-4"></div>
+                        <div className="w-12 h-1 bg-gold mr-4"></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir="rtl">
                         {[
@@ -138,7 +138,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                             { step: "3", title: "عرض مخصص", text: "نقوم بإعداد عرض خاص يناسب احتياجاتكم" }
                         ].map((item, idx) => (
                             <div key={idx} className="flex flex-col items-center text-center p-6 rounded-3xl bg-black border border-white/5">
-                                <div className="w-12 h-12 rounded-2xl bg-yellow-500 text-black flex items-center justify-center font-bold text-xl mb-4">{item.step}</div>
+                                <div className="w-12 h-12 rounded-2xl bg-gold text-black flex items-center justify-center font-bold text-xl mb-4">{item.step}</div>
                                 <h4 className="font-bold mb-2 text-white">{item.title}</h4>
                                 <p className="text-gray-400 text-sm">{item.text}</p>
                             </div>
@@ -159,7 +159,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                         <form onSubmit={handleSubmit} className="space-y-5" dir="rtl" noValidate>
                             <div>
                                 <label htmlFor="companyName" className="block mb-2 font-semibold text-white">
-                                    اسم الشركة <span className="text-yellow-500">*</span>
+                                    اسم الشركة <span className="text-gold">*</span>
                                 </label>
                                 <Input
                                     id="companyName"
@@ -207,7 +207,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                                 type="submit"
                                 disabled={isSubmitting || !formData.companyName.trim()}
                                 size="lg"
-                                className="w-full bg-yellow-500 text-black hover:bg-yellow-600 font-bold py-6 text-lg rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                className="w-full bg-gold text-black hover:bg-gold-dark font-bold py-6 text-lg rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                             >
                                 <MessageCircle size={22} />
                                 {isSubmitting ? "جاري الإرسال..." : "إرسال عبر الواتساب"}

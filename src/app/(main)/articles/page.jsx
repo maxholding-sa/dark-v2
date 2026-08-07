@@ -46,7 +46,7 @@ export default function ArticlesPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
             مقالات
           </h1>
-          <p className="text-yellow-600 text-base max-w-2xl mx-auto">
+          <p className="text-gold text-base max-w-2xl mx-auto">
             اكتشف مقالاتنا المفيدة عن السيارات والصيانة والنصائح العملية
           </p>
         </div>

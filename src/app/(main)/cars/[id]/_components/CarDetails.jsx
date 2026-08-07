@@ -199,7 +199,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
                 <div
                   key={`image-${index}`}
                   className={`relative cursor-pointer rounded-md h-20 w-24 flex-shrink-0 transition ${mediaType === 'image' && index === currentImageIndex
-                    ? "border-2 border-yellow-600"
+                    ? "border-2 border-gold"
                     : "opacity-70 hover:opacity-100"
                     }`}
                   onClick={() => {
@@ -219,7 +219,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
               {car.videoUrl && (
                 <div
                   className={`relative cursor-pointer rounded-md h-20 w-24 flex-shrink-0 transition ${mediaType === 'video'
-                    ? "border-2 border-yellow-600"
+                    ? "border-2 border-gold"
                     : "opacity-70 hover:opacity-100"
                     }`}
                   onClick={() => setMediaType('video')}
@@ -243,13 +243,13 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             {/* Saved */}
             <Button
               variant="outline"
-              className={`flex items-center justify-center gap-2 flex-1 ${isWishlisted ? "text-yellow-500" : ""
+              className={`flex items-center justify-center gap-2 flex-1 ${isWishlisted ? "text-gold" : ""
                 }`}
               onClick={handleSaveCar}
               disabled={savingCarLoading}
             >
               <Heart
-                className={`h-4 w-4 md:h-5 md:w-5 ${isWishlisted ? "fill-yellow-500" : ""}`}
+                className={`h-4 w-4 md:h-5 md:w-5 ${isWishlisted ? "fill-gold" : ""}`}
               />
               <span className="text-xs md:text-sm">{isWishlisted ? "محفوظة" : "حفظ"}</span>
             </Button>
@@ -265,7 +265,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             {/* Loan Request */}
             <Button
               variant="default"
-              className="flex items-center justify-center gap-2 bg-yellow-700 text-white hover:bg-yellow-800 font-bold flex-1"
+              className="flex items-center justify-center gap-2 bg-gold-dark text-white hover:bg-gold-dark font-bold flex-1"
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('startLoading'));
                 router.push(`/loan-request/${car.id}`);
@@ -277,7 +277,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             {/* Order Car (Mandeb selection) */}
             <Button
               variant="default"
-              className="flex items-center justify-center gap-2 bg-yellow-700 text-white hover:bg-yellow-800 font-bold flex-1"
+              className="flex items-center justify-center gap-2 bg-gold-dark text-white hover:bg-gold-dark font-bold flex-1"
               onClick={() => setIsMandebDialogOpen(true)}
             >
               <Car className="h-4 w-4 md:h-5 md:w-5" />
@@ -291,7 +291,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
           <div className="flex items-center gap-2">
             <Badge className="mb-2 mt-2 sm:mt-0">{car.bodyType}</Badge>
             {priorityLabel && (
-              <Badge className="mb-2 mt-2 sm:mt-0 bg-yellow-500 text-black hover:bg-yellow-600 font-bold">
+              <Badge className="mb-2 mt-2 sm:mt-0 bg-gold text-black hover:bg-gold font-bold">
                 سيارة {priorityLabel}
               </Badge>
             )}
@@ -302,7 +302,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             {car.category ? ` - ${car.category}` : ""}
           </h1>
 
-          <div className="text-2xl font-bold text-yellow-600">
+          <div className="text-2xl font-bold text-gold">
             {formatSaudiRiyalReact(car.price)}
           </div>
 
@@ -330,7 +330,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
 
           {/* Emi Calculator */}
           <Card
-            className="pt-5 cursor-pointer hover:border-yellow-600 transition-colors"
+            className="pt-5 cursor-pointer hover:border-gold transition-colors"
             onClick={() => {
               window.dispatchEvent(new CustomEvent('startLoading'));
               router.push(`/loan-request/${car.id}`);
@@ -338,12 +338,12 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
           >
             <CardContent>
               <div className="flex items-center gap-2 text-lg font-medium mb-2">
-                <Currency className="h-5 w-5 text-yellow-600" />
+                <Currency className="h-5 w-5 text-gold" />
                 <h3>حاسبة الأقساط الشهرية</h3>
               </div>
               <div className="text-sm text-gray-600">
                 القسط الشهري المتوقع: حوالي
-                <span className="font-bold text-yellow-900">
+                <span className="font-bold text-gold-dark">
                   {" "}
                   {formatSaudiRiyalReact(car.price / 60)}
                 </span>{" "}
@@ -359,7 +359,7 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
           <Card className="my-6 ">
             <CardContent className="p-4 ">
               <div className="flex items-center gap-2 text-lg font-medium mb-2">
-                <MessageSquare className="h-5 w-5 text-yellow-600" />
+                <MessageSquare className="h-5 w-5 text-gold" />
                 <h3>لديك أسئلة؟</h3>
               </div>
               <p className="text-sm text-gray-600 mb-3">
@@ -417,31 +417,31 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             <h3 className="text-2xl font-bold mb-4">المواصفات</h3>
             <ul className="grid grid-cols-1 gap-2">
               <li className="flex items-center gap-2">
-                <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                <span className="h-2 w-2 bg-gold rounded-full"></span>
                 {car.transmission} ناقل الحركة
               </li>
               <li className="flex items-center gap-2">
-                <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                <span className="h-2 w-2 bg-gold rounded-full"></span>
                 {car.fuelType} محرك
               </li>
               <li className="flex items-center gap-2">
-                <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                <span className="h-2 w-2 bg-gold rounded-full"></span>
                 {car.bodyType} نوع الهيكل
               </li>
               {car.driveType && (
                 <li className="flex items-center gap-2">
-                  <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                  <span className="h-2 w-2 bg-gold rounded-full"></span>
                   {car.driveType} نوع الدفع
                 </li>
               )}
               {car.seats && (
                 <li className="flex items-center gap-2">
-                  <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                  <span className="h-2 w-2 bg-gold rounded-full"></span>
                   {car.seats} مقاعد
                 </li>
               )}
               <li className="flex items-center gap-2">
-                <span className="h-2 w-2 bg-yellow-600 rounded-full"></span>
+                <span className="h-2 w-2 bg-gold rounded-full"></span>
                 {car.color} لون خارجي
               </li>
             </ul>

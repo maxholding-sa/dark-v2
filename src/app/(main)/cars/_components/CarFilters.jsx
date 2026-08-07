@@ -272,7 +272,7 @@ const CarFilters = ({ filters }) => {
           <SelectItem
             key={option.value}
             value={option.value}
-            className="text-start justify-start hover:bg-yellow-600/20 hover:text-white data-[state=checked]:bg-yellow-600 data-[state=checked]:text-white focus:bg-yellow-600 focus:text-white"
+            className="text-start justify-start hover:bg-gold/20 hover:text-white data-[state=checked]:bg-gold data-[state=checked]:text-white focus:bg-gold focus:text-white"
           >
             {option.label}
           </SelectItem>
@@ -286,7 +286,7 @@ const CarFilters = ({ filters }) => {
       type="button"
       onClick={applyFilters}
       disabled={!hasPendingChanges}
-      className="w-full bg-yellow-600 text-black hover:bg-yellow-500 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+      className="w-full bg-gold text-black hover:bg-gold-dark font-medium disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {hasPendingChanges ? "تطبيق الفلاتر" : "تم التطبيق"}
     </Button>
@@ -305,7 +305,7 @@ const CarFilters = ({ filters }) => {
               <Filter className="h-4 w-4" />
               الفلاتر
               {activeFilterCount > 0 && (
-                <Badge className="h-5 min-w-5 rounded-full px-1.5 flex items-center justify-center bg-yellow-600 text-black text-[10px] font-bold">
+                <Badge className="h-5 min-w-5 rounded-full px-1.5 flex items-center justify-center bg-gold text-black text-[10px] font-bold">
                   {activeFilterCount}
                 </Badge>
               )}
@@ -318,7 +318,7 @@ const CarFilters = ({ filters }) => {
             <SheetHeader className="px-6 pt-6 pb-4 border-b border-gray-800">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-white flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-yellow-500" />
+                  <SlidersHorizontal className="h-4 w-4 text-gold" />
                   تصفية النتائج
                 </SheetTitle>
                 {activeFilterCount > 0 && (
@@ -358,7 +358,7 @@ const CarFilters = ({ filters }) => {
                 type="button"
                 onClick={applyFilters}
                 disabled={!hasPendingChanges}
-                className="flex-1 bg-yellow-600 text-black hover:bg-yellow-500 h-10 disabled:opacity-40"
+                className="flex-1 bg-gold text-black hover:bg-gold-dark h-10 disabled:opacity-40"
               >
                 {hasPendingChanges ? "عرض النتائج" : "تم التطبيق"}
               </Button>
@@ -376,10 +376,10 @@ const CarFilters = ({ filters }) => {
         <div className="border border-gray-800 rounded-xl overflow-hidden bg-black">
           <div className="px-4 py-3.5 border-b border-gray-800 flex justify-between items-center">
             <h3 className="font-medium flex items-center gap-2 text-white text-sm">
-              <SlidersHorizontal className="h-4 w-4 text-yellow-500" />
+              <SlidersHorizontal className="h-4 w-4 text-gold" />
               تصفية النتائج
               {activeFilterCount > 0 && (
-                <Badge className="h-5 min-w-5 rounded-full px-1.5 flex items-center justify-center bg-yellow-600 text-black text-[10px] font-bold">
+                <Badge className="h-5 min-w-5 rounded-full px-1.5 flex items-center justify-center bg-gold text-black text-[10px] font-bold">
                   {activeFilterCount}
                 </Badge>
               )}
