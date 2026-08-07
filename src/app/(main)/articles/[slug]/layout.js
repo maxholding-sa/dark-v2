@@ -28,7 +28,7 @@ export async function generateMetadata({ params }) {
 
   if (!article) {
     return buildMetadata({
-      title: "المقال غير موجود | ماكس موتورز",
+      title: "المقال غير موجود",
       description: "لم يتم العثور على المقال المطلوب.",
       canonicalUrl: `/articles/${slug}`,
       robots: {

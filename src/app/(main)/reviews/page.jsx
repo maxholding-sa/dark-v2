@@ -6,7 +6,7 @@ import { unstable_cache } from "next/cache";
 export const dynamic = 'force-dynamic';
 
 export const metadata = generateMetadata({
-  title: "آراء العملاء | ماكس موتورز",
+  title: "آراء العملاء",
   description: "اقرأ آراء وتجارب عملاء ماكس موتورز مع شراء السيارات، تجربة القيادة، وخدمات التمويل.",
   keywords: ["آراء العملاء", "تقييم ماكس موتورز", "تجارب شراء السيارات"],
   canonicalUrl: "/reviews",

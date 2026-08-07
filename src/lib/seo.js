@@ -19,9 +19,49 @@ export const SITE_CONFIG = {
   url: resolveSiteUrl(),
   locale: "ar-SA",
   lang: "ar",
-  defaultOgImage: "/logo.JPG",
+  defaultOgImage: "/og-image.jpg",
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
   twitterHandle: "@maxmotors_sa",
 };
+
+/**
+ * Real business details for structured data. Google discounts (and Rich Results
+ * flags) schema containing placeholder values, so every field here is opt-in:
+ * anything left unset is stripped by `compact` rather than emitted as a stub.
+ */
+export const BUSINESS_INFO = {
+  telephone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || "",
+  streetAddress: process.env.NEXT_PUBLIC_BUSINESS_STREET || "",
+  addressLocality: process.env.NEXT_PUBLIC_BUSINESS_CITY || "",
+  addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION || "",
+  postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL || "",
+  addressCountry: "SA",
+};
+
+const hasBusinessAddress = () =>
+  Boolean(BUSINESS_INFO.streetAddress || BUSINESS_INFO.addressLocality);
+
+const businessAddress = () =>
+  hasBusinessAddress()
+    ? {
+        "@type": "PostalAddress",
+        streetAddress: BUSINESS_INFO.streetAddress,
+        addressLocality: BUSINESS_INFO.addressLocality,
+        addressRegion: BUSINESS_INFO.addressRegion,
+        postalCode: BUSINESS_INFO.postalCode,
+        addressCountry: BUSINESS_INFO.addressCountry,
+      }
+    : undefined;
+
+/**
+ * Public profiles that prove the brand identity to search engines. Only list
+ * accounts that actually exist — a `sameAs` pointing at a 404 is a negative signal.
+ */
+export const SOCIAL_PROFILES = (process.env.NEXT_PUBLIC_SOCIAL_PROFILES || "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
 
 export const INDEX_ROBOTS = {
   index: true,
@@ -169,14 +209,8 @@ export const generateMetadata = ({
       images: [
         {
           url: absoluteUrl(ogImage),
-          width: 1200,
-          height: 630,
-          alt: title || SITE_CONFIG.name,
-        },
-        {
-          url: absoluteUrl(ogImage),
-          width: 800,
-          height: 600,
+          width: SITE_CONFIG.ogImageWidth,
+          height: SITE_CONFIG.ogImageHeight,
           alt: title || SITE_CONFIG.name,
         },
       ],
@@ -208,52 +242,45 @@ export const generateJsonLd = (type, data = {}) => {
     organization: {
       ...baseStructure,
       "@type": "Organization",
+      "@id": `${SITE_CONFIG.url}/#organization`,
       name: SITE_CONFIG.name,
-      alternateName: SITE_CONFIG.englishName,
+      // Both spellings Google may see the brand under, so it can tie the
+      // Arabic and Latin queries to this one entity.
+      alternateName: ["MaxMotors", "Max Motors", "ماكس موتورز للسيارات"],
       url: SITE_CONFIG.url,
-      logo: `${SITE_CONFIG.url}/logo.JPG`,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_CONFIG.url}/logo.jpg`,
+        width: 854,
+        height: 678,
+      },
       description: SITE_CONFIG.description,
-      sameAs: [
-        "https://twitter.com/maxmotors_sa",
-        "https://www.instagram.com/maxmotors_sa",
-        "https://www.facebook.com/maxmotors_sa",
-      ],
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "Customer Service",
-        telephone: "+966-XX-XXX-XXXX",
-        areaServed: "SA",
-        availableLanguage: ["ar", "en"],
-      },
-      address: {
-        "@type": "PostalAddress",
-        addressCountry: "SA",
-        addressRegion: "Riyadh",
-        postalCode: "11537",
-      },
+      sameAs: SOCIAL_PROFILES.length ? SOCIAL_PROFILES : undefined,
+      contactPoint: BUSINESS_INFO.telephone
+        ? {
+            "@type": "ContactPoint",
+            contactType: "Customer Service",
+            telephone: BUSINESS_INFO.telephone,
+            areaServed: "SA",
+            availableLanguage: ["ar", "en"],
+          }
+        : undefined,
+      address: businessAddress(),
     },
     localBusiness: {
       ...baseStructure,
       "@type": "AutoDealer",
+      "@id": `${SITE_CONFIG.url}/#dealer`,
       name: SITE_CONFIG.name,
-      image: `${SITE_CONFIG.url}/logo.JPG`,
+      image: `${SITE_CONFIG.url}/logo.jpg`,
       description: SITE_CONFIG.description,
       url: SITE_CONFIG.url,
-      telephone: "+966-XX-XXX-XXXX",
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "King Fahd Road",
-        addressLocality: "Riyadh",
-        addressRegion: "Riyadh",
-        postalCode: "11537",
-        addressCountry: "SA",
-      },
+      parentOrganization: { "@id": `${SITE_CONFIG.url}/#organization` },
+      telephone: BUSINESS_INFO.telephone || undefined,
+      address: businessAddress(),
       areaServed: SAUDI_MARKET_KEYWORDS.locations,
       priceRange: "$$",
-      sameAs: [
-        "https://twitter.com/maxmotors_sa",
-        "https://www.instagram.com/maxmotors_sa",
-      ],
+      sameAs: SOCIAL_PROFILES.length ? SOCIAL_PROFILES : undefined,
     },
     product: {
       ...baseStructure,
@@ -282,9 +309,12 @@ export const generateJsonLd = (type, data = {}) => {
     searchAction: {
       ...baseStructure,
       "@type": "WebSite",
+      "@id": `${SITE_CONFIG.url}/#website`,
       name: SITE_CONFIG.name,
-      alternateName: SITE_CONFIG.englishName,
+      alternateName: ["MaxMotors", "Max Motors"],
       url: SITE_CONFIG.url,
+      inLanguage: SITE_CONFIG.locale,
+      publisher: { "@id": `${SITE_CONFIG.url}/#organization` },
       potentialAction: {
         "@type": "SearchAction",
         target: {
@@ -321,7 +351,7 @@ export const generateJsonLd = (type, data = {}) => {
         name: SITE_CONFIG.name,
         logo: {
           "@type": "ImageObject",
-          url: `${SITE_CONFIG.url}/logo.JPG`,
+          url: `${SITE_CONFIG.url}/logo.jpg`,
         },
       },
       mainEntityOfPage: data.url,
@@ -361,7 +391,9 @@ export const generateCarMetadata = (car) => {
   ].filter(Boolean);
 
   return generateMetadata({
-    title: `${title} للبيع | ماكس موتورز`,
+    // The root layout's title template already appends the brand — repeating it
+    // here produced "… | ماكس موتورز | ماكس موتورز" on every car page.
+    title: `${title} للبيع`,
     description: truncate(`${title} - ${car.description || "سيارة متاحة لدى ماكس موتورز"}. السعر: ${car.price} ريال سعودي. احجز تجربة القيادة أو اطلب التمويل الآن.`, 160),
     keywords,
     ogImage: car.images?.[0] || car.image || SITE_CONFIG.defaultOgImage,

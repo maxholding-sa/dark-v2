@@ -8,7 +8,7 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
 
   return buildMetadata({
-    title: "احجز تجربة قيادة | ماكس موتورز",
+    title: "احجز تجربة قيادة",
     description: "حدد موعد اختبار قيادة في ثوانٍ",
     canonicalUrl: `/test-drive/${id}`,
     robots: {

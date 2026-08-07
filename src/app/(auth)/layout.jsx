@@ -2,7 +2,7 @@ import React from "react";
 import { NOINDEX_ROBOTS } from "@/lib/seo";
 
 export const metadata = {
-  title: "تسجيل الدخول | ماكس موتورز",
+  title: "تسجيل الدخول",
   robots: NOINDEX_ROBOTS,
 };
 

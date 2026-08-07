@@ -113,7 +113,7 @@ const Footer = ({ initialData }) => {
                 />
               ) : (
                 <Image
-                  src="/logo.JPG"
+                  src="/logo.jpg"
                   alt="Default Logo"
                   width={100}
                   height={100}

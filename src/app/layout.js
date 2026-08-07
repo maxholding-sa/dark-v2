@@ -83,9 +83,9 @@ export const metadata = {
     statusBarStyle: "black",
   },
   icons: {
-    icon: "/logo.JPG",
-    shortcut: "/logo.JPG",
-    apple: "/logo.JPG",
+    icon: "/logo.jpg",
+    shortcut: "/logo.jpg",
+    apple: "/logo.jpg",
   },
   manifest: "/manifest.json",
 };
@@ -128,6 +128,24 @@ export default async function RootLayout({ children }) {
         <head>
           <meta name="theme-color" content="#000000" />
           <link rel="preconnect" href="https://zafndavpzgpcbqgvosbt.supabase.co" />
+          {/*
+            Plain <script> tags, not next/script. `strategy="beforeInteractive"`
+            defers injection to the client loader, so crawlers never saw these
+            two blocks in the server HTML — the brand's Organization and WebSite
+            entities were effectively invisible to Google.
+          */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(generateJsonLd("organization")),
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(generateJsonLd("searchAction")),
+            }}
+          />
         </head>
         <body
           className={`${cairo.variable} ${cairo.className} dark overflow-x-hidden text-white antialiased`}
@@ -147,23 +165,6 @@ export default async function RootLayout({ children }) {
           </ClientWrapper>
 
           <SbcVerifySeal />
-
-          <Script
-            id="maxmotors-organization-jsonld"
-            type="application/ld+json"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(generateJsonLd("organization")),
-            }}
-          />
-          <Script
-            id="maxmotors-website-jsonld"
-            type="application/ld+json"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(generateJsonLd("searchAction")),
-            }}
-          />
 
           {/* Tracking Pixels & Analytics */}
 
