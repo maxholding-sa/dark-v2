@@ -6,7 +6,7 @@ import ReservationsList from "./_components/ReservationsList";
 import { NOINDEX_ROBOTS } from "@/lib/seo";
 
 export const metadata = {
-  title: "حجوزاتي | ماكس موتورز",
+  title: "حجوزاتي",
   description: "إدارة حجوزات اختبار القيادة الخاصة بك",
   robots: NOINDEX_ROBOTS,
 };

@@ -9,7 +9,7 @@ export async function generateMetadata() {
 
   if (!page?.isPublished) {
     return buildMetadata({
-      title: "من نحن | ماكس موتورز",
+      title: "من نحن",
       description: "تعرف على ماكس موتورز وخدماتها في بيع السيارات، تجربة القيادة، والتمويل في السعودية.",
       canonicalUrl: "/about",
     });

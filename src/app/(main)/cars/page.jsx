@@ -7,7 +7,7 @@ import CarsPageWrapper from "./_components/CarsPageWrapper";
 import { generateMetadata, SAUDI_MARKET_KEYWORDS, SITE_CONFIG } from "@/lib/seo";
 
 export const metadata = generateMetadata({
-  title: "تصفح وشراء السيارات في السعودية | ماكس موتورز",
+  title: "تصفح وشراء السيارات في السعودية",
   description: "اكتشف آلاف السيارات الجديدة والمستعملة بأفضل الأسعار في السعودية. اختر من تويوتا، هيونداي، نيسان وغيرها. توفير وتمويل متاح.",
   keywords: [
     "سيارات للبيع السعودية",

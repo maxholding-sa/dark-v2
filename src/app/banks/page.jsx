@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Banknote } from "lucide-react";
 
 export const metadata = generateMetadata({
-  title: "العروض التمويلية للسيارات | ماكس موتورز",
+  title: "العروض التمويلية للسيارات",
   description: "قارن عروض التمويل البنكي المتاحة لشراء سيارتك من ماكس موتورز واختر العرض المناسب لك في السعودية.",
   keywords: ["تمويل سيارات", "عروض بنكية للسيارات", "قرض سيارة", "تقسيط سيارات"],
   canonicalUrl: "/banks",

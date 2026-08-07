@@ -197,7 +197,7 @@ export default async function Home() {
               <div className="relative w-[220px] sm:w-[280px] md:w-full md:max-w-lg group">
                 <div className="relative rounded-3xl overflow-hidden aspect-square flex items-center justify-center">
                   <Image
-                    src={mainLogo?.imageUrl || "/logo.JPG"}
+                    src={mainLogo?.imageUrl || "/logo.jpg"}
                     alt={mainLogo?.altText || "About maxmotors"}
                     width={500}
                     height={500}

@@ -126,7 +126,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
         {/* NavBar Logo */}
         <Link href={isAdminPage ? "/admin" : "/"} className="flex items-center gap-2 md:mr-12">
           <Image
-            src={navLogo?.imageUrl || "/logo.JPG"}
+            src={navLogo?.imageUrl || "/logo.jpg"}
             alt={navLogo?.altText || "maxmotors_logo"}
             width={100}
             height={60}

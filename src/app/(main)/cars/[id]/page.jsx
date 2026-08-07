@@ -9,7 +9,7 @@ export async function generateMetadata({ params }) {
 
   if (!result.success) {
     return {
-      title: "السيارة غير موجودة | ماكس موتورز",
+      title: "السيارة غير موجودة",
       description: "لم يتم العثور على السيارة المطلوبة",
       robots: {
         index: false,

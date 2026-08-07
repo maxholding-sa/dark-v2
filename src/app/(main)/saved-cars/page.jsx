@@ -6,7 +6,7 @@ import { SavedCarsList } from "./_components/SavedCarsList";
 import { NOINDEX_ROBOTS } from "@/lib/seo";
 
 export const metadata = {
-  title: "السيارات المحفوظة | ماكس موتورز",
+  title: "السيارات المحفوظة",
   description: "قائمة السيارات التي حفظتها في حسابك على ماكس موتورز.",
   robots: NOINDEX_ROBOTS,
 };

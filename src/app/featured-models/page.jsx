@@ -5,7 +5,7 @@ import { getFeaturedModels } from "@/actions/featured-models";
 import { generateMetadata } from "@/lib/seo";
 
 export const metadata = generateMetadata({
-  title: "الموديلات المميزة | ماكس موتورز",
+  title: "الموديلات المميزة",
   description: "تصفح جميع فئات وموديلات السيارات المميزة على منصة ماكس موتورز",
   keywords: ["موديلات السيارات", "فئات السيارات", "سيارات SUV", "سيارات سيدان", "سيارات تجارية"],
   canonicalUrl: "/featured-models",
