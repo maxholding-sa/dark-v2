@@ -20,6 +20,7 @@ import {
 } from "@/lib/financing-scenario-log";
 import {
   generateIslamicOffers,
+  compareOffersBestFirst,
   formatPercent,
   getEmployerSectorLabel,
   getCarPrice,
@@ -27,6 +28,7 @@ import {
   resolveDownPaymentSar,
 } from "@/lib/generate-islamic-offers";
 import { getStoreInfo } from "@/actions/site-management";
+import { NO_CATEGORY_VALUE, NO_CATEGORY_LABEL } from "@/lib/car-text";
 import { Currency, User, Mail, Phone, MessageSquare, Calendar, ChevronLeft, ChevronRight, Upload, CheckCircle, Car, File, Key, Lock, Banknote, TrendingUp, AlertTriangle, Shield, Target, Award, BarChart3, DollarSign, Percent, Clock, Star } from "lucide-react";
 
 const MAX_DOWN_PAYMENT_PCT = LOAN_CALCULATOR_META.maxDownPaymentPct;
@@ -34,6 +36,16 @@ const CURRENT_HIJRI_YEAR = 1447;
 const CURRENT_GREGORIAN_YEAR = 2026;
 
 const cleanPhoneNumber = (value) => String(value || "").replace(/\D/g, "");
+
+// Arabic keyboards produce Arabic-Indic (٠١٢) and Persian (۰۱۲) digits. They are
+// digits to the customer but not to /^\d+$/, so a perfectly valid ID number was
+// being rejected — fold them to ASCII before anything else looks at the value.
+const toWesternDigits = (value) =>
+  String(value ?? "")
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+
+const digitsOnly = (value) => toWesternDigits(value).replace(/\D/g, "");
 
 const isAdminContactPricingBlock = (reason) => {
   if (!reason) return false;
@@ -48,6 +60,11 @@ const formatBalloonPolicy = (offer) =>
   offer.loanPolicy || (offer.balloonPayment > 0 ? "دفعة أخيرة حسب جهة التمويل" : "غير محدد");
 
 const DEFAULT_DOWN_PAYMENT_PCT = 0.2;
+
+const BANKS_FETCH_ATTEMPTS = 3;
+const BANKS_RETRY_BASE_DELAY_MS = 700;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getDefaultDownPaymentSar = (carPrice, pct = DEFAULT_DOWN_PAYMENT_PCT) => {
   if (!Number.isFinite(carPrice) || carPrice <= 0) return "";
@@ -73,6 +90,21 @@ const formatOfferMoney = (amount) => {
     return <span>0</span>;
   }
   return formatSaudiRiyalReact(value);
+};
+
+/** Whole-riyal display that never throws on a missing/invalid amount. */
+const formatOfferMoneyRounded = (amount) => {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value < 0) {
+    return formatSaudiRiyalReact(0);
+  }
+  return formatSaudiRiyalReact(Math.round(value).toFixed(0));
+};
+
+const formatOfferYears = (termMonths) => {
+  const months = Number(termMonths);
+  if (!Number.isFinite(months) || months <= 0) return "غير محدد";
+  return `${Math.floor(months / 12)} سنة`;
 };
 
 /** Keep loan amount in sync with car price; keep first payment as entered (including 0). */
@@ -173,7 +205,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
         </span>
       </div>
       <p className={`text-sm font-bold sm:text-lg ${recommended ? "text-green-400" : "text-yellow-800"}`}>
-        قسطك الشهري المتوقع يبدأ من {formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}
+        قسطك الشهري المتوقع يبدأ من {formatOfferMoneyRounded(offer.monthlyPayment)}
       </p>
       <p className="hidden text-xs leading-relaxed text-white/60 sm:block">
         يشمل التمويل والتأمين التقديري، والرقم قابل للتغيير حسب موافقة البنك وشركة التأمين.
@@ -195,11 +227,11 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">قسط شهري</p>
-        <p className="font-semibold">{formatSaudiRiyalReact(offer.monthlyPayment.toFixed(0))}</p>
+        <p className="font-semibold">{formatOfferMoneyRounded(offer.monthlyPayment)}</p>
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">مدة القسط</p>
-        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
+        <p className="font-semibold">{formatOfferYears(offer.termMonths)}</p>
       </div>
       <div className="bg-black p-2 rounded">
         <p className="text-xs text-white">الدفعة الاولى</p>
@@ -256,6 +288,8 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [banks, setBanks] = useState([]);
   const [banksLoading, setBanksLoading] = useState(true);
+  const [banksError, setBanksError] = useState("");
+  const [banksReloadKey, setBanksReloadKey] = useState(0);
   const [storeContact, setStoreContact] = useState({ phone: null, whatsapp: null, email: null });
   const [selectedOffers, setSelectedOffers] = useState([]);
   const [comparisonAnalysis, setComparisonAnalysis] = useState(null);
@@ -263,10 +297,22 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
 
-  const offerResult = useMemo(
-    () => generateIslamicOffers({ banks, formData, car: selectedCar }),
-    [banks, formData, selectedCar]
-  );
+  const offerResult = useMemo(() => {
+    try {
+      return generateIslamicOffers({ banks, formData, car: selectedCar });
+    } catch (error) {
+      // Never let an offer-pricing failure blank the page; show it as a blocked
+      // quote so the customer can still reach the contact fallbacks.
+      console.error("Error generating financing offers:", error);
+      return {
+        offers: [],
+        scenarioInputs: null,
+        pricingBlocked: true,
+        pricingBlockReason:
+          "تعذر حساب العروض التمويلية لهذه السيارة. يرجى التواصل مع الإدارة لمساعدتك.",
+      };
+    }
+  }, [banks, formData, selectedCar]);
 
   useEffect(() => {
     if (!allowCarSelect) return;
@@ -461,10 +507,16 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   };
 
   const selectOfferAndProceed = (offer) => {
+    const offerDownPayment = Number(offer?.downPayment);
+    const offerTermMonths = Number(offer?.termMonths);
     setFormData(prev => ({
       ...prev,
-      downPayment: offer.downPayment.toString(),
-      loanTerm: Math.floor(offer.termMonths / 12).toString(),
+      downPayment: Number.isFinite(offerDownPayment)
+        ? String(offerDownPayment)
+        : prev.downPayment,
+      loanTerm: Number.isFinite(offerTermMonths) && offerTermMonths > 0
+        ? String(Math.floor(offerTermMonths / 12))
+        : prev.loanTerm,
       loanAmount: String(selectedCar?.price ?? prev.loanAmount),
     }));
     setSelectedOffer(offer);
@@ -545,22 +597,49 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   ];
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Under load the pooler can drop a request; retry before giving up so the
+    // offers step never sits on "جاري تحميل البنوك" forever.
     const fetchBanks = async () => {
-      try {
-        const response = await fetch('/api/bank');
-        const result = await response.json();
-        if (result.success) {
-          setBanks(result.data);
-          registerAprDisclosureBanks(result.data);
+      setBanksLoading(true);
+      setBanksError("");
+
+      for (let attempt = 1; attempt <= BANKS_FETCH_ATTEMPTS; attempt += 1) {
+        try {
+          const response = await fetch('/api/bank', { cache: 'no-store' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const result = await response.json();
+          const data = Array.isArray(result?.data) ? result.data : null;
+          if (!result?.success || !data) throw new Error(result?.error || 'Malformed bank payload');
+
+          if (cancelled) return;
+          setBanks(data);
+          registerAprDisclosureBanks(data);
+          setBanksError("");
+          setBanksLoading(false);
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          console.error(`Error fetching banks (attempt ${attempt}/${BANKS_FETCH_ATTEMPTS}):`, error);
+          if (attempt < BANKS_FETCH_ATTEMPTS) {
+            await sleep(BANKS_RETRY_BASE_DELAY_MS * attempt);
+          }
         }
-      } catch (error) {
-        console.error('Error fetching banks:', error);
-      } finally {
-        setBanksLoading(false);
       }
+
+      if (cancelled) return;
+      setBanks([]);
+      setBanksError("تعذر تحميل بيانات البنوك حالياً. يرجى المحاولة مرة أخرى.");
+      setBanksLoading(false);
     };
+
     fetchBanks();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [banksReloadKey]);
 
   useEffect(() => {
     const fetchStoreContact = async () => {
@@ -633,7 +712,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        if (!formData.idNumber || formData.idNumber.length !== 10 || !/^\d{10}$/.test(formData.idNumber)) {
+        if (!/^\d{10}$/.test(digitsOnly(formData.idNumber))) {
           toast.error("يرجى ملء جميع الحقول المطلوبة: رقم الهوية الوطنية السعودية (10 أرقام)");
           return false;
         }
@@ -720,7 +799,13 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         },
         body: JSON.stringify({
           ...formData,
-          mobileNumber: "+966" + formData.mobileNumber,
+          // The "no trim" option is a UI sentinel, never something to store.
+          carCategory:
+            formData.carCategory === NO_CATEGORY_VALUE
+              ? selectedCar.category || ""
+              : formData.carCategory,
+          idNumber: digitsOnly(formData.idNumber),
+          mobileNumber: "+966" + digitsOnly(formData.mobileNumber),
           selectedOffer,
           carId: selectedCar.id,
           carDetails: {
@@ -768,8 +853,11 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 <Input
                   id="idNumber"
                   type="text"
+                  inputMode="numeric"
                   value={formData.idNumber}
-                  onChange={(e) => handleInputChange('idNumber', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('idNumber', digitsOnly(e.target.value).slice(0, 10))
+                  }
                   required
                   placeholder="أدخل رقم الهوية"
                   maxLength="10"
@@ -897,7 +985,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                       <SelectContent>
                         {categories.map((category) => (
                           <SelectItem key={category} value={category}>
-                            {category}
+                            {category === NO_CATEGORY_VALUE ? NO_CATEGORY_LABEL : category}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -920,6 +1008,54 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                       {Number(selectedCar.price) > 0 && (
                         <p className="mt-1">السعر: {formatSaudiRiyalReact(selectedCar.price)}</p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Say it here, not four steps later on the offers screen: an
+                      unpriced car can never produce a financing quote. */}
+                  {selectedCar?.id && !carLookupLoading && !(Number(selectedCar.price) > 0) && (
+                    <div className="rounded-lg border border-amber-600/60 bg-amber-950/40 p-3 text-sm text-amber-100 space-y-2">
+                      <p className="font-semibold flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        سعر هذه السيارة غير محدد حالياً
+                      </p>
+                      <p className="text-amber-100/90 leading-relaxed">
+                        لا يمكن حساب العروض التمويلية بدون سعر. يمكنك متابعة الخطوات وسنطلب منك
+                        التواصل مع الإدارة لتحديد السعر، أو التواصل معنا الآن مباشرة.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {storeContact.whatsapp && (
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <a
+                              href={`https://wa.me/${cleanPhoneNumber(storeContact.whatsapp)}?text=${encodeURIComponent(
+                                `السلام عليكم، أحتاج سعر: ${selectedCar.year} ${selectedCar.make} ${selectedCar.model}${selectedCar.category ? ` — ${selectedCar.category}` : ""}`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <MessageSquare className="h-4 w-4 ml-2" />
+                              واتساب
+                            </a>
+                          </Button>
+                        )}
+                        {storeContact.phone && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="border-amber-500/50 text-amber-100 hover:bg-amber-900/40"
+                          >
+                            <a href={`tel:${cleanPhoneNumber(storeContact.phone)}`}>
+                              <Phone className="h-4 w-4 ml-2" />
+                              اتصال
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>
@@ -992,8 +1128,9 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                   <Input
                     id="mobileNumber"
                     type="tel"
+                    inputMode="numeric"
                     value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    onChange={(e) => handleInputChange('mobileNumber', digitsOnly(e.target.value))}
                     required
                     placeholder="5xxxxxxxx"
                     className="pl-12"
@@ -1174,11 +1311,13 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                     <SelectValue placeholder="اختر جهة تحويل الراتب" />
                   </SelectTrigger>
                   <SelectContent>
-                    {banks.map((bank) => (
-                      <SelectItem key={bank.id} value={bank.id.toString()}>
-                        {bank.name}
-                      </SelectItem>
-                    ))}
+                    {banks
+                      .filter((bank) => bank?.id != null)
+                      .map((bank) => (
+                        <SelectItem key={bank.id} value={String(bank.id)}>
+                          {bank.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1276,6 +1415,38 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
           );
         }
 
+        if (banksError) {
+          return (
+            <div className="space-y-4 rounded-lg border border-amber-600/60 bg-amber-950/40 p-6 text-right">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-amber-200">
+                <AlertTriangle className="h-5 w-5" />
+                تعذر تحميل العروض
+              </h3>
+              <p className="text-sm leading-relaxed text-amber-100/90">
+                {banksError} قد يكون الضغط على الموقع مرتفعاً في هذه اللحظة، بياناتك المدخلة محفوظة.
+              </p>
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <Button
+                  type="button"
+                  onClick={() => setBanksReloadKey((key) => key + 1)}
+                  className="bg-yellow-700 text-white hover:bg-yellow-800"
+                >
+                  إعادة المحاولة
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  السابق
+                </Button>
+              </div>
+            </div>
+          );
+        }
+
         const allOffers = offerResult.offers;
         const scenarioInputs = offerResult.scenarioInputs;
         const carPrice = carPriceValue || getCarPrice(selectedCar, formData);
@@ -1349,7 +1520,8 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
             selectedCar?.year || formData.carYear,
             selectedCar?.make || formData.carMake,
             selectedCar?.model || formData.carModel,
-            selectedCar?.category || formData.carCategory,
+            selectedCar?.category ||
+              (formData.carCategory === NO_CATEGORY_VALUE ? "" : formData.carCategory),
           ]
             .filter(Boolean)
             .join(" ");
@@ -1537,7 +1709,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                       </div>
                       <div className="bg-black p-2 rounded">
                         <p className="text-xs text-white">مدة القسط</p>
-                        <p className="font-semibold">{Math.floor(offer.termMonths / 12)} سنة</p>
+                        <p className="font-semibold">{formatOfferYears(offer.termMonths)}</p>
                       </div>
                       <div className="bg-black p-2 rounded">
                         <p className="text-xs text-white">الدفعة الاولى</p>
@@ -1869,7 +2041,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 <h4 className="font-semibold mb-2">البيانات الإئتمانية</h4>
                 <p>جهة العمل: {formData.employerSector}</p>
                 <p>ادخل جهة العمل: {formData.employer}</p>
-                <p>جهة تحويل الراتب: {banks.find(b => b.id.toString() === formData.salaryTransferBank)?.name || ''}</p>
+                <p>جهة تحويل الراتب: {banks.find(b => String(b?.id) === formData.salaryTransferBank)?.name || ''}</p>
                 <p>صافي الراتب: {formData.netSalary ? formatSaudiRiyalReact(parseFloat(formData.netSalary)) : ''}</p>
                 <p>هل لديك تمويل عقاري: {formData.hasRealEstateFinance === 'yes' ? 'نعم' : 'لا'}</p>
                 <p>هل لديك تعثر في سمة: {formData.hasCreditDefault === 'yes' ? 'نعم' : 'لا'}</p>

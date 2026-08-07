@@ -1,5 +1,6 @@
 import React from "react";
 import { serializeBankRecord } from "@/lib/bank-finance";
+import { normalizeCarText, dedupeCarTexts } from "@/lib/car-text";
 
 export const serializedCarsData = (car, wishlisted = false) => {
   if (!car) return null;
@@ -49,26 +50,12 @@ export const serializeLoanRequests = (requests) => {
 
 /** Normalize filter labels: trim and collapse whitespace */
 export function normalizeFilterLabel(value) {
-  return value?.trim().replace(/\s+/g, " ") ?? "";
+  return normalizeCarText(value);
 }
 
 /** Deduplicate filter options after normalizing (e.g. "بي واي دي" vs " بي واي دي ") */
 export function dedupeFilterOptions(values) {
-  const seen = new Set();
-  const result = [];
-
-  for (const value of values) {
-    const normalized = normalizeFilterLabel(value);
-    if (!normalized) continue;
-
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) continue;
-
-    seen.add(key);
-    result.push(normalized);
-  }
-
-  return result;
+  return dedupeCarTexts(values);
 }
 
 export const formatSaudiRiyalReact = (amount) => {

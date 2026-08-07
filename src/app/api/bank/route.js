@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma";
+import { db, withDbRetry } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
 import { parseBankFinancePayload, parseSectorInterestRatesPayload, serializeBankRecord } from "@/lib/bank-finance";
 
@@ -38,9 +38,13 @@ function buildBankData(body) {
 
 export async function GET() {
   try {
-    const banks = await db.bank.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    // The offers step is unusable without banks, so ride out transient pooler
+    // failures instead of handing the client an empty list.
+    const banks = await withDbRetry(() =>
+      db.bank.findMany({
+        orderBy: { createdAt: "desc" },
+      })
+    );
     return NextResponse.json({
       success: true,
       data: banks.map(serializeBankRecord),

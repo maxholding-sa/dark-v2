@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/prisma';
 import { aggregateInventorySegmentsByMake } from '@/lib/brand-segment';
+import { dedupeCarTexts } from '@/lib/car-text';
 
 export async function GET(request) {
   try {
@@ -24,7 +25,9 @@ export async function GET(request) {
       },
     });
 
-    const uniqueMakes = makes.map(car => car.make).filter(make => make);
+    // `distinct` is byte-exact, so two spellings of one make still slip
+    // through — collapse them so the dropdown never repeats an entry.
+    const uniqueMakes = dedupeCarTexts(makes.map(car => car.make));
 
     if (!withSegments) {
       return NextResponse.json({ makes: uniqueMakes });

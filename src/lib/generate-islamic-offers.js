@@ -68,16 +68,34 @@ export const resolveDownPaymentSar = (formData, carPrice) => {
   return entered;
 };
 
-const compareOffersBestFirst = (a, b) => {
-  if (a.monthlyPayment !== b.monthlyPayment) return a.monthlyPayment - b.monthlyPayment;
-  if (a.downPayment !== b.downPayment) return a.downPayment - b.downPayment;
-  return (a.totalPayment ?? 0) - (b.totalPayment ?? 0);
+/** Sort key that tolerates offers with missing numeric fields. */
+const offerNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : Infinity);
+
+export const compareOffersBestFirst = (a, b) => {
+  const monthlyA = offerNumber(a?.monthlyPayment);
+  const monthlyB = offerNumber(b?.monthlyPayment);
+  if (monthlyA !== monthlyB) return monthlyA - monthlyB;
+
+  const downA = offerNumber(a?.downPayment);
+  const downB = offerNumber(b?.downPayment);
+  if (downA !== downB) return downA - downB;
+
+  return offerNumber(a?.totalPayment ?? 0) - offerNumber(b?.totalPayment ?? 0);
 };
 
 /**
  * Shared Islamic financing offer grid used by loan form + chatbot.
  */
 export function generateIslamicOffers({ banks, formData, car }) {
+  if (!car) {
+    return {
+      offers: [],
+      scenarioInputs: null,
+      pricingBlocked: true,
+      pricingBlockReason: "يرجى اختيار سيارة متوفرة أولاً حتى يتم حساب العروض.",
+    };
+  }
+
   const carPrice = getCarPrice(car, formData);
   if (carPrice <= 0) {
     return {
@@ -111,9 +129,15 @@ export function generateIslamicOffers({ banks, formData, car }) {
   }
 
   const eligibleBanks = banks.filter((bank) => {
-    const bankConfig = createBankConfigFromBank(bank);
-    const bankBrandMap = parseBrandSegmentMap(bank?.brandSegmentMap, bankConfig.brand_segment_map);
-    return isBrandInSegmentMap(bankBrandMap, car.make);
+    if (!bank || bank.id == null) return false;
+    try {
+      const bankConfig = createBankConfigFromBank(bank);
+      const bankBrandMap = parseBrandSegmentMap(bank?.brandSegmentMap, bankConfig.brand_segment_map);
+      return isBrandInSegmentMap(bankBrandMap, car.make);
+    } catch (error) {
+      console.error(`[financing] Skipping bank ${bank?.name || bank?.id} — invalid config:`, error);
+      return false;
+    }
   });
 
   if (!eligibleBanks.length) {
@@ -136,7 +160,7 @@ export function generateIslamicOffers({ banks, formData, car }) {
   }
 
   const selectedBank =
-    banks.find((b) => b.id.toString() === formData.salaryTransferBank) || eligibleBanks[0];
+    banks.find((b) => String(b?.id) === formData.salaryTransferBank) || eligibleBanks[0];
   const selectedBankConfig = createBankConfigFromBank(selectedBank);
   const profitRate = getProfitRateForSector(selectedBank, formData.employerSector);
   const adminPct = selectedBankConfig.default_admin_fees_pct ?? 0.01;
@@ -211,39 +235,48 @@ export function generateIslamicOffers({ banks, formData, car }) {
 
     for (const downPct of allowedDownPayments) {
       for (const balloonPct of balloonOptions) {
-        bankCandidates.push(
-          buildCustomerFinancingOffer(
-            bankConfig,
-            {
-              car_price: carPrice,
-              down_payment_pct: downPct,
-              term_months: TERM_MONTHS,
-              profit_rate: bankProfitRate,
-              admin_fees_pct: bankAdminPct,
-              balloon_payment_pct: balloonPct,
-              gender,
-              age_bracket: ageBracket,
-              insurance_segment: insuranceSegment,
-              rebate: 0,
-            },
-            {
-              id: 0,
-              bankName: bank?.name || "بنك افتراضي",
-              bankId: bank.id,
-              bankLogo: bank?.logoImage || "",
-              employerSector: formData.employerSector,
-              employerSectorLabel: getEmployerSectorLabel(formData.employerSector),
-              loanPolicy: bank?.loanPolicy || null,
-              bankFinalPaymentPolicyPct: bank?.defaultBalloonPaymentPct ?? null,
-            }
-          )
-        );
+        // One malformed bank row must not take down the whole offers screen.
+        try {
+          bankCandidates.push(
+            buildCustomerFinancingOffer(
+              bankConfig,
+              {
+                car_price: carPrice,
+                down_payment_pct: downPct,
+                term_months: TERM_MONTHS,
+                profit_rate: bankProfitRate,
+                admin_fees_pct: bankAdminPct,
+                balloon_payment_pct: balloonPct,
+                gender,
+                age_bracket: ageBracket,
+                insurance_segment: insuranceSegment,
+                rebate: 0,
+              },
+              {
+                id: 0,
+                bankName: bank?.name || "بنك افتراضي",
+                bankId: bank.id,
+                bankLogo: bank?.logoImage || "",
+                employerSector: formData.employerSector,
+                employerSectorLabel: getEmployerSectorLabel(formData.employerSector),
+                loanPolicy: bank?.loanPolicy || null,
+                bankFinalPaymentPolicyPct: bank?.defaultBalloonPaymentPct ?? null,
+              }
+            )
+          );
+        } catch (error) {
+          console.error(
+            `[financing] Offer build failed for bank ${bank?.name || bank.id} (balloon ${balloonPct}):`,
+            error
+          );
+        }
       }
     }
 
     const pricedCandidates = bankCandidates
-      .filter((offer) => offer.pricingAvailable !== false)
-      .filter((offer) => offer.downPaymentPct <= MAX_DOWN_PAYMENT_PCT * 100);
+      .filter((offer) => offer && offer.pricingAvailable !== false)
+      .filter((offer) => Number.isFinite(Number(offer.monthlyPayment)))
+      .filter((offer) => Number(offer.downPaymentPct) <= MAX_DOWN_PAYMENT_PCT * 100);
     const picked = pricedCandidates
       .sort(compareOffersBestFirst)
       .slice(0, MAX_OFFERS_PER_BANK)

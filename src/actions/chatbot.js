@@ -52,7 +52,7 @@ import {
   wantsInstallmentBudget,
   getMaxAffordableMonthlyPayment,
 } from "@/lib/chat-affordability";
-import { parseBudgetFromQuery } from "@/lib/car-search";
+import { parseBudgetFromQuery, normalizeSearchText } from "@/lib/car-search";
 import { getPublicMandebs } from "@/actions/mandeb";
 // قاموس للكتابات البديلة والأخطاء الإملائية الشائعة في اللغة العربية
 const arabicSpellingVariations = {
@@ -545,12 +545,18 @@ function formatCarsForAI(cars) {
     const carUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cars/${car.id}`;
     const mainImage = car.images && car.images.length > 0 ? car.images[0] : null;
     
+    const hasPrice = Number(car.price) > 0;
+
     return `
 سيارة ${index + 1}:
 العلامة التجارية: ${car.make}
 الموديل: ${car.model}
 سنة الصنع: ${car.year}
-السعر: ${Number(car.price).toLocaleString("ar-SA")} ر.س
+السعر: ${
+      hasPrice
+        ? `${Number(car.price).toLocaleString("ar-SA")} ر.س`
+        : "غير محدد — يتطلب التواصل مع الإدارة للتسعير (لا تصلح لحساب قسط أو ميزانية)"
+    }
 المسافة المقطوعة: ${car.mileage.toLocaleString()} كم
 اللون: ${car.color}
 نوع الوقود: ${car.fuelType}
@@ -563,6 +569,35 @@ ${mainImage ? `الصورة الرئيسية: ${mainImage}` : ''}
 ${car.featured ? 'تصنيف: ⭐ سيارة مميزة' : ''}
 ${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)' : ''}`;
   }).join('\n\n');
+}
+
+/**
+ * Did the reply actually name this car? Used instead of "the reply mentions the
+ * word سيارة" so we never staple unrelated inventory onto an unrelated answer.
+ */
+function carIsMentionedIn(car, text = "") {
+  const haystack = normalizeSearchText(text);
+  if (!haystack) return false;
+
+  const model = normalizeSearchText(car?.model);
+  const make = normalizeSearchText(car?.make);
+
+  // The model is the distinguishing part; the make alone is too broad.
+  if (model && model.length > 1 && haystack.includes(model)) return true;
+
+  return Boolean(
+    make &&
+      model &&
+      haystack.includes(make) &&
+      model.split(" ").some((part) => part.length > 2 && haystack.includes(part))
+  );
+}
+
+/** Reply that admits it cannot help — those must always offer a human. */
+function looksLikeDeadEndAnswer(text = "") {
+  return /عذرا|عذراً|آسف|اسف|للأسف|للاسف|لا أستطيع|لا استطيع|لا أملك|لا املك|لا تتوفر لدي|لا توجد لدي|لا نوفر|لا نقدم|لست متأكد|لا أعرف|لا اعرف|غير متاح|خارج نطاق/i.test(
+    String(text || "")
+  );
 }
 
 /** Greetings / thanks / short chitchat — not inventory searches. */
@@ -1095,6 +1130,11 @@ ${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocale
 لا توجد سيارات مطابقة — أجب بصدق واقترح بدائل أو تواصل دون اختراع بيانات.
 `;
     }
+    intentInstructions += `
+إذا لم تكن تعرف الإجابة أو كان الطلب خارج نطاق خدماتنا:
+- اعتذر بجملة واحدة قصيرة، ثم **ادعُ العميل صراحةً للتواصل مع فريقنا عبر الأزرار أدناه** ليجيبه موظف مختص.
+- لا تنهِ الرد باعتذار فقط ودون أي طريقة للتواصل.
+`;
     // Always go through Gemini for free conversation (even with zero cars)
     // Format car data for the AI
     const carsContext = formatCarsForAI(relevantCars);
@@ -1191,22 +1231,40 @@ ${priceContext}
           message: error.message,
         });
 
-        // Check if it's a 503 Service Unavailable error
-        if (error.status === 503 || error.message?.includes('503') || error.message?.includes('Service Unavailable')) {
+        // 503 = model overloaded, 429 = rate limited. Both are transient when
+        // it is the per-minute bucket; a per-day quota will still fall through
+        // to the contact-actions reply below.
+        const isOverloaded =
+          error.status === 503 ||
+          error.message?.includes('503') ||
+          error.message?.includes('Service Unavailable');
+        const isRateLimited =
+          error.status === 429 ||
+          error.message?.includes('429') ||
+          /Too Many Requests|quota/i.test(error.message || '');
+
+        if (isOverloaded || isRateLimited) {
           if (attempt < maxRetries) {
-            const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
-            logger.info("[chatbot] Model overloaded, retrying", {
+            // Honour the server's own retryDelay when it sends one.
+            const suggested = Number(
+              error.message?.match(/retry in ([\d.]+)s/i)?.[1]
+            );
+            const delayMs = Number.isFinite(suggested)
+              ? Math.ceil(suggested * 1000) + 250
+              : Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+            logger.info("[chatbot] Model unavailable, retrying", {
+              reason: isRateLimited ? "rate-limit" : "overloaded",
               delayMs,
               nextAttempt: attempt + 2,
               maxAttempts: maxRetries + 1,
             });
             await new Promise(resolve => setTimeout(resolve, delayMs));
             continue;
-          } else {
-            logger.warn("[chatbot] Max retries reached for model overload");
           }
+          logger.warn("[chatbot] Max retries reached", {
+            reason: isRateLimited ? "rate-limit" : "overloaded",
+          });
         } else {
-          // Not a 503 error, don't retry
           throw error;
         }
       }
@@ -1249,16 +1307,30 @@ ${priceContext}
       
       // Remove the marker from the displayed text
       cleanedText = cleanedText.replace(/\[CARS_TO_SHOW\][\d,\s]+/, '').trim();
-    } else if (
-      !forceShowFiltered &&
-      !intents.greeting &&
-      relevantCars.length > 0 &&
-      /سيار|موديل|ماركة|تويوتا|هيونداي|لكزس|كامري|برادو|toyota|lexus|camry|hyundai/i.test(
-        cleanedText
-      )
-    ) {
-      // Model talked about cars but forgot the marker — show top matches
-      carsToShow = relevantCars.slice(0, Math.min(6, relevantCars.length));
+    } else if (!forceShowFiltered && !intents.greeting && relevantCars.length > 0) {
+      // Model may have talked about cars and forgotten the marker. The old test
+      // was "does the reply contain the word سيارة" — true of almost every
+      // reply, which is how unrelated, unpriced cars ended up bolted onto an
+      // answer about spare parts. Only attach cars the reply actually names.
+      carsToShow = relevantCars
+        .filter((car) => carIsMentionedIn(car, cleanedText))
+        .slice(0, 6);
+    }
+
+    // An answer that says "we can't help with that" must not arrive carrying
+    // car cards it never mentioned — and it must always offer a human instead.
+    if (looksLikeDeadEndAnswer(cleanedText)) {
+      const mentioned = carsToShow.filter((car) => carIsMentionedIn(car, cleanedText));
+      if (mentioned.length !== carsToShow.length) {
+        logger.debug("[chatbot] Dropped unmentioned cars from dead-end answer", {
+          dropped: carsToShow.length - mentioned.length,
+        });
+        carsToShow = mentioned;
+      }
+      if (!contactActions) {
+        contactActions = await buildContactActions(storeInfo);
+        logger.debug("[chatbot] Attached contact actions to dead-end answer");
+      }
     }
     // Save chat log to database for analytics + full conversation history
     try {

@@ -1,3 +1,5 @@
+import { normalizeCarText } from "@/lib/car-text";
+
 const UPDATABLE_FIELDS = [
   "make", "model", "year", "price", "mileage", "color",
   "fuelType", "transmission", "bodyType", "driveType", "seats",
@@ -48,8 +50,14 @@ export function buildCarDiff(row, car) {
       : normalizeStr(incoming) !== normalizeStr(current);
 
     if (isDifferent) {
-      fieldChanges.push({ field, from: current, to: incoming });
-      updateData[field] = incoming;
+      // make/model feed the dropdowns, so store them cleaned — a stray space
+      // in the sheet would otherwise show up as a second, identical option
+      const value =
+        field === "make" || field === "model"
+          ? normalizeCarText(incoming)
+          : incoming;
+      fieldChanges.push({ field, from: current, to: value });
+      updateData[field] = value;
     }
   }
 

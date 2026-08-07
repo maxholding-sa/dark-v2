@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/prisma";
+import { dedupeCarTexts } from "@/lib/car-text";
 import { createClient } from "@/lib/superbase";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -23,7 +24,7 @@ export async function getCarMakes() {
       },
     });
 
-    const makes = cars.map(car => car.make);
+    const makes = dedupeCarTexts(cars.map(car => car.make));
 
     return {
       success: true,
