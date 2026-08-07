@@ -22,3 +22,9 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Local agent/editor config
+.claude/settings.local.json
+
+# Generated data backups from scripts/normalize-car-names.mjs
+scripts/car-names-backup-*.json

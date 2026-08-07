@@ -18,6 +18,7 @@ import {
 } from "@/lib/brand-segment";
 import { logger } from "@/lib/logger";
 import { DEFAULT_BRAND_SEGMENT_MAP } from "@/lib/loan-calculator";
+import { normalizeCarText } from "@/lib/car-text";
 
 // function to convert File to Base64
 async function fileToBase64(file) {
@@ -201,6 +202,10 @@ export async function addCarToDB({ carData, images }) {
     const hasPermission = await checkPermission(userId, "cars");
     if (!hasPermission) throw new Error("Unauthorized access");
 
+    // stray spaces here become duplicate entries in the make/model dropdowns
+    const make = normalizeCarText(carData.make);
+    const model = normalizeCarText(carData.model);
+
     const carId = uuidv4(); //unique id for cars
     const folderPath = `cars/${carId}`; //intialize a carfolder path in superbase storage
 
@@ -251,7 +256,7 @@ export async function addCarToDB({ carData, images }) {
     // Resolve insurance category once from canonical brand table (no silent fallback).
     let insuranceSegment;
     try {
-      insuranceSegment = resolveInsuranceSegmentForCar(carData.make, DEFAULT_BRAND_SEGMENT_MAP);
+      insuranceSegment = resolveInsuranceSegmentForCar(make, DEFAULT_BRAND_SEGMENT_MAP);
     } catch (error) {
       if (error instanceof BrandSegmentNotFoundError) {
         throw new Error(
@@ -265,8 +270,8 @@ export async function addCarToDB({ carData, images }) {
     const car = await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
-        make: carData.make,
-        model: carData.model,
+        make,
+        model,
         year: carData.year,
         price: carData.price,
         mileage: carData.mileage,
@@ -276,7 +281,7 @@ export async function addCarToDB({ carData, images }) {
         bodyType: carData.bodyType,
         seats: carData.seats,
         description: carData.description,
-        category: carData.category,
+        category: normalizeCarText(carData.category),
         videoUrl: carData.videoUrl,
         status: carData.status,
         featured: carData.featured,
@@ -512,13 +517,16 @@ export async function updateCar(id, carData, newImages = []) {
       }
     }
 
-    const makeChanged =
-      String(carData.make ?? "").trim() !== String(existingCar.make ?? "").trim();
+    // stray spaces here become duplicate entries in the make/model dropdowns
+    const make = normalizeCarText(carData.make);
+    const model = normalizeCarText(carData.model);
+
+    const makeChanged = make !== normalizeCarText(existingCar.make);
 
     let insuranceSegment = existingCar.insuranceSegment;
     if (makeChanged || !insuranceSegment) {
       try {
-        insuranceSegment = resolveInsuranceSegmentForCar(carData.make, DEFAULT_BRAND_SEGMENT_MAP);
+        insuranceSegment = resolveInsuranceSegmentForCar(make, DEFAULT_BRAND_SEGMENT_MAP);
       } catch (error) {
         if (error instanceof BrandSegmentNotFoundError) {
           return {
@@ -534,8 +542,8 @@ export async function updateCar(id, carData, newImages = []) {
     const updatedCar = await db.car.update({
       where: { id: id },
       data: {
-        make: carData.make,
-        model: carData.model,
+        make,
+        model,
         year: carData.year,
         price: carData.price,
         mileage: carData.mileage,
@@ -545,7 +553,7 @@ export async function updateCar(id, carData, newImages = []) {
         bodyType: carData.bodyType,
         seats: carData.seats,
         description: carData.description,
-        category: carData.category,
+        category: normalizeCarText(carData.category),
         videoUrl: carData.videoUrl,
         status: carData.status,
         featured: carData.featured,

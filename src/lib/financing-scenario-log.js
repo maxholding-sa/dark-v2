@@ -98,7 +98,14 @@ function serializeOffer(offer) {
 }
 
 function buildSampleEngineTrace(bankConfig, sampleInputs) {
-  const result = calculateIslamicAutoFinance(bankConfig, sampleInputs);
+  let result;
+  try {
+    result = calculateIslamicAutoFinance(bankConfig, sampleInputs);
+  } catch (error) {
+    // Diagnostics only — a trace failure must never break the offers screen.
+    return { sampleInputs, error: error?.message || String(error) };
+  }
+
   return {
     sampleInputs,
     derived: result.derived,
@@ -123,14 +130,25 @@ function buildSampleEngineTrace(bankConfig, sampleInputs) {
  * Logs a copy-paste JSON scenario for manual verification.
  * Dedupes identical input sets to avoid spam on re-renders.
  */
-export function logFinancingOfferScenario({
+export function logFinancingOfferScenario(args) {
+  // This is diagnostics that runs during render — swallow everything so it can
+  // never surface as a client-side exception to a customer.
+  try {
+    writeFinancingOfferScenario(args);
+  } catch (error) {
+    console.error("[financing-scenario] Failed to build scenario payload:", error);
+  }
+}
+
+function writeFinancingOfferScenario({
   inputs,
-  offers,
+  offers = [],
   displayed,
   selectedOffer = null,
   label = "offers-generated",
 }) {
   if (typeof window === "undefined") return;
+  if (!inputs?.car || !inputs?.bank || !inputs?.engineParams || !inputs?.customer) return;
 
   const scenarioKey = JSON.stringify({ inputs, label, selectedOfferId: selectedOffer?.id ?? null });
   if (scenarioKey === lastLoggedScenarioKey) return;

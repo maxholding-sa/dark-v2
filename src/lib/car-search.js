@@ -469,6 +469,12 @@ export function parseWesternDigits(value = "") {
   });
 }
 
+// "ألف" and its plural "آلاف" both mean thousands. Missing the plural made
+// "راتبي 7 آلاف" parse as a salary of 7 riyals, which then drove the whole
+// affordability answer. Written normalized (hamza folded) to match both forms.
+const THOUSANDS_UNIT = /الاف|الف|k/;
+const THOUSANDS_UNIT_SOURCE = "آلاف|ألاف|الاف|ألف|الف|k|K";
+
 function parseAmountToken(rawValue = "", unit = "") {
   const cleaned = parseWesternDigits(String(rawValue || ""))
     .replace(/,/g, "")
@@ -478,8 +484,8 @@ function parseAmountToken(rawValue = "", unit = "") {
 
   const normalizedUnit = normalizeSearchText(unit || "");
   if (
-    /الف|الف|k/.test(normalizedUnit) ||
-    /الف|الف|k/.test(normalizeSearchText(String(rawValue)))
+    THOUSANDS_UNIT.test(normalizedUnit) ||
+    THOUSANDS_UNIT.test(normalizeSearchText(String(rawValue)))
   ) {
     amount *= 1000;
   }
@@ -493,7 +499,7 @@ export function parseBudgetFromQuery(text = "") {
   let maxPrice = null;
 
   const rangeMatch = normalized.match(
-    /(?:من|between)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?\s*(?:الى|إلى|to|-)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+    /(?:من|between)\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?\s*(?:الى|إلى|to|-)\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i
   );
   if (rangeMatch) {
     minPrice = parseAmountToken(rangeMatch[1], rangeMatch[2]);
@@ -502,11 +508,11 @@ export function parseBudgetFromQuery(text = "") {
   }
 
   const maxPatterns = [
-    /(?:أقل\s*من|اقل\s*من|تحت|لا\s*تتجاوز|under|below|max|maximum|up\s*to)\s*(?:من)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
-    /(?:ميزاني(?:ة|تي)?|budget)\s*(?:حوالي|تقريبا|تقريباً)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
-    /(?:في\s*)?حدود\s*(?:ال)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
-    /(?:حوالي|تقريباً?|around)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
-    /([\d,.]+)\s*(ألف|الف|k|K)\s*(?:ريال)?\s*(?:أقل|تحت|او\s*اقل)/i,
+    /(?:أقل\s*من|اقل\s*من|تحت|لا\s*تتجاوز|under|below|max|maximum|up\s*to)\s*(?:من)?\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i,
+    /(?:ميزاني(?:ة|تي)?|budget)\s*(?:حوالي|تقريبا|تقريباً)?\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i,
+    /(?:في\s*)?حدود\s*(?:ال)?\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i,
+    /(?:حوالي|تقريباً?|around)\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i,
+    /([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K)\s*(?:ريال)?\s*(?:أقل|تحت|او\s*اقل)/i,
   ];
 
   for (const pattern of maxPatterns) {
@@ -518,7 +524,7 @@ export function parseBudgetFromQuery(text = "") {
   }
 
   const minPatterns = [
-    /(?:أكثر\s*من|اكثر\s*من|فوق|أعلى\s*من|اعلى\s*من|above|over|min|minimum|from)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i,
+    /(?:أكثر\s*من|اكثر\s*من|فوق|أعلى\s*من|اعلى\s*من|above|over|min|minimum|from)\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i,
   ];
 
   for (const pattern of minPatterns) {
@@ -531,7 +537,7 @@ export function parseBudgetFromQuery(text = "") {
 
   if (!maxPrice) {
     const plainBudget = normalized.match(
-      /(?:بسعر|بميزانية|سعر|price)\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+      /(?:بسعر|بميزانية|سعر|price)\s*([\d,.]+)\s*(آلاف|ألاف|الاف|ألف|الف|k|K|ريال)?/i
     );
     if (plainBudget) {
       maxPrice = parseAmountToken(plainBudget[1], plainBudget[2]);
@@ -541,6 +547,9 @@ export function parseBudgetFromQuery(text = "") {
   return { minPrice, maxPrice };
 }
 
+/** Below this a "salary" is a typo or a stray number, not a monthly income. */
+const MIN_PLAUSIBLE_NET_SALARY = 1000;
+
 export function parseSalaryFromQuery(text = "") {
   const normalized = parseWesternDigits(String(text || ""));
   let netSalary = null;
@@ -548,18 +557,29 @@ export function parseSalaryFromQuery(text = "") {
 
   const salaryMatch =
     normalized.match(
-      /(?:راتب(?:ي)?|صافي\s*الراتب|دخلي|salary|income)\s*(?:هو|عن|≈|=\s*)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+      new RegExp(
+        `(?:راتب(?:ي)?|صافي\\s*الراتب|دخلي|salary|income)\\s*(?:هو|عن|≈|=\\s*)?\\s*([\\d,.]+)\\s*(${THOUSANDS_UNIT_SOURCE}|ريال)?`,
+        "i"
+      )
     ) ||
     normalized.match(
-      /([\d,.]+)\s*(ألف|الف|k|K)?\s*(?:ريال)?\s*(?:راتب|صافي)/i
+      new RegExp(`([\\d,.]+)\\s*(${THOUSANDS_UNIT_SOURCE})?\\s*(?:ريال)?\\s*(?:راتب|صافي)`, "i")
     );
 
   if (salaryMatch) {
     netSalary = parseAmountToken(salaryMatch[1], salaryMatch[2]);
+    // Rather than build an affordability answer on a 7-riyal salary, report it
+    // as unknown so the assistant asks for the real figure.
+    if (netSalary != null && netSalary < MIN_PLAUSIBLE_NET_SALARY) {
+      netSalary = null;
+    }
   }
 
   const obligationsMatch = normalized.match(
-    /(?:التزامات(?:ي)?|التزام|قسط\s*شهري|obligations?)\s*(?:هي|عن|≈|=\s*)?\s*([\d,.]+)\s*(ألف|الف|k|K|ريال)?/i
+    new RegExp(
+      `(?:التزامات(?:ي)?|التزام|قسط\\s*شهري|obligations?)\\s*(?:هي|عن|≈|=\\s*)?\\s*([\\d,.]+)\\s*(${THOUSANDS_UNIT_SOURCE}|ريال)?`,
+      "i"
+    )
   );
   if (obligationsMatch) {
     totalMonthlyObligations =

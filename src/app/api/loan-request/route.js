@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma";
+import { db, withDbRetry } from "@/lib/prisma";
 
 const toFloat = (value) => {
   if (value == null || value === "") return null;
@@ -90,7 +90,8 @@ export async function POST(request) {
       );
     }
 
-    const loanRequest = await db.loanRequest.create({
+    // A dropped connection here loses a real lead — retry transient failures.
+    const loanRequest = await withDbRetry(() => db.loanRequest.create({
       data: {
         fullName,
         email,
@@ -138,7 +139,7 @@ export async function POST(request) {
         carId,
         status: "PENDING",
       },
-    });
+    }));
 
     return NextResponse.json({
       success: true,

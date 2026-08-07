@@ -14,7 +14,9 @@ async function fileToBase64(file) {
 import { unstable_cache } from "next/cache";
 import { carDisplayPriorityOrderBy } from "@/lib/data";
 import { getFeaturedCarsSupabase, getHomeCarsByQuerySupabase, getSupabasePublic } from "@/lib/supabaseReads";
-import { resolveImageSearchDetails } from "@/lib/car-search";
+import { resolveImageSearchDetails, buildImageSearchQuery } from "@/lib/car-search";
+import { fuzzyMatchInventory, aiResolveInventoryMatches } from "@/lib/chat-car-resolve";
+import { dedupeCarTexts, carTextKey } from "@/lib/car-text";
 import { logger } from "@/lib/logger";
 
 const IMAGE_SEARCH_BODY_TYPES = [
@@ -79,6 +81,88 @@ async function getAvailableMakeModels() {
 
     return data ?? [];
   }
+}
+
+/** {makes, models, pairs} shape expected by the shared inventory resolvers. */
+function buildInventoryCatalog(rows = []) {
+  const pairs = rows
+    .map((row) => ({
+      make: String(row?.make || "").trim(),
+      model: String(row?.model || "").trim(),
+    }))
+    .filter((pair) => pair.make && pair.model);
+
+  return {
+    makes: dedupeCarTexts(pairs.map((p) => p.make)),
+    models: dedupeCarTexts(pairs.map((p) => p.model)),
+    pairs,
+  };
+}
+
+function inventoryHasPair(catalog, make, model) {
+  if (!make || !model) return false;
+  const makeKey = carTextKey(make);
+  const modelKey = carTextKey(model);
+  return catalog.pairs.some(
+    (pair) => carTextKey(pair.make) === makeKey && carTextKey(pair.model) === modelKey
+  );
+}
+
+function inventoryHasMake(catalog, make) {
+  if (!make) return false;
+  const makeKey = carTextKey(make);
+  return catalog.pairs.some((pair) => carTextKey(pair.make) === makeKey);
+}
+
+/**
+ * Gemini reads the car well but spells it its own way ("إينوفا" for "إنوفا",
+ * "اكس 70" for "X70"). The listing search ANDs every token, so a single letter
+ * off returns nothing at all. Snap the AI answer onto a real inventory
+ * make/model before it becomes a search query, and degrade to make-only rather
+ * than sending the customer to an empty results page.
+ */
+async function resolveImageSearchAgainstInventory(carDetails, catalog) {
+  const exact = resolveImageSearchDetails(carDetails, catalog.pairs);
+  if (inventoryHasPair(catalog, exact.make, exact.model)) {
+    return exact;
+  }
+
+  const freeText = buildImageSearchQuery(carDetails.make, carDetails.model);
+
+  const fuzzy = fuzzyMatchInventory(freeText, catalog, { limit: 1, minScore: 0.6 });
+  if (fuzzy[0]?.make && fuzzy[0]?.model) {
+    logger.debug("[image-search] Fuzzy inventory match", {
+      from: freeText,
+      to: `${fuzzy[0].make} ${fuzzy[0].model}`,
+      score: Number(fuzzy[0].score.toFixed(2)),
+    });
+    return {
+      make: fuzzy[0].make,
+      model: fuzzy[0].model,
+      searchQuery: buildImageSearchQuery(fuzzy[0].make, fuzzy[0].model),
+    };
+  }
+
+  const aiMatches = await aiResolveInventoryMatches(freeText, catalog, { limit: 1 });
+  if (aiMatches[0]?.make) {
+    const match = aiMatches[0];
+    logger.debug("[image-search] AI inventory match", {
+      from: freeText,
+      to: `${match.make} ${match.model || ""}`.trim(),
+    });
+    return {
+      make: match.make,
+      model: match.model || "",
+      searchQuery: buildImageSearchQuery(match.make, match.model || ""),
+    };
+  }
+
+  // Nothing matched the pair — a make-only search still beats zero results.
+  if (inventoryHasMake(catalog, exact.make)) {
+    return { ...exact, model: "", searchQuery: buildImageSearchQuery(exact.make, "") };
+  }
+
+  return exact;
 }
 
 export const getFeaturedCars = unstable_cache(
@@ -313,16 +397,32 @@ export async function processAiImageSearch(formData) {
       },
     };
 
+    const inventory = await getAvailableMakeModels();
+    const catalog = buildInventoryCatalog(inventory);
+    // Showing the model the real inventory removes most of the spelling drift
+    // that used to make the resulting search query match nothing.
+    const catalogContext = catalog.pairs.length
+      ? `\n      قائمة السيارات المتوفرة فعلياً في المعرض (الماركة | الموديل):\n${[
+          ...new Set(catalog.pairs.map((p) => `      - ${p.make} | ${p.model}`)),
+        ].join("\n")}\n`
+      : "";
+
     // Define the prompt for car detail extraction
     const prompt = `
       قم بتحليل صورة السيارة هذه واستخراج المعلومات التالية لاستعلام البحث:
-      1. الشركة المصنعة (Make) - بالعربية فقط
-      2. الموديل (Model) - بالعربية فقط
+      1. الشركة المصنعة (Make)
+      2. الموديل (Model)
       3. نوع الهيكل - اختر واحداً فقط من: دفع رباعي، سيدان، هاتشباك، كشف، كوبيه، ستيشن، بيك أب، رياضية
       4. اللون - بالعربية فقط (كلمة واحدة أساسية مثل: أبيض، أسود، رمادي، فضي)
 
       ركّز بدقة على الشركة المصنعة والموديل لأنهما الأهم للبحث.
-      إذا تعرّفت على شعار أو اسم مثل SPECTRE فاستخدم الموديل العربي الصحيح (مثل: سبيكتر).
+${catalogContext}
+      مهم جداً:
+      - إذا كانت السيارة في الصورة موجودة في القائمة أعلاه، فانسخ اسم الماركة والموديل **حرفياً** كما وردا في القائمة (حتى لو كان الموديل بحروف لاتينية مثل X70 أو U5).
+      - إذا لم تكن موجودة في القائمة، اكتب الماركة والموديل بالعربية بأشهر تسمية سعودية لها.
+      - نوع الهيكل (bodyType) يجب أن يكون بالضبط واحد من هذه القيم: "دفع رباعي" أو "سيدان" أو "هاتشباك" أو "كشف" أو "كوبيه" أو "ستيشن" أو "بيك أب" أو "رياضية"
+      - اللون بالعربية فقط.
+      - بالنسبة للثقة (confidence)، قدم قيمة بين 0 و 1 تمثل مدى ثقتك في التعرف العام.
 
       قم بتنسيق إجابتك ككائن JSON نظيف بهذه الحقول:
       {
@@ -333,11 +433,7 @@ export async function processAiImageSearch(formData) {
         "confidence": 0.0
       }
 
-      مهم جداً: 
-      - يجب أن تكون جميع حقول النص (make, bodyType, color) باللغة العربية فقط.
-      - نوع الهيكل (bodyType) يجب أن يكون بالضبط واحد من هذه القيم: "دفع رباعي" أو "سيدان" أو "هاتشباك" أو "كشف" أو "كوبيه" أو "ستيشن" أو "بيك أب" أو "رياضية"
-      - بالنسبة للثقة (confidence)، قدم قيمة بين 0 و 1 تمثل مدى ثقتك في التعرف العام.
-      قم بالرد بكائن JSON فقط، لا شيء آخر. يجب أن تكون جميع القيم النصية باللغة العربية.
+      قم بالرد بكائن JSON فقط، لا شيء آخر.
       `;
 
     // Retry logic for handling 503 errors
@@ -357,8 +453,7 @@ export async function processAiImageSearch(formData) {
         }
 
         const carDetails = cleanImageSearchData(parsed);
-        const inventory = await getAvailableMakeModels();
-        const resolved = resolveImageSearchDetails(carDetails, inventory);
+        const resolved = await resolveImageSearchAgainstInventory(carDetails, catalog);
 
         return {
           success: true,
