@@ -568,11 +568,11 @@ export default function ChatBot({ onOpenChange }) {
   return !mounted ? null : (
     <>
       {!isOpen && (
-        <div className="fixed z-[60] left-[max(1rem,env(safe-area-inset-left,0px))] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] md:left-6 md:bottom-6">
+        <div className="fixed z-[60] right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] md:right-6 md:bottom-6">
           <div className="relative w-fit">
             {showProactiveBubble && (
               <div
-                className="absolute bottom-full left-0 z-10 mb-1.5 w-max max-w-[min(13.5rem,calc(100vw-1.5rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))] animate-in fade-in slide-in-from-bottom-2 duration-300 md:mb-2 md:max-w-[min(17rem,calc(100vw-2rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))]"
+                className="absolute bottom-full right-0 z-10 mb-1.5 w-max max-w-[min(13.5rem,calc(100vw-1.5rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))] animate-in fade-in slide-in-from-bottom-2 duration-300 md:mb-2 md:max-w-[min(17rem,calc(100vw-2rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))]"
                 role="status"
                 aria-live="polite"
               >
@@ -625,7 +625,7 @@ export default function ChatBot({ onOpenChange }) {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-6 md:right-auto w-full md:w-[26rem] h-[80vh] md:h-[640px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:right-6 md:left-auto w-full md:w-[26rem] h-[80vh] md:h-[640px] bg-zinc-950 text-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col z-50 border-t md:border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
           <div className="bg-yellow-600 text-white rounded-t-2xl p-3 md:p-4 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="rounded-full overflow-hidden shrink-0">

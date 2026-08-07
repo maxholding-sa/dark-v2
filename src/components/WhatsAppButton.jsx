@@ -2,7 +2,12 @@
 
 import { FaWhatsapp } from "react-icons/fa";
 
-export default function WhatsAppButton({ phoneNumber, className = "", fixed = true, text = "", label = "", bottomOffset = "bottom-4 md:bottom-6", rightOffset = "right-4 md:right-6", enabled = true }) {
+// Sits on the left, clear of the chat launcher on the right and stacked above
+// the Saudi Business Center seal, which anchors itself to the bottom-left corner.
+const DEFAULT_BOTTOM_OFFSET = "bottom-32 md:bottom-36";
+const DEFAULT_SIDE_OFFSET = "left-4 md:left-6";
+
+export default function WhatsAppButton({ phoneNumber, className = "", fixed = true, text = "", label = "", bottomOffset = DEFAULT_BOTTOM_OFFSET, sideOffset = DEFAULT_SIDE_OFFSET, enabled = true }) {
   if (!enabled) return null;
   // Clean the phone number: remove + and spaces
   const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/[\+\s]/g, '') : '';
@@ -11,11 +16,13 @@ export default function WhatsAppButton({ phoneNumber, className = "", fixed = tr
 
   if (fixed) {
     return (
-      <div className={`fixed ${bottomOffset} ${rightOffset} z-50 flex flex-col items-center`}>
-        {/* Label */}
-        <span className="text-white text-xs mb-2 bg-black/50 px-2 py-1 rounded backdrop-blur-sm md:whitespace-nowrap whitespace-pre-line text-center">
-          {label || text || 'تواصل\nمعنا'}
-        </span>
+      <div className={`fixed ${bottomOffset} ${sideOffset} z-50 flex flex-col items-center`}>
+        {/* Caption is opt-in via the admin "نص التسمية فوق الزر" setting — no default text. */}
+        {label ? (
+          <span className="text-white text-xs mb-2 bg-black/50 px-2 py-1 rounded backdrop-blur-sm md:whitespace-nowrap whitespace-pre-line text-center">
+            {label}
+          </span>
+        ) : null}
 
         {/* Pulsing circle background */}
         <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-20 blur-sm"></div>
