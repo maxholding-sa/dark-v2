@@ -2,7 +2,7 @@
 
 import { serializedCarsData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
-import { getGeminiModel } from "@/lib/gemini";
+import { generateContentResilient } from "@/lib/gemini";
 
 // Function to convert File to base64
 async function fileToBase64(file) {
@@ -379,13 +379,13 @@ export async function processAiImageSearch(formData) {
       throw new Error("No image file provided");
     }
 
-    // Using stable flash alias with retry logic for 503 errors
-    const model = getGeminiModel({
+    // Using resilient Gemini (auto-failover on 503/429)
+    const generationConfig = {
       temperature: 0.4,
       topK: 32,
       topP: 1,
       maxOutputTokens: 1024,
-    });
+    };
 
     // converting the image into base64 string
     const base64Image = await fileToBase64(file);
@@ -436,57 +436,28 @@ ${catalogContext}
       قم بالرد بكائن JSON فقط، لا شيء آخر.
       `;
 
-    // Retry logic for handling 503 errors
-    let retries = 3;
-    let lastError;
-
-    for (let i = 0; i < retries; i++) {
-      try {
-        const result = await model.generateContent([imagePart, prompt]); // generate a result
-        const response = result.response;
-        const text = response.text(); // take the text from the response
-        let parsed;
-        try {
-          parsed = parseAiJsonResponse(text);
-        } catch (parseError) {
-          throw new Error("تعذر قراءة نتيجة تحليل الصورة");
-        }
-
-        const carDetails = cleanImageSearchData(parsed);
-        const resolved = await resolveImageSearchAgainstInventory(carDetails, catalog);
-
-        return {
-          success: true,
-          data: {
-            ...carDetails,
-            make: resolved.make,
-            model: resolved.model,
-            searchQuery: resolved.searchQuery,
-          },
-        };
-      } catch (error) {
-        lastError = error;
-
-        // Check if it's a 503 error and retry
-        if (error.message?.includes("503") || error.message?.includes("overloaded")) {
-          logger.info("[home-actions] Retrying after model overload", {
-            attempt: i + 1,
-            retries,
-          });
-          if (i < retries - 1) {
-            // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-            continue;
-          }
-        }
-
-        // If it's not a 503 or last retry, throw the error
-        throw error;
-      }
+    const { text } = await generateContentResilient([imagePart, prompt], {
+      generationConfig,
+    });
+    let parsed;
+    try {
+      parsed = parseAiJsonResponse(text);
+    } catch {
+      throw new Error("تعذر قراءة نتيجة تحليل الصورة");
     }
 
-    // If all retries failed
-    throw lastError;
+    const carDetails = cleanImageSearchData(parsed);
+    const resolved = await resolveImageSearchAgainstInventory(carDetails, catalog);
+
+    return {
+      success: true,
+      data: {
+        ...carDetails,
+        make: resolved.make,
+        model: resolved.model,
+        searchQuery: resolved.searchQuery,
+      },
+    };
 
   } catch (error) {
     console.error("AI Image Search Error:", error);

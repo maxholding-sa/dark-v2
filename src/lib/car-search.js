@@ -21,6 +21,34 @@ const SEARCH_STOP_WORDS = new Set([
   "cars",
   "for",
   "sale",
+  // Chat intent verbs / fillers — must not become car-field filters
+  "ابي",
+  "أبي",
+  "ابغى",
+  "أبغى",
+  "ابغي",
+  "أبغي",
+  "أريد",
+  "اريد",
+  "بغيت",
+  "عايز",
+  "بدي",
+  "وريني",
+  "ورني",
+  "شوف",
+  "عندكم",
+  "عندك",
+  "متوفر",
+  "متوفرة",
+  "ممكن",
+  "هل",
+  "looking",
+  "want",
+  "need",
+  "show",
+  "me",
+  "a",
+  "the",
   // Chat greetings / chitchat — must not become car-field filters
   "مرحبا",
   "مرحباً",
@@ -94,6 +122,7 @@ const SEARCH_ALIASES = [
   ["spectre", "سبيكتر", "سبكتر"],
   ["camry", "كامري", "كامرى", "كامر"],
   ["corolla", "كورولا", "كورلا", "كوروللا"],
+  ["rav4", "rav 4", "راف فور", "رافور", "راف٤", "راڤ فور"],
   ["hilux", "هايلكس", "هيلكس", "هايلوكس", "هليكس", "هيلوكس", "hilix"],
   ["highlander", "هايلاندر", "هايلندر", "هاي لاندر"],
   ["land cruiser", "لاندكروزر", "لاند كروزر", "جيب تويوتا"],
@@ -144,6 +173,9 @@ const SEARCHABLE_CAR_FIELDS = [
   "category",
   "driveType",
 ];
+
+/** Chatbot queries almost always mean make/model — skip heavy text columns. */
+const CHAT_SEARCHABLE_CAR_FIELDS = ["make", "model"];
 
 export function normalizeSearchText(value = "") {
   return value
@@ -301,8 +333,8 @@ export function buildSearchTokenGroups(search = "") {
   return rawTokens.map(expandTerm).filter((group) => group.length > 0);
 }
 
-function buildPrismaTermCondition(term) {
-  const conditions = SEARCHABLE_CAR_FIELDS.map((field) => ({
+function buildPrismaTermCondition(term, fields = SEARCHABLE_CAR_FIELDS) {
+  const conditions = fields.map((field) => ({
     [field]: { contains: term, mode: "insensitive" },
   }));
 
@@ -313,10 +345,20 @@ function buildPrismaTermCondition(term) {
   return conditions;
 }
 
-export function buildPrismaCarSearchConditions(search = "") {
+export function buildPrismaCarSearchConditions(
+  search = "",
+  { fields = SEARCHABLE_CAR_FIELDS } = {}
+) {
   return buildSearchTokenGroups(search).map((termGroup) => ({
-    OR: termGroup.flatMap(buildPrismaTermCondition),
+    OR: termGroup.flatMap((term) => buildPrismaTermCondition(term, fields)),
   }));
+}
+
+/** Narrow make/model-only conditions for chatbot (much cheaper than full-text OR). */
+export function buildPrismaChatCarSearchConditions(search = "") {
+  return buildPrismaCarSearchConditions(search, {
+    fields: CHAT_SEARCHABLE_CAR_FIELDS,
+  });
 }
 
 export function buildMakeFilterVariants(make = "") {

@@ -1,9 +1,10 @@
 "use server";
 
+import { after } from "next/server";
 import { db } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { serializedCarsData } from "@/lib/helper";
-import { getGeminiModel } from "@/lib/gemini";
+import { generateContentResilient } from "@/lib/gemini";
 import {
   ensureChatConversation,
   appendChatMessages,
@@ -542,10 +543,9 @@ function formatCarsForAI(cars) {
   if (cars.length === 0) return "لا توجد سيارات متاحة حالياً تطابق البحث.";
 
   return cars.map((car, index) => {
-    const carUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/cars/${car.id}`;
-    const mainImage = car.images && car.images.length > 0 ? car.images[0] : null;
-    
     const hasPrice = Number(car.price) > 0;
+    const desc = String(car.description || "").trim();
+    const shortDesc = desc.length > 120 ? `${desc.slice(0, 120)}…` : desc;
 
     return `
 سيارة ${index + 1}:
@@ -557,18 +557,16 @@ function formatCarsForAI(cars) {
         ? `${Number(car.price).toLocaleString("ar-SA")} ر.س`
         : "غير محدد — يتطلب التواصل مع الإدارة للتسعير (لا تصلح لحساب قسط أو ميزانية)"
     }
-المسافة المقطوعة: ${car.mileage.toLocaleString()} كم
+المسافة المقطوعة: ${Number(car.mileage || 0).toLocaleString()} كم
 اللون: ${car.color}
 نوع الوقود: ${car.fuelType}
 ناقل الحركة: ${car.transmission}
 نوع الهيكل: ${car.bodyType}
-عدد المقاعد: ${car.seats || 'غير محدد'}
-الوصف: ${car.description}
-رابط السيارة: ${carUrl}
-${mainImage ? `الصورة الرئيسية: ${mainImage}` : ''}
-${car.featured ? 'تصنيف: ⭐ سيارة مميزة' : ''}
-${car.isLuxury ? 'تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)' : ''}`;
-  }).join('\n\n');
+عدد المقاعد: ${car.seats || "غير محدد"}
+${shortDesc ? `الوصف: ${shortDesc}` : ""}
+${car.featured ? "تصنيف: ⭐ سيارة مميزة" : ""}
+${car.isLuxury ? "تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)" : ""}`;
+  }).join("\n\n");
 }
 
 /**
@@ -613,12 +611,16 @@ function isGreetingOrChitchat(text = "") {
     return true;
   }
 
-  // Very short messages without clear car/search keywords
+  // Multi-word messages are almost never pure chitchat ("ابي كامري", etc.)
+  const tokens = t.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 2) return false;
+
+  // Very short single-token messages without clear car/search keywords
   const hasInventoryCue =
-    /سيار|تمويل|تقسيط|سعر|عرض|ماركة|موديل|تويوتا|هيونداي|نيسان|كيا|bmw|مرسيدس|لكزس|فاخر|اقتصاد|راتب|قسط|car|toyota|hyundai|nissan|kia/i.test(
+    /سيار|تمويل|تقسيط|سعر|عرض|ماركة|موديل|تويوتا|هيونداي|نيسان|كيا|bmw|مرسيدس|لكزس|فاخر|اقتصاد|راتب|قسط|كامري|كورولا|هايلكس|راف|car|toyota|hyundai|nissan|kia|camry/i.test(
       t
     );
-  return t.length <= 12 && !hasInventoryCue && !/\d/.test(t);
+  return t.length <= 8 && !hasInventoryCue && !/\d/.test(t);
 }
 
 function detectChatIntents(text) {
@@ -689,23 +691,49 @@ function buildPlatformInfoForAI(storeInfo) {
   return lines.join("\n");
 }
 
+const META_CACHE_MS = 60 * 1000;
+let banksCache = { data: null, at: 0 };
+let storeCache = { data: undefined, at: 0 };
+
 async function fetchBanksForChatbot() {
   try {
-    return await db.bank.findMany({
+    if (
+      banksCache.data &&
+      Date.now() - banksCache.at < META_CACHE_MS
+    ) {
+      return banksCache.data;
+    }
+    const data = await db.bank.findMany({
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        interestRate: true,
+        loanPolicy: true,
+      },
     });
+    banksCache = { data, at: Date.now() };
+    return data;
   } catch (e) {
     console.error("fetchBanksForChatbot:", e);
-    return [];
+    return banksCache.data || [];
   }
 }
 
 async function fetchStoreInfoForChatbot() {
   try {
-    return await db.storeInfo.findFirst();
+    if (
+      storeCache.data !== undefined &&
+      Date.now() - storeCache.at < META_CACHE_MS
+    ) {
+      return storeCache.data;
+    }
+    const data = await db.storeInfo.findFirst();
+    storeCache = { data, at: Date.now() };
+    return data;
   } catch (e) {
     console.error("fetchStoreInfoForChatbot:", e);
-    return null;
+    return storeCache.data ?? null;
   }
 }
 
@@ -958,22 +986,31 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     logger.debug("[chatbot] Detected intents", intents);
 
     const budget = parseBudgetFromQuery(correctedMessage);
-    const storeInfo = await fetchStoreInfoForChatbot();
     let contactActions = null;
     let salaryContext = "";
-    // Initialize Gemini (free conversation — always AI unless shortcuts above)
-    const model = getGeminiModel();
 
     let relevantCars = [];
     const salaryIntent = salaryIntentEarly;
     const affordability = affordabilityEarly;
     const maxInstallment = maxInstallmentEarly;
     const installmentIntent = installmentBudgetEarly;
+    const needsBanks =
+      intents.financing ||
+      salaryIntent ||
+      installmentIntent;
+
+    // Overlap store/banks fetch with car search whenever possible
+    const storeInfoPromise = fetchStoreInfoForChatbot();
+    const banksPromise = needsBanks
+      ? fetchBanksForChatbot()
+      : Promise.resolve([]);
 
     try {
       if (salaryIntent && affordability.netSalary) {
-        const banksForFilter = await fetchBanksForChatbot();
-        const allCars = await fetchAllAvailableCarsForChat(50);
+        const [banksForFilter, allCars] = await Promise.all([
+          banksPromise,
+          fetchAllAvailableCarsForChat(50),
+        ]);
         relevantCars = await filterCarsByAffordability(
           allCars,
           banksForFilter,
@@ -993,8 +1030,10 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
           count: relevantCars.length,
         });
       } else if (installmentIntent && maxInstallment) {
-        const banksForFilter = await fetchBanksForChatbot();
-        const allCars = await fetchAllAvailableCarsForChat(50);
+        const [banksForFilter, allCars] = await Promise.all([
+          banksPromise,
+          fetchAllAvailableCarsForChat(50),
+        ]);
         relevantCars = await filterCarsByMaxInstallment(
           allCars,
           banksForFilter,
@@ -1034,6 +1073,8 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       relevantCars = [];
     }
 
+    const storeInfo = await storeInfoPromise;
+
     if (intents.corporate && relevantCars.length === 0) {
       relevantCars = await fetchLatestOfferCars();
       logger.debug("[chatbot] Added sample cars for corporate context");
@@ -1055,9 +1096,10 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
 
     logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
 
-    // Always provide banks + store for free conversation
-    const banks = await fetchBanksForChatbot();
-    const banksContext = `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`;
+    const banks = await banksPromise;
+    const banksContext = needsBanks
+      ? `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`
+      : `\n\n=== بيانات البنوك والتمويل ===\nمتوفرة عند السؤال عن التمويل/القسط — لا تذكر أرقاماً غير موجودة في سياق الرسالة.`;
     const storeContactContext = `\n\n=== بيانات التواصل الرسمية للمعرض ===\n${formatStoreForAI(storeInfo)}`;
 
     let intentInstructions = `
@@ -1155,26 +1197,20 @@ ${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocale
     isPriceQuery = priceQueryPatterns.some(pattern => pattern.test(correctedMessage));
 
     if (isPriceQuery && relevantCars.length > 0) {
-      // For price queries, show detailed car information with descriptions
-      priceContext = `\n\nمعلومات السيارات المتوفرة مع الأسعار:\n${formatCarsForAI(relevantCars)}`;
-
-      // If user asks for average prices specifically, also include statistics
+      // Cars are already in carsContext — only add average stats when asked
       const averagePriceMatch = correctedMessage.match(/(متوسط|معدل|average).*(سعر|price)/i);
       if (averagePriceMatch) {
         const make = relevantCars[0].make;
         const priceStats = await getAveragePriceByMake(make);
 
         if (priceStats) {
-          priceContext += `\n\nإحصائيات الأسعار لسيارات ${make}:
+          priceContext = `\n\nإحصائيات الأسعار لسيارات ${make}:
 - متوسط السعر: ${Number(priceStats.average).toLocaleString("ar-SA")} ر.س
 - عدد السيارات المتوفرة: ${priceStats.count}
 - أقل سعر: ${priceStats.min.toLocaleString("ar-SA")} ر.س
 - أعلى سعر: ${priceStats.max.toLocaleString("ar-SA")} ر.س`;
         }
       }
-    } else if (relevantCars.length > 0) {
-      // For non-price queries, use the original format
-      priceContext = `\n\nالسيارات المتوفرة حالياً في قاعدة البيانات (نتائج البحث الحالية):\n${formatCarsForAI(relevantCars)}`;
     }
 
     // Create a free-conversation prompt with dealership context
@@ -1209,74 +1245,15 @@ ${priceContext}
 الآن، رد على رسالة العميل:`;
     const prompt = `${systemContext}${conversationText}\n\nرسالة العميل الحالية: ${correctedMessage}${shouldShowCorrection ? ` (تم تصحيح من: ${message})` : ''}`;
 
-    // Generate response with retry logic for 503 errors
+    // Generate response with automatic model failover on 503/429
     logger.debug("[chatbot] Sending prompt to Gemini AI");
 
-    let result;
-    let lastError;
-    const maxRetries = 3;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        logger.debug("[chatbot] AI response received", { responseLength: text.length });
-        break; // Success, exit retry loop
-      } catch (error) {
-        lastError = error;
-        logger.error("[chatbot] Gemini AI error", {
-          attempt: attempt + 1,
-          maxAttempts: maxRetries + 1,
-          message: error.message,
-        });
-
-        // 503 = model overloaded, 429 = rate limited. Both are transient when
-        // it is the per-minute bucket; a per-day quota will still fall through
-        // to the contact-actions reply below.
-        const isOverloaded =
-          error.status === 503 ||
-          error.message?.includes('503') ||
-          error.message?.includes('Service Unavailable');
-        const isRateLimited =
-          error.status === 429 ||
-          error.message?.includes('429') ||
-          /Too Many Requests|quota/i.test(error.message || '');
-
-        if (isOverloaded || isRateLimited) {
-          if (attempt < maxRetries) {
-            // Honour the server's own retryDelay when it sends one.
-            const suggested = Number(
-              error.message?.match(/retry in ([\d.]+)s/i)?.[1]
-            );
-            const delayMs = Number.isFinite(suggested)
-              ? Math.ceil(suggested * 1000) + 250
-              : Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-            logger.info("[chatbot] Model unavailable, retrying", {
-              reason: isRateLimited ? "rate-limit" : "overloaded",
-              delayMs,
-              nextAttempt: attempt + 2,
-              maxAttempts: maxRetries + 1,
-            });
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-            continue;
-          }
-          logger.warn("[chatbot] Max retries reached", {
-            reason: isRateLimited ? "rate-limit" : "overloaded",
-          });
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    // If we get here without a successful result, throw the last error
-    if (!result) {
-      throw lastError;
-    }
-
-    const response = await result.response;
-    const text = response.text();
+    const generated = await generateContentResilient(prompt);
+    const text = generated.text;
+    logger.debug("[chatbot] AI response received", {
+      responseLength: text.length,
+      model: generated.model,
+    });
 
     // Parse the response to extract which cars to show
     let cleanedText = text.trim();
@@ -1332,22 +1309,9 @@ ${priceContext}
         logger.debug("[chatbot] Attached contact actions to dead-end answer");
       }
     }
-    // Save chat log to database for analytics + full conversation history
+    // Persist conversation history before returning (needed for reload/history).
+    // Analytics chatLog can wait — don't block the user on Clerk + extra insert.
     try {
-      const clerkUserId = await resolveClerkUserId();
-      await db.chatLog.create({
-        data: {
-          userId: clerkUserId,
-          sessionId,
-          userMessage: message,
-          correctedMessage: shouldShowCorrection ? correctedMessage : null,
-          aiResponse: cleanedText,
-          carsFound: relevantCars.length,
-          carsShown: carsToShow.length,
-          carIds: carsToShow.map(car => car.id),
-          language: /[\u0600-\u06FF]/.test(message) ? "ar" : "en",
-        }
-      });
       await appendChatMessages(conversation.id, [
         { role: "user", content: message, payload: null },
         {
@@ -1356,11 +1320,31 @@ ${priceContext}
           payload: { cars: carsToShow, contactActions },
         },
       ]);
-      logger.debug("[chatbot] Chat log + conversation saved");
     } catch (logError) {
-      logger.error("[chatbot] Failed to save chat log", logError);
-      // Don't throw error - logging failure shouldn't break the chat
+      logger.error("[chatbot] Failed to append conversation messages", logError);
     }
+
+    after(async () => {
+      try {
+        const clerkUserId = await resolveClerkUserId();
+        await db.chatLog.create({
+          data: {
+            userId: clerkUserId,
+            sessionId,
+            userMessage: message,
+            correctedMessage: shouldShowCorrection ? correctedMessage : null,
+            aiResponse: cleanedText,
+            carsFound: relevantCars.length,
+            carsShown: carsToShow.length,
+            carIds: carsToShow.map((car) => car.id),
+            language: /[\u0600-\u06FF]/.test(message) ? "ar" : "en",
+          },
+        });
+        logger.debug("[chatbot] Chat log saved");
+      } catch (logError) {
+        logger.error("[chatbot] Failed to save chat log", logError);
+      }
+    });
 
     return {
       success: true,
@@ -1401,9 +1385,6 @@ export async function getCarRecommendations(preferences) {
       ]
     });
 
-    const model = getGeminiModel();
-
-    // Format available cars for the AI
     const carsData = availableCars.map(car => ({
       id: car.id,
       make: car.make,
@@ -1432,10 +1413,7 @@ ${JSON.stringify(carsData, null, 2)}
 
 استخدم اللغة العربية وكن واضحاً ومختصراً.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
+    const { text } = await generateContentResilient(prompt);
     return {
       success: true,
       recommendations: text.trim(),

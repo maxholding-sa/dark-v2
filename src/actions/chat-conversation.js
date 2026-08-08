@@ -152,18 +152,14 @@ export async function loadChatConversation(conversationId, sessionId) {
 export async function appendChatMessages(conversationId, messages) {
   if (!conversationId || !messages?.length) return;
 
-  await db.$transaction(
-    messages.map((msg) =>
-      db.chatMessage.create({
-        data: {
-          conversationId,
-          role: msg.role,
-          content: msg.content,
-          payload: msg.payload ?? undefined,
-        },
-      })
-    )
-  );
+  await db.chatMessage.createMany({
+    data: messages.map((msg) => ({
+      conversationId,
+      role: msg.role,
+      content: msg.content,
+      payload: msg.payload ?? null,
+    })),
+  });
 
   const firstUser = messages.find((m) => m.role === "user");
   const data = { updatedAt: new Date() };
@@ -172,7 +168,11 @@ export async function appendChatMessages(conversationId, messages) {
       where: { id: conversationId },
       select: { title: true, _count: { select: { messages: true } } },
     });
-    if (existing && (!existing.title || existing.title === "محادثة جديدة") && existing._count.messages <= messages.length) {
+    if (
+      existing &&
+      (!existing.title || existing.title === "محادثة جديدة") &&
+      existing._count.messages <= messages.length
+    ) {
       data.title = conversationTitleFromMessage(firstUser.content);
     }
   }

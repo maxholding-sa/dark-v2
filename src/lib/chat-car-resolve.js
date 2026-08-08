@@ -1,5 +1,5 @@
 import { normalizeSearchText, expandTerm } from "@/lib/car-search";
-import { getGeminiModel } from "@/lib/gemini";
+import { generateContentResilient } from "@/lib/gemini";
 
 function levenshtein(a, b) {
   const s = String(a || "");
@@ -161,11 +161,6 @@ export async function aiResolveInventoryMatches(query, catalog, { limit = 5 } = 
   const pairs = catalog.pairs.slice(0, 200).map((p) => `${p.make} | ${p.model}`);
 
   try {
-    const model = getGeminiModel({
-      temperature: 0,
-      maxOutputTokens: 400,
-    });
-
     const prompt = `You help a Saudi car dealership chatbot map a customer search to inventory.
 
 User query: """${q}"""
@@ -186,8 +181,12 @@ Rules:
 
 JSON:`;
 
-    const result = await model.generateContent(prompt);
-    const text = result?.response?.text?.() || "";
+    const { text } = await generateContentResilient(prompt, {
+      generationConfig: {
+        temperature: 0,
+        maxOutputTokens: 400,
+      },
+    });
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return [];
 

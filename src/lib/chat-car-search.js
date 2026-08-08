@@ -3,7 +3,7 @@ import { serializedCarsData } from "@/lib/helper";
 import { getCarsByFiltersSupabase } from "@/lib/supabaseReads";
 import {
   buildDynamicAliasGroups,
-  buildPrismaCarSearchConditions,
+  buildPrismaChatCarSearchConditions,
   buildChatSearchQuery,
   parseBudgetFromQuery,
   registerDynamicAliases,
@@ -27,7 +27,7 @@ const CHAT_CAR_SELECT = {
   transmission: true,
   bodyType: true,
   seats: true,
-  description: true,
+  // Skip full description blobs — they bloat payloads and slow Postgres reads
   images: true,
   featured: true,
   isLuxury: true,
@@ -81,7 +81,7 @@ function buildPriceFilter(budget) {
 
 function buildWhereClause(searchText, budget, luxuryOnly) {
   const andConditions = [{ status: "AVAILABLE" }];
-  const searchConditions = buildPrismaCarSearchConditions(searchText);
+  const searchConditions = buildPrismaChatCarSearchConditions(searchText);
 
   if (searchConditions.length > 0) {
     andConditions.push(...searchConditions);
@@ -103,6 +103,15 @@ function buildOrderBy(luxuryOnly) {
   return luxuryOnly
     ? [{ featured: "desc" }, { price: "desc" }, { createdAt: "desc" }]
     : [{ featured: "desc" }, { createdAt: "desc" }];
+}
+
+function serializeChatCars(cars) {
+  return cars.map((car) =>
+    serializedCarsData({
+      ...car,
+      description: car.description || "",
+    })
+  );
 }
 
 async function queryCarsPrisma(where, orderBy) {
@@ -136,7 +145,7 @@ async function queryCarsSupabase(searchText, budget) {
     transmission: car.transmission,
     bodyType: car.bodyType,
     seats: car.seats,
-    description: car.description,
+    description: "",
     images: car.images,
     featured: car.featured,
     isLuxury: car.isLuxury,
@@ -161,9 +170,9 @@ async function queryByResolvedMatches(matches, budget, luxuryOnly) {
  * 1) fuzzy make/model similarity (typos / partials / unknown names in DB)
  * 2) Gemini mapping for Arabic↔English and hard cases
  */
-async function resolveAndSearch(searchText, budget, luxuryOnly) {
-  const catalog = await ensureInventoryAliases();
-  if (!catalog.pairs.length) return [];
+async function resolveAndSearch(searchText, budget, luxuryOnly, catalog) {
+  const inv = catalog || (await ensureInventoryAliases());
+  if (!inv.pairs.length) return [];
 
   const trimmed = String(searchText || "").trim();
   // Skip resolve for pure chitchat / flow commands
@@ -174,7 +183,7 @@ async function resolveAndSearch(searchText, budget, luxuryOnly) {
     return [];
   }
 
-  const fuzzy = fuzzyMatchInventory(trimmed, catalog, {
+  const fuzzy = fuzzyMatchInventory(trimmed, inv, {
     limit: 8,
     minScore: 0.64,
   });
@@ -194,7 +203,7 @@ async function resolveAndSearch(searchText, budget, luxuryOnly) {
     }
   }
 
-  const aiMatches = await aiResolveInventoryMatches(trimmed, catalog, {
+  const aiMatches = await aiResolveInventoryMatches(trimmed, inv, {
     limit: 5,
   });
   if (aiMatches.length) {
@@ -213,16 +222,24 @@ async function resolveAndSearch(searchText, budget, luxuryOnly) {
 }
 
 export async function searchCarsForChat(query, conversationHistory = []) {
-  await ensureInventoryAliases();
+  const catalog = await ensureInventoryAliases();
 
   const searchText = buildChatSearchQuery(query, conversationHistory);
   const budget = parseBudgetFromQuery(searchText);
   const luxuryOnly = wantsLuxuryCars(searchText);
-  const where = buildWhereClause(searchText, budget, luxuryOnly);
+  const searchConditions = buildPrismaChatCarSearchConditions(searchText);
   const orderBy = buildOrderBy(luxuryOnly);
 
   try {
-    let cars = await queryCarsPrisma(where, orderBy);
+    let cars = [];
+
+    // Narrow make/model ILIKE only (no description/color scans) — typically <1s
+    if (searchConditions.length > 0) {
+      cars = await queryCarsPrisma(
+        buildWhereClause(searchText, budget, luxuryOnly),
+        orderBy
+      );
+    }
 
     if (cars.length === 0 && luxuryOnly) {
       cars = await queryCarsPrisma(
@@ -237,10 +254,7 @@ export async function searchCarsForChat(query, conversationHistory = []) {
       );
     }
 
-    if (
-      cars.length === 0 &&
-      buildPrismaCarSearchConditions(searchText).length === 0
-    ) {
+    if (cars.length === 0 && searchConditions.length === 0) {
       // Only dump featured inventory when the query looks like a car browse request
       const looksLikeBrowse =
         /سيار|عروض|متوفر|مخزون|عرض|cars?|available|show|أبي|ابغى|أريد|اريد|وريني|شوف/i.test(
@@ -262,17 +276,17 @@ export async function searchCarsForChat(query, conversationHistory = []) {
       }
     }
 
-    // Smart fallback: known aliases, unknown inventory names, typos, AR/EN
+    // Fuzzy / AI inventory resolve for aliases, typos, AR↔EN
     if (cars.length === 0 && String(searchText || "").trim().length >= 2) {
-      cars = await resolveAndSearch(searchText, budget, luxuryOnly);
+      cars = await resolveAndSearch(searchText, budget, luxuryOnly, catalog);
     }
 
-    return cars.map((car) => serializedCarsData(car));
+    return serializeChatCars(cars);
   } catch (error) {
     console.error("[chat-car-search] Prisma search failed, using Supabase:", error);
     try {
       const cars = await queryCarsSupabase(searchText, budget);
-      return cars.map((car) => serializedCarsData(car));
+      return serializeChatCars(cars);
     } catch (fallbackError) {
       console.error("[chat-car-search] Supabase fallback failed:", fallbackError);
       return [];
@@ -295,7 +309,7 @@ export async function fetchEconomicalCarsForChat(maxPrice = null) {
       orderBy: [{ price: "asc" }, { mileage: "asc" }],
       select: CHAT_CAR_SELECT,
     });
-    return cars.map((car) => serializedCarsData(car));
+    return serializeChatCars(cars);
   } catch (error) {
     console.error("[chat-car-search] fetchEconomicalCarsForChat:", error);
     return [];
@@ -312,7 +326,7 @@ export async function fetchLatestOfferCarsForChat() {
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
       select: CHAT_CAR_SELECT,
     });
-    return cars.map((car) => serializedCarsData(car));
+    return serializeChatCars(cars);
   } catch (error) {
     console.error("[chat-car-search] fetchLatestOfferCarsForChat:", error);
     return [];
@@ -329,7 +343,7 @@ export async function fetchAllAvailableCarsForChat(limit = 50) {
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
       select: CHAT_CAR_SELECT,
     });
-    return cars.map((car) => serializedCarsData(car));
+    return serializeChatCars(cars);
   } catch (error) {
     console.error("[chat-car-search] fetchAllAvailableCarsForChat:", error);
     return [];

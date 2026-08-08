@@ -16,7 +16,6 @@ import {
   BrandSegmentNotFoundError,
   resolveInsuranceSegmentForCar,
 } from "@/lib/brand-segment";
-import { logger } from "@/lib/logger";
 import { DEFAULT_BRAND_SEGMENT_MAP } from "@/lib/loan-calculator";
 import { normalizeCarText } from "@/lib/car-text";
 
@@ -41,13 +40,13 @@ export async function processCarImageWithAI(formData) {
       throw new Error("No image file provided");
     }
 
-    const { getGeminiModel } = await import("@/lib/gemini");
-    const model = getGeminiModel({
+    const { generateContentResilient } = await import("@/lib/gemini");
+    const generationConfig = {
       temperature: 0.4,
       topK: 32,
       topP: 1,
       maxOutputTokens: 2048,
-    });
+    };
 
     // converting the image into base64 string
     const base64Image = await fileToBase64(file);
@@ -98,45 +97,11 @@ export async function processCarImageWithAI(formData) {
       تأكد من أن جميع النصوص (اللون، نوع الهيكل، نوع الوقود، ناقل الحركة، الوصف) باللغة العربية.
     `;
 
-    // Retry logic for handling 503 errors
-    let retries = 3;
-    let lastError;
-    let carDetails;
-
-    for (let i = 0; i < retries; i++) {
-      try {
-        const result = await model.generateContent([imagePart, prompt]); // generate a result
-        const response = await result.response;
-        const text = response.text(); // take the text from the response
-        const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim(); // clean the response text
-
-        carDetails = JSON.parse(cleanedText);
-        break; // Success, exit retry loop
-      } catch (error) {
-        lastError = error;
-
-        // Check if it's a 503 error and retry
-        if (error.message?.includes("503") || error.message?.includes("overloaded")) {
-          logger.info("[cars-actions] Retrying after model overload", {
-            attempt: i + 1,
-            retries,
-          });
-          if (i < retries - 1) {
-            // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-            continue;
-          }
-        }
-
-        // If it's not a 503 or last retry, throw the error
-        throw error;
-      }
-    }
-
-    // If all retries failed
-    if (!carDetails) {
-      throw lastError;
-    }
+    const { text } = await generateContentResilient([imagePart, prompt], {
+      generationConfig,
+    });
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+    const carDetails = JSON.parse(cleanedText);
 
     // validate the response and return the final response
     const requiredFields = [
