@@ -903,10 +903,15 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
             <div className="space-y-4">
               {allowCarSelect ? (
                 <>
+                  {/* Each Select must stay controlled with "" when cleared. Passing
+                      undefined makes Radix fall back to uncontrolled mode: it keeps
+                      showing the old selection while state is empty, so changing the
+                      make/model leaves a stale year on screen that can no longer be
+                      re-picked — the form dead-ends on the previous car. */}
                   <div>
                     <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
                     <Select
-                      value={formData.carMake || undefined}
+                      value={formData.carMake ?? ""}
                       onValueChange={(value) => handleCarFieldChange("carMake", value)}
                     >
                       <SelectTrigger id="carMake" className="w-full">
@@ -925,7 +930,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                   <div>
                     <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
                     <Select
-                      value={formData.carModel || undefined}
+                      value={formData.carModel ?? ""}
                       onValueChange={(value) => handleCarFieldChange("carModel", value)}
                       disabled={!formData.carMake}
                     >
@@ -945,7 +950,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                   <div>
                     <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
                     <Select
-                      value={formData.carYear || undefined}
+                      value={formData.carYear ?? ""}
                       onValueChange={(value) => handleCarFieldChange("carYear", value)}
                       disabled={!formData.carModel}
                     >
@@ -967,7 +972,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                       فئة السيارة{categories.length > 1 ? " *" : ""}
                     </Label>
                     <Select
-                      value={formData.carCategory || undefined}
+                      value={formData.carCategory ?? ""}
                       onValueChange={(value) => handleCarFieldChange("carCategory", value)}
                       disabled={!formData.carYear || categories.length === 0}
                     >
