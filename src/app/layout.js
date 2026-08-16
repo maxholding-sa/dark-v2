@@ -6,7 +6,6 @@ import { arSA } from "@clerk/localizations";
 import { generateJsonLd, SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
-import SbcVerifySeal from "@/components/SbcVerifySeal";
 import { headers } from "next/headers";
 import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
 
@@ -163,8 +162,6 @@ export default async function RootLayout({ children }) {
           >
             {children}
           </ClientWrapper>
-
-          <SbcVerifySeal />
 
           {/* Tracking Pixels & Analytics */}
 

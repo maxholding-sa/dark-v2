@@ -19,6 +19,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import ScrollAnimate from "@/components/ScrollAnimate";
 import SectionBackgroundVideo from "@/components/SectionBackgroundVideo";
 import HeroVideo from "@/components/HeroVideo";
+import SbcVerifySeal from "@/components/SbcVerifySeal";
 import { generateJsonLd, generateMetadata } from "@/lib/seo";
 import { logger } from "@/lib/logger";
 
@@ -384,6 +385,9 @@ export default async function Home() {
       </div>
 
       <WhatsAppButton phoneNumber={whatsappNumber} enabled={whatsappEnabled} label={whatsappLabel} text={whatsappText} />
+
+      {/* Verified-store seal: home page only, not site-wide */}
+      <SbcVerifySeal />
     </div>
     </>
   );

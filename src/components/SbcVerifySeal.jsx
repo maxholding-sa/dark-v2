@@ -7,9 +7,13 @@ const SEAL_SRC =
 const LOAD_TIMEOUT_MS = 8000;
 
 /**
- * Saudi Business Center verified-store seal.
+ * Saudi Business Center verified-store seal. Mounted on the home page only.
+ *
  * Injects the official script with a short timeout so an unreachable
  * government host (net::ERR_CONNECTION_TIMED_OUT) does not hang the page.
+ * Because this lives on one route rather than the root layout, it unmounts on
+ * navigation — so the cleanup must remove the injected script, otherwise the
+ * "already injected" guard would suppress the seal when the user returns home.
  */
 export default function SbcVerifySeal({
   token = "dlJYOGw3L0J5dzdXMktXUnAzWHdnQT09",
@@ -42,6 +46,7 @@ export default function SbcVerifySeal({
 
     return () => {
       clearTimeout(timer);
+      script.remove();
     };
   }, []);
 
