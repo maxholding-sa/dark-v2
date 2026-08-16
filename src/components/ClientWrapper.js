@@ -8,12 +8,17 @@ import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
 import ChatBot from "@/components/ChatBot";
 
+// Routes that show the chat widget. usePathname() drops the query string, so
+// filtered and paginated listings (/cars?page=2) still match "/cars".
+const CHATBOT_ROUTES = ["/", "/cars"];
+
 export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNavLabel, footerData }) {
     const [theme, setTheme] = useState("dark");
     const [isLoading, setIsLoading] = useState(false);
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith("/admin");
     const isAuthPage = pathname?.includes("/sign-in") || pathname?.includes("/sign-up") || isSignUpPage;
+    const showChatBot = !isAuthPage && !isAdminPage && CHATBOT_ROUTES.includes(pathname);
 
     useEffect(() => {
         // Remove previously applied theme classes
@@ -65,7 +70,7 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNa
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
             {!isAuthPage && !isAdminPage && <Footer initialData={footerData} />}
-            {!isAuthPage && !isAdminPage && <ChatBot />}
+            {showChatBot && <ChatBot />}
             {isLoading && <LoadingBar />}
         </>
     );
