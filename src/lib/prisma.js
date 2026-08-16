@@ -90,21 +90,74 @@ export function isDbConnectionError(error) {
     /kind:\s*Closed/i.test(haystack) ||
     /broken pipe/i.test(haystack) ||
     /socket hang up/i.test(haystack) ||
-    /Timed out fetching a new connection/i.test(haystack)
+    /Timed out fetching a new connection/i.test(haystack) ||
+    isEngineNotConnectedError(error)
   );
 }
 
-async function softReconnect(base) {
-  try {
-    await base.$disconnect();
-  } catch {
-    // ignore
+/**
+ * The engine process is alive but has no live connection yet. Seen on cold
+ * start and after HMR, when the root layout's parallel queries reach the client
+ * before the handshake finishes — and whenever a reconnect tears the shared
+ * engine down while sibling queries are still in flight. Recovering only needs
+ * `$connect()`; disconnecting first is what causes this in the first place.
+ */
+export function isEngineNotConnectedError(error) {
+  const haystack = `${error?.message || String(error || "")}\n${
+    error?.cause ? String(error.cause) : ""
+  }`;
+
+  return (
+    /engine is not yet connected/i.test(haystack) ||
+    /engine is not running/i.test(haystack) ||
+    /response from the engine was empty/i.test(haystack)
+  );
+}
+
+// A request fans out into several parallel queries (the root layout alone fires
+// five). Without this, each failing query would start its own disconnect and
+// knock over its siblings, so all recovery is funnelled through one promise.
+let recoveryPromise = null;
+let lastRecoveryAt = 0;
+const RECOVERY_COOLDOWN_MS = 2000;
+
+function runRecovery(task) {
+  if (recoveryPromise) return recoveryPromise;
+
+  recoveryPromise = task()
+    .catch(() => {
+      // next query attempt will surface the error if still broken
+    })
+    .finally(() => {
+      lastRecoveryAt = Date.now();
+      recoveryPromise = null;
+    });
+
+  return recoveryPromise;
+}
+
+/** Re-establish the connection, tearing the pool down only when necessary. */
+async function softReconnect(base, error) {
+  // A half-connected engine just needs the handshake to finish. Calling
+  // $disconnect() here would abort the in-flight queries that are waiting on it.
+  if (isEngineNotConnectedError(error)) {
+    return runRecovery(() => base.$connect());
   }
-  try {
+
+  // A genuinely dead pooler connection does need a full cycle, but only one
+  // query in a burst should perform it.
+  if (Date.now() - lastRecoveryAt < RECOVERY_COOLDOWN_MS) {
+    return recoveryPromise ?? undefined;
+  }
+
+  return runRecovery(async () => {
+    try {
+      await base.$disconnect();
+    } catch {
+      // ignore — reconnecting is what matters
+    }
     await base.$connect();
-  } catch {
-    // next query attempt will surface the error if still broken
-  }
+  });
 }
 
 function createPrismaClient() {
@@ -120,10 +173,20 @@ function createPrismaClient() {
 
   globalForPrisma.prismaBase = base;
 
+  // Start the handshake now rather than letting the first query trigger it.
+  // Every query below awaits this, so a cold start's parallel queries queue on
+  // one connect instead of racing a half-initialised engine.
+  const ready = base.$connect().catch(() => {
+    // Swallowed so awaiting it never rejects; a real outage surfaces per query,
+    // where the retry logic can act on it.
+  });
+
   // Auto-retry transient pooler drops on every query so callers don't each need withDbRetry.
   return base.$extends({
     query: {
       async $allOperations({ args, query }) {
+        await ready;
+
         let lastError;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -134,7 +197,7 @@ function createPrismaClient() {
             if (!isDbConnectionError(error) || attempt === 3) {
               throw error;
             }
-            await softReconnect(base);
+            await softReconnect(base, error);
             await sleep(400 * attempt);
           }
         }
@@ -146,7 +209,7 @@ function createPrismaClient() {
 }
 
 // Bump when Prisma schema changes so HMR does not keep an outdated client.
-const PRISMA_CLIENT_VERSION = "20260807-conn-retry";
+const PRISMA_CLIENT_VERSION = "20260816-eager-connect";
 const globalForPrisma = globalThis;
 
 function getPrismaClient() {
@@ -182,7 +245,7 @@ export async function withDbRetry(operation, { retries = 3, delayMs = 500 } = {}
 
       const base = globalForPrisma.prismaBase;
       if (base) {
-        await softReconnect(base);
+        await softReconnect(base, error);
       }
 
       await sleep(delayMs * attempt);
