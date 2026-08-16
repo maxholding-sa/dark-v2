@@ -384,6 +384,7 @@ export default async function Home() {
         </section>
       </div>
 
+      {/* Home page only — no WhatsApp launcher on /cars or anywhere else */}
       <WhatsAppButton phoneNumber={whatsappNumber} enabled={whatsappEnabled} label={whatsappLabel} text={whatsappText} />
 
       {/* Verified-store seal: home page only, not site-wide */}

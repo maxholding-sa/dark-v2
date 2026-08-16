@@ -57,9 +57,12 @@ function SectionImage({ src, alt, fallback, glowClass = "bg-gold/10" }) {
   );
 }
 
+// justify-start, not justify-end: the page is dir="rtl", so flex-end resolves
+// to the LEFT edge and strands the heading opposite the right-aligned
+// paragraphs below it.
 function SectionHeading({ title }) {
   return (
-    <div className="flex items-center justify-end mb-6">
+    <div className="flex items-center justify-start mb-6">
       <h2 className="text-4xl font-bold text-white">{title}</h2>
       <div className="w-12 h-1 bg-gold mr-4" />
     </div>

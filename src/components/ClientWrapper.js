@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import LoadingBar from "@/components/LoadingBar";
 import Header from "@/components/header";
 import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
-import ChatBot from "@/components/ChatBot";
+import ChatBotGate from "@/components/ChatBotGate";
 
-// Routes that show the chat widget. usePathname() drops the query string, so
-// filtered and paginated listings (/cars?page=2) still match "/cars".
+// Routes that show the chat widget, matched exactly: the home page and the
+// bare listing, not car detail pages. usePathname() drops the query string, so
+// ChatBotGate does the second half of the check and excludes paginated and
+// filtered listings (/cars?page=2).
 const CHATBOT_ROUTES = ["/", "/cars"];
 
 export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNavLabel, footerData }) {
@@ -70,7 +72,11 @@ export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNa
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
             {!isAuthPage && !isAdminPage && <Footer initialData={footerData} />}
-            {showChatBot && <ChatBot />}
+            {showChatBot && (
+                <Suspense fallback={null}>
+                    <ChatBotGate />
+                </Suspense>
+            )}
             {isLoading && <LoadingBar />}
         </>
     );

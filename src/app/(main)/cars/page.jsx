@@ -3,7 +3,6 @@ import React, { Suspense } from "react";
 import LoadingBar from "@/components/LoadingBar";
 import CarFilters from "./_components/CarFilters";
 import CarListings from "./_components/CarListings";
-import CarsPageWrapper from "./_components/CarsPageWrapper";
 import {
   generateMetadata as buildMetadata,
   NOINDEX_FOLLOW_ROBOTS,
@@ -149,9 +148,6 @@ const CarsPage = async ({ searchParams }) => {
           </div>
         </div>
       </div>
-
-      {/* WhatsApp Button for Cars Page */}
-      <CarsPageWrapper />
     </>
   );
 };
