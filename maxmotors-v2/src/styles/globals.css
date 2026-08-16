@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/* Supplies `.icon-saudi_riyal`, the official new riyal symbol used by <Price>. */
+@import "@abdulrysr/saudi-riyal-new-symbol-font/style.css";
+
+/**
+ * Design tokens.
+ *
+ * Every colour, radius and shadow used by the app is declared here once.
+ * Components reference semantic names (`bg-surface`, `text-muted`), never raw
+ * hex — so a rebrand is one file, and dark mode needs no component changes.
+ */
+
+@theme {
+  --font-sans: var(--font-cairo), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Brand — the gold carried over from v1. */
+  --brand: 43 68% 47%;
+  --brand-foreground: 0 0% 100%;
+  --brand-muted: 43 60% 92%;
+
+  /* Surfaces */
+  --background: 0 0% 100%;
+  --foreground: 224 12% 12%;
+  --surface: 0 0% 100%;
+  --surface-raised: 220 14% 98%;
+  --surface-foreground: 224 12% 12%;
+
+  /* Text */
+  --muted: 220 9% 46%;
+  --muted-foreground: 220 9% 46%;
+
+  /* Lines and controls */
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 43 68% 47%;
+
+  /* Status */
+  --success: 142 71% 35%;
+  --warning: 38 92% 45%;
+  --danger: 0 72% 48%;
+  --danger-foreground: 0 0% 100%;
+
+  --shadow-card: 0 1px 2px hsl(224 12% 12% / 0.06), 0 4px 12px hsl(224 12% 12% / 0.05);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --brand: 43 72% 58%;
+  --brand-foreground: 224 20% 8%;
+  --brand-muted: 43 30% 18%;
+
+  --background: 224 20% 8%;
+  --foreground: 220 14% 96%;
+  --surface: 224 18% 11%;
+  --surface-raised: 224 16% 15%;
+  --surface-foreground: 220 14% 96%;
+
+  --muted: 220 9% 62%;
+  --muted-foreground: 220 9% 62%;
+
+  --border: 224 14% 22%;
+  --input: 224 14% 22%;
+  --ring: 43 72% 58%;
+
+  --success: 142 60% 45%;
+  --warning: 38 85% 58%;
+  --danger: 0 65% 58%;
+  --danger-foreground: 0 0% 100%;
+
+  --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 4px 12px hsl(0 0% 0% / 0.3);
+}
+
+/* Map tokens onto Tailwind utilities: `bg-surface`, `text-muted`, `border-border`. */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-surface-raised: hsl(var(--surface-raised));
+  --color-surface-foreground: hsl(var(--surface-foreground));
+  --color-brand: hsl(var(--brand));
+  --color-brand-foreground: hsl(var(--brand-foreground));
+  --color-brand-muted: hsl(var(--brand-muted));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-danger: hsl(var(--danger));
+  --color-danger-foreground: hsl(var(--danger-foreground));
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible focus for keyboard users only — never removed outright. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Prices read left-to-right even inside RTL copy. */
+  [dir="rtl"] .numeric {
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

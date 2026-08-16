@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Env — never commit real secrets. `.env.example` is the contract.
+.env
+.env.*
+!.env.example
+
+# Test output
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
