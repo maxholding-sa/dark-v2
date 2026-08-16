@@ -84,6 +84,21 @@ export const NOINDEX_ROBOTS = {
   },
 };
 
+/**
+ * For faceted listing URLs (filter combinations, sort orders, search queries).
+ * They are not worth indexing on their own — near-duplicates of /cars — but the
+ * car links on them are the crawl path into the detail pages, so keep `follow`.
+ */
+export const NOINDEX_FOLLOW_ROBOTS = {
+  index: false,
+  follow: true,
+  googleBot: {
+    index: false,
+    follow: true,
+    "max-image-preview": "large",
+  },
+};
+
 export const SAUDI_MARKET_KEYWORDS = {
   primary: [
     "ماكس موتورز",

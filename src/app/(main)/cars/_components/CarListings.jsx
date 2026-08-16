@@ -1,13 +1,12 @@
-"use client";
 import { getCarsByFilters } from "@/actions/car-listing";
-import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import useFetch from "@/hooks/use-fetch";
-import CarsListingLoading from "./CarsListingLoading";
+import React from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import CarCard from "@/components/CarCard";
 import ActiveFilterChips from "./ActiveFilterChips";
@@ -16,99 +15,118 @@ import {
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 
-const CarListings = ({ priceRange }) => {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [currentPage, setCurrentPage] = useState(1);
-  const limit = 6;
+const LIMIT = 6;
 
-  // Extract filter values from searchParams
-  const search = searchParams.get("search") || "";
-  const make = searchParams.get("make") || "";
-  const bodyType = searchParams.get("bodyType") || "";
-  const isEconomic = searchParams.get("isEconomic") === "true";
-  const isCommercial = searchParams.get("isCommercial") === "true";
-  const color = searchParams.get("color") || "";
-  const fuelType = searchParams.get("fuelType") || "";
-  const transmission = searchParams.get("transmission") || "";
-  const minPrice = searchParams.get("minPrice") || 0;
-  const maxPrice = searchParams.get("maxPrice") || Number.MAX_SAFE_INTEGER;
-  const sortBy = searchParams.get("sortBy") || "newest";
-  const page = parseInt(searchParams.get("page") || "1");
+// Filter keys that make up a listing URL. Anything else is dropped when we
+// rebuild pagination links so crawlers never see junk params echoed back.
+const FILTER_KEYS = [
+  "search",
+  "make",
+  "bodyType",
+  "isEconomic",
+  "isCommercial",
+  "color",
+  "fuelType",
+  "transmission",
+  "minPrice",
+  "maxPrice",
+  "sortBy",
+];
 
-  // cuotom hook to fetch cars
-  const {
-    loading: getCarsLoading,
-    fn: fecthCarsFn,
-    data: carsData,
-    error: fetchCarsError,
-  } = useFetch(getCarsByFilters);
+const firstValue = (value) => (Array.isArray(value) ? value[0] : value);
 
-  // Fetch cars when filters change
-  useEffect(() => {
-    fecthCarsFn({
-      search,
-      make,
-      bodyType,
-      isEconomic: isEconomic || undefined,
-      isCommercial: isCommercial || undefined,
-      color,
-      fuelType,
-      transmission,
-      minPrice,
-      maxPrice,
-      sortBy,
-      page,
-      limit,
-    });
-  }, [
-    search,
-    make,
-    bodyType,
-    isEconomic,
-    isCommercial,
-    color,
-    fuelType,
-    transmission,
-    minPrice,
-    maxPrice,
-    sortBy,
+const readParam = (params, key, fallback = "") => {
+  const value = firstValue(params?.[key]);
+  return value === undefined || value === null ? fallback : value;
+};
+
+const readPage = (params) => {
+  const parsed = Number.parseInt(readParam(params, "page", "1"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+};
+
+/** Build a real, crawlable /cars URL that preserves the active filters. */
+const buildPageUrl = (params, pageNumber) => {
+  const next = new URLSearchParams();
+
+  FILTER_KEYS.forEach((key) => {
+    const value = readParam(params, key);
+    if (value === "") return;
+    // The default sort is what /cars already shows; echoing it back would emit a
+    // duplicate URL for every page that crawlers have to fetch and discard.
+    if (key === "sortBy" && value === "newest") return;
+    next.set(key, String(value));
+  });
+
+  if (pageNumber > 1) next.set("page", String(pageNumber));
+
+  const query = next.toString();
+  return query ? `/cars?${query}` : "/cars";
+};
+
+/**
+ * Anchor styled like the shadcn PaginationLink, but backed by next/link so the
+ * href is present in the server HTML *and* navigation stays client-side.
+ */
+const PageLink = ({ href, isActive, size = "icon", className, children }) => (
+  <Link
+    href={href}
+    aria-current={isActive ? "page" : undefined}
+    data-slot="pagination-link"
+    data-active={isActive}
+    className={cn(
+      buttonVariants({ variant: isActive ? "outline" : "ghost", size }),
+      className
+    )}
+  >
+    {children}
+  </Link>
+);
+
+/** Non-navigating stand-in for prev/next at the ends of the range. */
+const DisabledPageLink = ({ size = "icon", className, children }) => (
+  <span
+    aria-disabled="true"
+    data-slot="pagination-link"
+    className={cn(
+      buttonVariants({ variant: "ghost", size }),
+      "pointer-events-none opacity-50",
+      className
+    )}
+  >
+    {children}
+  </span>
+);
+
+/**
+ * Server component: the listing is rendered on the server so the initial HTML
+ * contains the car cards and their links. This page is the main crawl entry
+ * point into every /cars/<id> detail page, so the results must not depend on
+ * client-side JavaScript running first.
+ */
+const CarListings = async ({ priceRange, searchParams = {} }) => {
+  const page = readPage(searchParams);
+
+  const result = await getCarsByFilters({
+    search: readParam(searchParams, "search"),
+    make: readParam(searchParams, "make"),
+    bodyType: readParam(searchParams, "bodyType"),
+    isEconomic: readParam(searchParams, "isEconomic") === "true" || undefined,
+    isCommercial: readParam(searchParams, "isCommercial") === "true" || undefined,
+    color: readParam(searchParams, "color"),
+    fuelType: readParam(searchParams, "fuelType"),
+    transmission: readParam(searchParams, "transmission"),
+    minPrice: readParam(searchParams, "minPrice", 0),
+    maxPrice: readParam(searchParams, "maxPrice", Number.MAX_SAFE_INTEGER),
+    sortBy: readParam(searchParams, "sortBy", "newest"),
     page,
-  ]);
-
-  // Update URL when page changes
-  useEffect(() => {
-    if (currentPage !== page) {
-      const params = new URLSearchParams(searchParams);
-      params.set("page", currentPage.toString());
-      router.push(`?${params.toString()}`);
-    }
-  }, [currentPage, router, searchParams, page]);
-
-  // Handle pagination clicks
-  const handlePageChange = (pageNum) => {
-    setCurrentPage(pageNum);
-  };
-
-  // Generate pagination URL
-  const getPaginationUrl = (pageNum) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", pageNum.toString());
-    return `?${params.toString()}`;
-  };
-
-  // Loading skaleton
-  if (getCarsLoading && carsData) {
-    return <CarsListingLoading />;
-  }
+    limit: LIMIT,
+  });
 
   // Error if unable to fetch cars data
-  if (fetchCarsError || (!getCarsLoading && !carsData)) {
+  if (!result || !result.success || !result.data) {
     return (
       <Alert variant="destructive">
         <Info className="h-4 w-4" />
@@ -120,11 +138,7 @@ const CarListings = ({ priceRange }) => {
     );
   }
 
-  if (!carsData || !carsData.success || !carsData.data) {
-    return null;
-  }
-
-  const { data: cars, pagination } = carsData;
+  const { data: cars, pagination } = result;
 
   // No results then show
   if (cars.length === 0) {
@@ -144,16 +158,9 @@ const CarListings = ({ priceRange }) => {
     );
   }
 
-  // Generate pagination items
-  const paginationItems = [];
-
   // Calculate which page numbers to show (first, last, and around current page)
-  const visiblePageNumbers = [];
+  const visiblePageNumbers = [1];
 
-  // Always show page 1
-  visiblePageNumbers.push(1);
-
-  // Show pages around current page
   for (
     let i = Math.max(2, page - 1);
     i <= Math.min(pagination.pages - 1, page + 1);
@@ -162,21 +169,19 @@ const CarListings = ({ priceRange }) => {
     visiblePageNumbers.push(i);
   }
 
-  // Always show last page if there's more than 1 page
   if (pagination.pages > 1) {
     visiblePageNumbers.push(pagination.pages);
   }
 
   // Sort and deduplicate
-  const uniquePageNumbers = [...new Set(visiblePageNumbers)].sort(
-    (a, b) => a - b
-  );
+  const uniquePageNumbers = [...new Set(visiblePageNumbers)].sort((a, b) => a - b);
 
   // Create pagination items with ellipses
+  const paginationItems = [];
   let lastPageNumber = 0;
+
   uniquePageNumbers.forEach((pageNumber) => {
     if (pageNumber - lastPageNumber > 1) {
-      // Add ellipsis
       paginationItems.push(
         <PaginationItem key={`ellipsis-${pageNumber}`}>
           <PaginationEllipsis />
@@ -186,16 +191,12 @@ const CarListings = ({ priceRange }) => {
 
     paginationItems.push(
       <PaginationItem key={pageNumber}>
-        <PaginationLink
-          href={getPaginationUrl(pageNumber)}
+        <PageLink
+          href={buildPageUrl(searchParams, pageNumber)}
           isActive={pageNumber === page}
-          onClick={(e) => {
-            e.preventDefault();
-            handlePageChange(pageNumber);
-          }}
         >
           {pageNumber}
-        </PaginationLink>
+        </PageLink>
       </PaginationItem>
     );
 
@@ -210,7 +211,7 @@ const CarListings = ({ priceRange }) => {
         <p className="text-gray-600">
           عرض{" "}
           <span className="font-medium">
-            {(page - 1) * limit + 1}-{Math.min(page * limit, pagination.total)}
+            {(page - 1) * LIMIT + 1}-{Math.min(page * LIMIT, pagination.total)}
           </span>{" "}
           من <span className="font-medium">{pagination.total}</span> سيارة
         </p>
@@ -227,35 +228,41 @@ const CarListings = ({ priceRange }) => {
         <Pagination className="mt-10">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious
-                href={getPaginationUrl(page - 1)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page > 1) {
-                    handlePageChange(page - 1);
-                  }
-                }}
-                className={page <= 1 ? "pointer-events-none opacity-50" : ""}
-              />
+              {page > 1 ? (
+                <PageLink
+                  href={buildPageUrl(searchParams, page - 1)}
+                  size="default"
+                  className="gap-1 px-2.5 sm:pl-2.5"
+                >
+                  <ChevronRightIcon />
+                  <span className="hidden sm:block">السابق</span>
+                </PageLink>
+              ) : (
+                <DisabledPageLink size="default" className="gap-1 px-2.5 sm:pl-2.5">
+                  <ChevronRightIcon />
+                  <span className="hidden sm:block">السابق</span>
+                </DisabledPageLink>
+              )}
             </PaginationItem>
 
             {paginationItems}
 
             <PaginationItem>
-              <PaginationNext
-                href={getPaginationUrl(page + 1)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page < pagination.pages) {
-                    handlePageChange(page + 1);
-                  }
-                }}
-                className={
-                  page >= pagination.pages
-                    ? "pointer-events-none opacity-50"
-                    : ""
-                }
-              />
+              {page < pagination.pages ? (
+                <PageLink
+                  href={buildPageUrl(searchParams, page + 1)}
+                  size="default"
+                  className="gap-1 px-2.5 sm:pr-2.5"
+                >
+                  <span className="hidden sm:block">التالي</span>
+                  <ChevronLeftIcon />
+                </PageLink>
+              ) : (
+                <DisabledPageLink size="default" className="gap-1 px-2.5 sm:pr-2.5">
+                  <span className="hidden sm:block">التالي</span>
+                  <ChevronLeftIcon />
+                </DisabledPageLink>
+              )}
             </PaginationItem>
           </PaginationContent>
         </Pagination>
