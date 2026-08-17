@@ -6,7 +6,6 @@ import { arSA } from "@clerk/localizations";
 import { generateJsonLd, SITE_CONFIG } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
-import { headers } from "next/headers";
 import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
 
 const cairo = Cairo({
@@ -90,10 +89,6 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  const headerList = await headers();
-  const pathname = headerList.get("x-invoke-path") || "";
-  const isSignUpPage = pathname.includes("/sign-up");
-
   // Fetch all layout data on server in parallel. Logos/pixels use actions that catch DB errors;
   // these raw queries must not crash the whole app when the DB is unreachable (e.g. Supabase paused, network).
   const [navLogoRes, footerLogoRes, pixelSettingsRes, footerDbRes, aboutPageRes] = await Promise.all([
@@ -155,7 +150,6 @@ export default async function RootLayout({ children }) {
           suppressHydrationWarning
         >
           <ClientWrapper
-            isSignUpPage={isSignUpPage}
             navLogo={navLogo}
             aboutNavLabel={aboutNavLabel}
             footerData={footerData}

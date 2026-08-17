@@ -9,7 +9,7 @@ import {
   getPixelSettingsSupabase,
   getFooterDataSupabase,
 } from "@/lib/supabaseReads";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { createClient } from "@/lib/superbase";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
@@ -156,6 +156,8 @@ export async function createSocialMediaLink(data) {
     });
 
     revalidatePath("/admin/site-management/social-media");
+    revalidatePath("/", "layout");
+    revalidateTag("site-settings");
     return { success: true, data: socialMedia };
   } catch (error) {
     console.error("Error creating social media link:", error);
@@ -179,6 +181,8 @@ export async function updateSocialMediaLink(id, data) {
     });
 
     revalidatePath("/admin/site-management/social-media");
+    revalidatePath("/", "layout");
+    revalidateTag("site-settings");
     return { success: true, data: socialMedia };
   } catch (error) {
     console.error("Error updating social media link:", error);
@@ -195,6 +199,8 @@ export async function deleteSocialMediaLink(id) {
     });
 
     revalidatePath("/admin/site-management/social-media");
+    revalidatePath("/", "layout");
+    revalidateTag("site-settings");
     return { success: true };
   } catch (error) {
     console.error("Error deleting social media link:", error);
@@ -318,26 +324,33 @@ export async function getActiveLogo() {
   }
 }
 
-export async function getLogoByType(type) {
-  try {
-    const logo = await withDbRetry(() =>
-      db.logo.findFirst({
-        where: { type, isActive: true },
-        orderBy: { createdAt: "desc" },
-      })
-    );
-    return { success: true, data: serializeDates(logo) };
-  } catch (error) {
-    console.warn(`[getLogoByType] Prisma failed, using Supabase:`, error.message);
+// Read by the root layout on every request (navbar + footer logos), so an
+// uncached version costs two DB round trips per page view. The logo mutations
+// below already revalidate the "logos" tag.
+export const getLogoByType = unstable_cache(
+  async (type) => {
     try {
-      const result = await getLogoByTypeSupabase(type);
-      return { ...result, data: serializeDates(result.data) };
-    } catch (fallbackError) {
-      console.error(`Error fetching ${type} logo:`, fallbackError);
-      return { success: false, error: fallbackError.message };
+      const logo = await withDbRetry(() =>
+        db.logo.findFirst({
+          where: { type, isActive: true },
+          orderBy: { createdAt: "desc" },
+        })
+      );
+      return { success: true, data: serializeDates(logo) };
+    } catch (error) {
+      console.warn(`[getLogoByType] Prisma failed, using Supabase:`, error.message);
+      try {
+        const result = await getLogoByTypeSupabase(type);
+        return { ...result, data: serializeDates(result.data) };
+      } catch (fallbackError) {
+        console.error(`Error fetching ${type} logo:`, fallbackError);
+        return { success: false, error: fallbackError.message };
+      }
     }
-  }
-}
+  },
+  ["site-logo-by-type"],
+  { revalidate: 3600, tags: ["logos", "site-settings"] }
+);
 
 export async function createLogo(data) {
   try {
@@ -519,7 +532,7 @@ async function ensureDefaultAboutFeatures(aboutPageId) {
   });
 }
 
-export async function getAboutPage({ forAdmin = false } = {}) {
+async function fetchAboutPage(forAdmin) {
   try {
     let aboutPage = await withDbRetry(() => findAboutPageRecord(forAdmin));
 
@@ -549,6 +562,19 @@ export async function getAboutPage({ forAdmin = false } = {}) {
     console.error("Error fetching about page:", error);
     return { success: false, error: error.message };
   }
+}
+
+// The root layout reads this on every request just for the nav label, and /about
+// renders it in full. Only the public shape is cached — the admin editor must
+// see its own writes immediately, including inactive features.
+const getPublicAboutPage = unstable_cache(
+  async () => fetchAboutPage(false),
+  ["site-about-page"],
+  { revalidate: 3600, tags: ["about-page", "site-settings"] }
+);
+
+export async function getAboutPage({ forAdmin = false } = {}) {
+  return forAdmin ? fetchAboutPage(true) : getPublicAboutPage();
 }
 
 export async function updateAboutPage(data) {
@@ -604,6 +630,8 @@ export async function updateAboutPage(data) {
     revalidatePath("/about");
     revalidatePath("/", "layout");
     revalidatePath("/admin", "layout");
+    revalidateTag("about-page");
+    revalidateTag("site-settings");
     return { success: true, data: aboutPage };
   } catch (error) {
     console.error("Error updating about page:", error);
@@ -648,6 +676,8 @@ export async function createAboutFeature(data) {
     revalidatePath("/about");
     revalidatePath("/", "layout");
     revalidatePath("/admin", "layout");
+    revalidateTag("about-page");
+    revalidateTag("site-settings");
     return { success: true, data: feature };
   } catch (error) {
     console.error("Error creating about feature:", error);
@@ -682,6 +712,8 @@ export async function updateAboutFeature(id, data) {
     revalidatePath("/about");
     revalidatePath("/", "layout");
     revalidatePath("/admin", "layout");
+    revalidateTag("about-page");
+    revalidateTag("site-settings");
     return { success: true, data: feature };
   } catch (error) {
     console.error("Error updating about feature:", error);
@@ -707,6 +739,8 @@ export async function deleteAboutFeature(id) {
     revalidatePath("/about");
     revalidatePath("/", "layout");
     revalidatePath("/admin", "layout");
+    revalidateTag("about-page");
+    revalidateTag("site-settings");
     return { success: true };
   } catch (error) {
     console.error("Error deleting about feature:", error);
@@ -833,61 +867,73 @@ export async function getWhatsAppNumber() {
 
 // ==================== PIXEL & ANALYTICS MANAGEMENT ====================
 
-export async function getPixelSettings() {
-  try {
-    let pixelSettings = await withDbRetry(() => db.pixelSettings.findFirst());
-
-    if (!pixelSettings) {
-      pixelSettings = await withDbRetry(() =>
-        db.pixelSettings.create({
-          data: {},
-        })
-      );
-    }
-
-    return { success: true, data: serializeDates(pixelSettings) };
-  } catch (error) {
-    console.warn("[getPixelSettings] Prisma failed, using Supabase:", error.message);
+// Also read by the root layout on every request. updatePixelSettings
+// revalidates the "pixels" tag.
+export const getPixelSettings = unstable_cache(
+  async () => {
     try {
-      const result = await getPixelSettingsSupabase();
-      return { ...result, data: serializeDates(result.data) };
-    } catch (fallbackError) {
-      console.error("Error fetching pixel settings:", fallbackError);
-      return { success: false, error: fallbackError.message };
+      let pixelSettings = await withDbRetry(() => db.pixelSettings.findFirst());
+
+      if (!pixelSettings) {
+        pixelSettings = await withDbRetry(() =>
+          db.pixelSettings.create({
+            data: {},
+          })
+        );
+      }
+
+      return { success: true, data: serializeDates(pixelSettings) };
+    } catch (error) {
+      console.warn("[getPixelSettings] Prisma failed, using Supabase:", error.message);
+      try {
+        const result = await getPixelSettingsSupabase();
+        return { ...result, data: serializeDates(result.data) };
+      } catch (fallbackError) {
+        console.error("Error fetching pixel settings:", fallbackError);
+        return { success: false, error: fallbackError.message };
+      }
     }
-  }
-}
+  },
+  ["site-pixel-settings"],
+  { revalidate: 3600, tags: ["pixels", "site-settings"] }
+);
 
-export async function getFooterData() {
-  try {
-    const { socialLinks, storeInfo } = await withDbRetry(async () => {
-      const [socialLinks, storeInfo] = await Promise.all([
-        db.socialMedia.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-        db.storeInfo.findFirst(),
-      ]);
-      return { socialLinks, storeInfo };
-    });
-
-    return {
-      success: true,
-      socialLinks: serializeDates(socialLinks),
-      storeInfo: serializeDates(storeInfo),
-    };
-  } catch (error) {
-    console.warn("[getFooterData] Prisma failed, using Supabase:", error.message);
+// Footer chrome for every page. The social-media and store-info mutations
+// revalidate "site-settings".
+export const getFooterData = unstable_cache(
+  async () => {
     try {
-      const data = await getFooterDataSupabase();
+      const { socialLinks, storeInfo } = await withDbRetry(async () => {
+        const [socialLinks, storeInfo] = await Promise.all([
+          db.socialMedia.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
+          db.storeInfo.findFirst(),
+        ]);
+        return { socialLinks, storeInfo };
+      });
+
       return {
         success: true,
-        socialLinks: serializeDates(data.socialLinks),
-        storeInfo: serializeDates(data.storeInfo),
+        socialLinks: serializeDates(socialLinks),
+        storeInfo: serializeDates(storeInfo),
       };
-    } catch (fallbackError) {
-      console.error("Error fetching footer data:", fallbackError);
-      return { success: false, socialLinks: [], storeInfo: null };
+    } catch (error) {
+      console.warn("[getFooterData] Prisma failed, using Supabase:", error.message);
+      try {
+        const data = await getFooterDataSupabase();
+        return {
+          success: true,
+          socialLinks: serializeDates(data.socialLinks),
+          storeInfo: serializeDates(data.storeInfo),
+        };
+      } catch (fallbackError) {
+        console.error("Error fetching footer data:", fallbackError);
+        return { success: false, socialLinks: [], storeInfo: null };
+      }
     }
-  }
-}
+  },
+  ["site-footer-data"],
+  { revalidate: 3600, tags: ["site-settings"] }
+);
 
 export async function updatePixelSettings(data) {
   try {

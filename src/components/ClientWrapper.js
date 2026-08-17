@@ -14,12 +14,12 @@ import ChatBotGate from "@/components/ChatBotGate";
 // filtered listings (/cars?page=2).
 const CHATBOT_ROUTES = ["/", "/cars"];
 
-export default function ClientWrapper({ children, isSignUpPage, navLogo, aboutNavLabel, footerData }) {
+export default function ClientWrapper({ children, navLogo, aboutNavLabel, footerData }) {
     const [theme, setTheme] = useState("dark");
     const [isLoading, setIsLoading] = useState(false);
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith("/admin");
-    const isAuthPage = pathname?.includes("/sign-in") || pathname?.includes("/sign-up") || isSignUpPage;
+    const isAuthPage = pathname?.includes("/sign-in") || pathname?.includes("/sign-up");
     const showChatBot = !isAuthPage && !isAdminPage && CHATBOT_ROUTES.includes(pathname);
 
     useEffect(() => {
