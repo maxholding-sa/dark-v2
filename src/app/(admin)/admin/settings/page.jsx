@@ -4,7 +4,7 @@ import React from "react";
 import SettingsForm from "./_components/SettingsForm";
 
 export const metadata = {
-  title: "الإعدادات | Click Car Admin",
+  title: "الإعدادات | Max Motors Admin",
   description: "إدارة ساعات العمل ومستخدمي الإدارة",
 };
 

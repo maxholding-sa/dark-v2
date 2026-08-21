@@ -2,7 +2,7 @@ import React from "react";
 import AddReviewForm from "../_components/AddReviewForm";
 
 export const metadata = {
-  title: "إضافة تقييم جديد | Click Car Admin",
+  title: "إضافة تقييم جديد | Max Motors Admin",
   description: "إضافة تقييم جديد في السوق الخاص بك",
 };
 

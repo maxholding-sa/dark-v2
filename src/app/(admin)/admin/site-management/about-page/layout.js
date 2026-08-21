@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "صفحة عن المتجر | Click Car Admin",
+  title: "صفحة عن المتجر | Max Motors Admin",
   description: "إدارة محتوى صفحة عن المتجر",
 };
 

@@ -110,7 +110,7 @@ const DealershipInfoManager = ({ onRefresh }) => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Click Car Motors"
+                  placeholder="Max Motors"
                   className="text-right"
                   required
                 />
@@ -127,7 +127,7 @@ const DealershipInfoManager = ({ onRefresh }) => {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="contact@clickcar.com"
+                  placeholder="info@maxmotors.sa"
                   className="text-right"
                 />
               </div>
@@ -142,7 +142,7 @@ const DealershipInfoManager = ({ onRefresh }) => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="920018915"
                   className="text-right"
                 />
               </div>
@@ -157,7 +157,7 @@ const DealershipInfoManager = ({ onRefresh }) => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  placeholder="69 Car Street, Autoville, CA 69420"
+                  placeholder="الرياض، المملكة العربية السعودية"
                   className="text-right"
                 />
               </div>

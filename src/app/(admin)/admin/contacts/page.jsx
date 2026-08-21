@@ -2,7 +2,7 @@ import React from "react";
 import ContactList from "./_components/ContactList";
 
 export const metadata = {
-  title: "الرسائل | Click Car Admin",
+  title: "الرسائل | Max Motors Admin",
   description: "إدارة رسائل التواصل في السوق الخاص بك",
 };
 

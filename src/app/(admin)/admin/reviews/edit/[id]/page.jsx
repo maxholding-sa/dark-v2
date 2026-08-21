@@ -2,7 +2,7 @@ import React from "react";
 import EditReviewForm from "../../_components/EditReviewForm";
 
 export const metadata = {
-  title: "تعديل التقييم | Click Car Admin",
+  title: "تعديل التقييم | Max Motors Admin",
   description: "تعديل تقييم موجود في السوق الخاص بك",
 };
 

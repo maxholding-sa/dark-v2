@@ -104,7 +104,7 @@ const Footer = () => {
   <Image src="/logo1.png" ... />
   
   // Hardcoded social links
-  <a href="https://www.facebook.com/ClickCar0">
+  <a href="https://www.facebook.com/maxmotors.sa">
     <Facebook />
   </a>
   // ... more hardcoded links

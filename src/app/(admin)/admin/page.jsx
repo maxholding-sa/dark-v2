@@ -5,8 +5,8 @@ import React from "react";
 import Dashboard from "./_components/Dashboard";
 
 export const metadata = {
-  title: "لوحة التحكم | Click Car Admin",
-  description: "لوحة تحكم المسؤول لسوق السيارات Click Car",
+  title: "لوحة التحكم | Max Motors Admin",
+  description: "لوحة تحكم المسؤول لموقع ماكس موتورز",
 };
 
 const AdminPage = async () => {

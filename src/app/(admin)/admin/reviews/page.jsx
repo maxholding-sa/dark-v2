@@ -2,7 +2,7 @@ import React from "react";
 import ReviewList from "./_components/ReviewList";
 
 export const metadata = {
-  title: "التقييمات | Click Car Admin",
+  title: "التقييمات | Max Motors Admin",
   description: "إدارة التقييمات في السوق الخاص بك",
 };
 

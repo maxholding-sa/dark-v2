@@ -69,10 +69,10 @@ model Car {
 
 model DealershipInfo {
   id           String        @id @default(uuid())
-  name         String        @default("Click Car Motors")
-  address      String        @default("69 Car Street, Autoville, CA 69420")
-  phone        String        @default("+1 (555) 123-4567")
-  email        String        @default("contact@clickcar.com")
+  name         String        @default("شركة ماكس موتورز للسيارات")
+  address      String        @default("الرياض، المملكة العربية السعودية")
+  phone        String        @default("920018915")
+  email        String        @default("info@maxmotors.sa")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   workingHours WorkingHour[]
@@ -411,7 +411,7 @@ model SocialMedia {
 
 model StoreInfo {
   id                   String   @id @default(uuid())
-  name                 String   @default("Click Car Motors") // Store name
+  name                 String   @default("شركة ماكس موتورز للسيارات") // Store name
   description          String?  @db.Text // Store description/about short
   address              String?  // Store location/address
   city                 String?  // City
