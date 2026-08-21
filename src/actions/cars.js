@@ -262,6 +262,8 @@ export async function addCarToDB({ carData, images }) {
 
     revalidatePath("/admin/cars");
     revalidateTag("cars");
+    // Car pages are prerendered (ISR); the tag alone only clears the data cache.
+    revalidatePath("/cars/[id]", "page");
 
     return {
       success: true,
@@ -368,6 +370,8 @@ export async function deleteCars(carId) {
 
     revalidatePath("/admin/cars");
     revalidateTag("cars");
+    // Car pages are prerendered (ISR); the tag alone only clears the data cache.
+    revalidatePath("/cars/[id]", "page");
     return {
       success: true,
     };
@@ -402,6 +406,8 @@ export async function updateCarStatus(id, { status, featured, testDriveAvailable
 
     revalidatePath("/admin/cars");
     revalidateTag("cars");
+    // Car pages are prerendered (ISR); the tag alone only clears the data cache.
+    revalidatePath("/cars/[id]", "page");
     return {
       success: true,
     };
@@ -535,6 +541,8 @@ export async function updateCar(id, carData, newImages = []) {
     revalidatePath("/admin/cars");
     revalidatePath(`/admin/cars/${id}/edit`);
     revalidateTag("cars");
+    // Car pages are prerendered (ISR); the tag alone only clears the data cache.
+    revalidatePath("/cars/[id]", "page");
 
     return {
       success: true,
@@ -636,6 +644,8 @@ export async function applyCarImport(toUpdate) {
 
     revalidatePath("/admin/cars");
     revalidateTag("cars");
+    // Car pages are prerendered (ISR); the tag alone only clears the data cache.
+    revalidatePath("/cars/[id]", "page");
 
     return { success: true, updated: toUpdate.length };
   } catch (error) {

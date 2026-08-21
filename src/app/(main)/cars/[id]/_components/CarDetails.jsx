@@ -35,12 +35,42 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
   const { isSignedIn } = useAuth();
 
   const [isWishlisted, setIsWishlisted] = useState(car.wishliseted);
+  // The page is prerendered and shared by every visitor, so it ships the
+  // signed-out defaults; the viewer's own saved/booked state is filled in below.
+  const [userTestDrive, setUserTestDrive] = useState(
+    testDriveInfo?.userTestDrive ?? null
+  );
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mediaType, setMediaType] = useState('image'); // 'image' or 'video'
   const [carUrl, setCarUrl] = useState('');
   const [isMandebDialogOpen, setIsMandebDialogOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const priorityLabel = car.isLuxury ? "فاخرة" : car.featured ? "مميزة" : null;
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setIsWishlisted(false);
+      setUserTestDrive(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/cars/${car.id}/user-state`)
+      .then((res) => res.json())
+      .then((payload) => {
+        if (cancelled || !payload?.success) return;
+        setIsWishlisted(Boolean(payload.data?.isWishlisted));
+        setUserTestDrive(payload.data?.userTestDrive ?? null);
+      })
+      .catch(() => {
+        // Non-critical: the car page stays fully usable with the defaults.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, car.id]);
 
   // Helper function to extract YouTube video ID and generate embed URL
   const getYouTubeEmbedUrl = (url) => {
@@ -390,12 +420,12 @@ const CarDetails = ({ car, testDriveInfo, similarCars = [] }) => {
             <Button
               className="w-full py-6 text-lg"
               onClick={handleBookTestDrive}
-              disabled={testDriveInfo.userTestDrive}
+              disabled={userTestDrive}
             >
               <Calendar className="ml-2 h-5 w-5" />
-              {testDriveInfo.userTestDrive
+              {userTestDrive
                 ? `محجوز لتاريخ ${format(
-                  new Date(testDriveInfo.userTestDrive.bookingDate),
+                  new Date(userTestDrive.bookingDate),
                   "EEEE، d MMMM yyyy"
                 )}`
                 : "احجز اختبار قيادة"}

@@ -54,6 +54,13 @@ const nextConfig = {
   // Required by Next.js 16 if you want to use Webpack
   turbopack: {},
   images: {
+    // Next generates one srcset candidate per width below, and each candidate is a
+    // full /_next/image?url=<encoded Supabase URL>&w=… string (~200 bytes). With the
+    // defaults (8 device + 8 image widths) the home page shipped 135 srcset attributes
+    // totalling 437 kB — about a third of its HTML. These trimmed sets still cover
+    // every real breakpoint from small phone to 2x desktop.
+    deviceSizes: [640, 828, 1080, 1920],
+    imageSizes: [64, 128, 256, 384],
     remotePatterns: [
       {
         protocol: "https",
