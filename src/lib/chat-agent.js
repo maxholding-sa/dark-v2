@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { runGeminiToolLoop } from "@/lib/gemini";
+import { runGeminiToolLoop, isGeminiDeadlineError } from "@/lib/gemini";
 import { normalizeSearchText } from "@/lib/car-search";
 import {
   CHAT_AGENT_TOOLS,
@@ -220,6 +220,7 @@ export async function runChatAgent({
   fetchBanks,
   fetchSalesReps,
   buildContactActions,
+  deadlineMs,
 }) {
   const runtime = createChatToolRuntime({
     seedCars: previousCars,
@@ -242,15 +243,44 @@ export async function runChatAgent({
         .join("\n")}\nيمكنك استخدام هذه الأرقام مباشرة في الأدوات.`
     : "";
 
-  const { text, model, calls, steps } = await runGeminiToolLoop({
-    systemInstruction: `${SYSTEM_INSTRUCTION}${seedNote}`,
-    tools: CHAT_AGENT_TOOLS,
-    history: buildGeminiHistory(conversationHistory),
-    message: String(message || "").trim() || "مرحبا",
-    executeTool: (name, args) => runtime.execute(name, args),
-    maxSteps: 6,
-    generationConfig: { temperature: 0.6, maxOutputTokens: 900 },
-  });
+  let loop;
+  try {
+    loop = await runGeminiToolLoop({
+      systemInstruction: `${SYSTEM_INSTRUCTION}${seedNote}`,
+      tools: CHAT_AGENT_TOOLS,
+      history: buildGeminiHistory(conversationHistory),
+      message: String(message || "").trim() || "مرحبا",
+      executeTool: (name, args) => runtime.execute(name, args),
+      maxSteps: 6,
+      generationConfig: { temperature: 0.6, maxOutputTokens: 900 },
+      ...(deadlineMs ? { deadlineMs } : {}),
+    });
+  } catch (error) {
+    // Out of time, or every model in the chain was unavailable. Anything the
+    // tools already found beats handing the customer a bare error — that is
+    // what the widget shows when this function throws.
+    const found = runtime.getSeenCars().filter((car) => Number(car.price) > 0);
+    logger.error("[chat-agent] turn failed", {
+      deadline: isGeminiDeadlineError(error),
+      message: error?.message?.slice?.(0, 200) || String(error),
+      carsAlreadyFound: found.length,
+    });
+
+    return {
+      text: found.length
+        ? "المعذرة، تأخر ردي أكثر من المعتاد. هذه بعض الخيارات المتاحة الآن، وإن أردت تفاصيل أو قسطاً اسألني مرة أخرى أو تواصل مع فريقنا عبر الأزرار أدناه."
+        : "المعذرة، الخدمة مزدحمة الآن ولم أستطع إكمال الرد. جرّب مرة أخرى بعد لحظات، أو تواصل مع فريقنا مباشرة عبر الأزرار أدناه.",
+      cars: found.slice(0, 3),
+      quickReplies: null,
+      contactActions: await buildContactActions().catch(() => null),
+      model: null,
+      toolCalls: [],
+      seenCars: runtime.getSeenCars(),
+      failed: true,
+    };
+  }
+
+  const { text, model, calls, steps } = loop;
 
   const cleanedText = sanitizeReply(text);
   logger.debug("[chat-agent] turn complete", {
