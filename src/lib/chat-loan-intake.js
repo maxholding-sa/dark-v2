@@ -117,6 +117,10 @@ export const FIELD_PROMPTS = {
     question: "ما هو رقم الجوال؟ (9 أرقام بعد 5، بدون مفتاح الدولة)",
   },
   email: { question: "ما هو البريد الإلكتروني؟ (اختياري — اكتب «تخطي» للمتابعة بدونه)" },
+  additionalInfo: {
+    question:
+      "هل لديك أي ملاحظات إضافية للإدارة؟ (اختياري — اكتب «تخطي» لإرسال الطلب مباشرة)",
+  },
   city: { question: "في أي مدينة تسكن؟" },
   time: {
     question: "ما الوقت المفضل للتواصل؟ (صباحاً / مساءً / أي وقت)",
@@ -143,7 +147,15 @@ export const FIELD_PROMPTS = {
   },
 };
 
-export function getNextMissingField(loanState, order) {
+/**
+ * Next unanswered field for a flow.
+ *
+ * The optional tail is opt-in. It used to be appended to *every* order, so the
+ * two-field admin-contact lead and the offers intake both ran off the end of
+ * their list into "ما هو البريد الإلكتروني؟" — and since only the submit flow
+ * records `optionalAsked`, they asked it again after every answer, forever.
+ */
+export function getNextMissingField(loanState, order, { optional = [] } = {}) {
   const fields = loanState?.fields || {};
   for (const key of order) {
     const value = fields[key];
@@ -163,8 +175,14 @@ export function getNextMissingField(loanState, order) {
     if (value === "" || value == null) return key;
   }
 
-  for (const key of LOAN_OPTIONAL_FIELD_ORDER) {
+  for (const key of optional) {
+    // A field with no prompt used to reach the caller and crash it on
+    // `fieldPrompt.question` — after the customer had filled eleven fields.
+    if (!FIELD_PROMPTS[key]) continue;
+    // A stored answer counts as asked even if the flag was lost, so a customer
+    // who types a real email is never asked for it a second time.
     if (loanState?.optionalAsked?.[key]) continue;
+    if (fields[key] !== "" && fields[key] != null) continue;
     return key;
   }
 
@@ -267,6 +285,12 @@ export function parseLoanFieldAnswer(fieldKey, rawText, context = {}) {
         return { ok: false, error: "أدخل رقم جوال سعودي صحيح (يبدأ بـ 5 وطوله 9 أرقام)" };
       }
       return { ok: true, value: digits };
+    }
+    case "additionalInfo": {
+      if (!text || /^(تخطي|skip|لا|no|بدون|none|لا شيء)$/i.test(text)) {
+        return { ok: true, value: "", optional: true };
+      }
+      return { ok: true, value: text };
     }
     case "email": {
       if (/^(تخطي|skip|لا|no|بدون|none)$/i.test(text)) {

@@ -117,7 +117,9 @@ function nextOfferQuestion(loanState) {
 }
 
 function nextContactQuestion(loanState) {
-  const key = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER);
+  const key = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER, {
+    optional: LOAN_OPTIONAL_FIELD_ORDER,
+  });
   if (!key) return null;
   return buildFieldPromptPayload(key);
 }
@@ -561,7 +563,7 @@ export async function handleLoanChatTurn(conversation, message) {
     }
 
     const fieldPrompt = buildFieldPromptPayload(nextField);
-    const reply = assistantReply(`تم ✅\n\n${fieldPrompt.question}`, {
+    const reply = assistantReply(`تم ✅\n\n${fieldPrompt?.question || ""}`, {
       fieldPrompt,
       mode: LOAN_CHAT_MODES.ADMIN_CONTACT,
       conversationId: conversation.id,
@@ -625,7 +627,7 @@ export async function handleLoanChatTurn(conversation, message) {
     }
 
     const fieldPrompt = enrichFieldPrompt(nextField, loanState);
-    const reply = assistantReply(`تم ✅\n\n${fieldPrompt.question}`, {
+    const reply = assistantReply(`تم ✅\n\n${fieldPrompt?.question || ""}`, {
       fieldPrompt,
       mode: LOAN_CHAT_MODES.LOAN_INTAKE,
       conversationId: conversation.id,
@@ -648,7 +650,9 @@ export async function handleLoanChatTurn(conversation, message) {
   }
 
   if (mode === LOAN_CHAT_MODES.CONTACT_INTAKE) {
-    const fieldKey = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER);
+    const fieldKey = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER, {
+      optional: LOAN_OPTIONAL_FIELD_ORDER,
+    });
     if (!fieldKey) {
       const submitReply = await submitLoanFromChat(conversation, loanState);
       await persistTurn(conversation.id, message, submitReply);
@@ -680,7 +684,9 @@ export async function handleLoanChatTurn(conversation, message) {
       loanState,
     });
 
-    const nextField = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER);
+    const nextField = getNextMissingField(loanState, LOAN_SUBMIT_FIELD_ORDER, {
+      optional: LOAN_OPTIONAL_FIELD_ORDER,
+    });
     if (!nextField) {
       const submitReply = await submitLoanFromChat(
         { ...conversation, loanState },
@@ -691,7 +697,7 @@ export async function handleLoanChatTurn(conversation, message) {
     }
 
     const fieldPrompt = buildFieldPromptPayload(nextField);
-    const reply = assistantReply(`تم ✅\n\n${fieldPrompt.question}`, {
+    const reply = assistantReply(`تم ✅\n\n${fieldPrompt?.question || ""}`, {
       fieldPrompt,
       mode: LOAN_CHAT_MODES.CONTACT_INTAKE,
       conversationId: conversation.id,
