@@ -138,7 +138,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8 rtl:space-x-reverse">
+        <nav className="hidden md:flex items-center gap-8">
           {navItems.filter(item => item.name).map((item) => (
             <Link
               key={item.href}
@@ -154,7 +154,7 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
           ))}
         </nav>
 
-        <div className="flex items-center space-x-2 md:space-x-4 rtl:space-x-reverse">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile Menu */}
           <div className="md:hidden">
             <Sheet open={open} onOpenChange={setOpen}>
