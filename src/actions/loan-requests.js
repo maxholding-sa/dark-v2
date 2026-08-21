@@ -8,6 +8,25 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { serializeLoanRequests, formatBirthDate } from "@/lib/helper";
+import { checkPermission } from "@/lib/permissions";
+
+/** Hard cap on one bulk delete — a runaway request should not empty the table. */
+const MAX_BULK_DELETE = 200;
+
+/**
+ * Server actions are callable endpoints, so the admin layout's PermissionGuard
+ * does not protect them: any signed-in user could invoke a delete directly.
+ * Deletions gate on the same "loan-requests" permission the sidebar uses.
+ */
+async function requireLoanRequestAccess() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const allowed = await checkPermission(userId, "loan-requests");
+  if (!allowed) throw new Error("Unauthorized access");
+
+  return userId;
+}
 
 // fetch loan requests from db
 export async function getLoanRequests(search = "") {
@@ -92,16 +111,7 @@ export async function updateLoanRequestStatus(id, status) {
 // delete loan request
 export async function deleteLoanRequest(id) {
   try {
-    // check if user is loggedin
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
-
-    const user = await db.user.findUnique({
-      // check if user exists in db
-      where: { clerkUserId: userId },
-    });
-
-    if (!user) throw new Error("User not found");
+    await requireLoanRequestAccess();
 
     await db.loanRequest.delete({
       where: { id: id },
@@ -113,6 +123,50 @@ export async function deleteLoanRequest(id) {
     };
   } catch (error) {
     console.error(`Error while deleting loan request ${error}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/** Delete several loan requests at once, from the table's checkbox selection. */
+export async function deleteLoanRequests(ids = []) {
+  try {
+    await requireLoanRequestAccess();
+
+    const uniqueIds = [
+      ...new Set(
+        (Array.isArray(ids) ? ids : [])
+          .map((id) => String(id || "").trim())
+          .filter(Boolean)
+      ),
+    ];
+
+    if (uniqueIds.length === 0) {
+      return { success: false, error: "لم يتم اختيار أي طلب للحذف" };
+    }
+    if (uniqueIds.length > MAX_BULK_DELETE) {
+      return {
+        success: false,
+        error: `لا يمكن حذف أكثر من ${MAX_BULK_DELETE} طلب في المرة الواحدة`,
+      };
+    }
+
+    const { count } = await db.loanRequest.deleteMany({
+      where: { id: { in: uniqueIds } },
+    });
+
+    revalidatePath("/admin/loan-requests");
+    return {
+      success: true,
+      count,
+      // Rows can vanish between selecting and confirming; report the gap so the
+      // UI never claims to have deleted more than it did.
+      requested: uniqueIds.length,
+    };
+  } catch (error) {
+    console.error(`Error while deleting loan requests ${error}`);
     return {
       success: false,
       error: error.message,

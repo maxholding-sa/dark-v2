@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { deleteLoanRequest, getLoanRequests, updateLoanRequestStatus, exportLoanRequests } from "@/actions/loan-requests";
+import { deleteLoanRequest, deleteLoanRequests, getLoanRequests, updateLoanRequestStatus, exportLoanRequests } from "@/actions/loan-requests";
 import { Card, CardContent } from "@/components/ui/card";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import {
@@ -60,6 +60,8 @@ const LoanRequestList = () => {
   const [selectedLoanRequest, setSelectedLoanRequest] = useState(null);
   const [selectedLoanRequests, setSelectedLoanRequests] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   const [getLoanRequestsLoading, setGetLoanRequestsLoading] = useState(false);
   const [getLoanRequestsData, setGetLoanRequestsData] = useState(null);
@@ -266,6 +268,37 @@ const LoanRequestList = () => {
     }
   };
 
+  // Delete every selected request in one call
+  const handleDeleteSelected = async () => {
+    if (selectedLoanRequests.length === 0) return;
+
+    setBulkDeleteLoading(true);
+    try {
+      const result = await deleteLoanRequests(selectedLoanRequests);
+      if (!result?.success) {
+        toast.error(result?.error || "فشل في حذف الطلبات المختارة");
+        return;
+      }
+
+      // Some rows may already be gone if another admin deleted them meanwhile.
+      const missing = (result.requested ?? selectedLoanRequests.length) - result.count;
+      toast.success(
+        missing > 0
+          ? `تم حذف ${result.count} طلب (${missing} لم تعد موجودة)`
+          : `تم حذف ${result.count} طلب بنجاح`
+      );
+
+      setSelectedLoanRequests([]);
+      setSelectAll(false);
+      setBulkDeleteDialogOpen(false);
+      await getLoanRequestFn(searchTerm);
+    } catch (error) {
+      toast.error("حدث خطأ أثناء حذف الطلبات المختارة");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   // Update select all state when data changes
   useEffect(() => {
     if (getLoanRequestsData?.data) {
@@ -312,6 +345,16 @@ const LoanRequestList = () => {
           >
             <Download className="h-4 w-4" />
             تصدير المختار ({selectedLoanRequests.length})
+          </Button>
+          <Button
+            onClick={() => setBulkDeleteDialogOpen(true)}
+            variant="destructive"
+            size="sm"
+            className="flex items-center gap-2"
+            disabled={selectedLoanRequests.length === 0 || bulkDeleteLoading}
+          >
+            <Trash2 className="h-4 w-4" />
+            حذف المختار ({selectedLoanRequests.length})
           </Button>
         </div>
       </div>
@@ -530,6 +573,46 @@ const LoanRequestList = () => {
                 <Loader2 className="h-4 w-4 ml-2 animate-spin cursor-pointer" />
               ) : (
                 "حذف طلب القرض"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Dialog box */}
+      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد حذف الطلبات المختارة</DialogTitle>
+            <DialogDescription>
+              <span>
+                هل أنت متأكد من حذف{" "}
+                <strong className="text-gray-700">
+                  {selectedLoanRequests.length}
+                </strong>{" "}
+                من طلبات القروض؟ سيتم حذف بيانات العملاء وعروض التمويل المرتبطة
+                بها نهائياً، وهذا الإجراء لا يمكن التراجع عنه.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteDialogOpen(false)}
+              disabled={bulkDeleteLoading}
+            >
+              إلغاء
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={bulkDeleteLoading}
+            >
+              {bulkDeleteLoading ? (
+                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+              ) : (
+                `حذف ${selectedLoanRequests.length} طلب`
               )}
             </Button>
           </DialogFooter>
