@@ -195,6 +195,7 @@ function mapLoadedMessages(rows) {
     fieldPrompt: msg.fieldPrompt || msg.payload?.fieldPrompt || null,
     loanSubmitted: msg.loanSubmitted || msg.payload?.loanSubmitted || null,
     contactActions: msg.contactActions || msg.payload?.contactActions || null,
+    quickReplies: msg.quickReplies || msg.payload?.quickReplies || null,
     carSelectAction:
       msg.carSelectAction || msg.payload?.carSelectAction || null,
     comparison: msg.comparison || msg.payload?.comparison || null,
@@ -444,6 +445,7 @@ export default function ChatBot({ onOpenChange }) {
       fieldPrompt: result?.fieldPrompt || null,
       loanSubmitted: result?.loanSubmitted || null,
       contactActions: result?.contactActions || null,
+      quickReplies: result?.quickReplies || null,
       carSelectAction: result?.carSelectAction || null,
       comparison: result?.comparison || null,
     };
@@ -715,7 +717,7 @@ export default function ChatBot({ onOpenChange }) {
           ) : (
             <>
               <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-zinc-900">
-                {messages.map((message) => (
+                {messages.map((message, messageIndex) => (
                   <div
                     key={message.id}
                     className={`flex flex-col ${
@@ -887,6 +889,24 @@ export default function ChatBot({ onOpenChange }) {
                         ))}
                       </div>
                     )}
+
+                    {message.sender === "bot" &&
+                    message.quickReplies?.length &&
+                    messageIndex === messages.length - 1 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {message.quickReplies.map((reply) => (
+                          <button
+                            key={reply}
+                            type="button"
+                            onClick={() => sendMessage(reply)}
+                            disabled={isTyping}
+                            className="rounded-full border border-yellow-400/70 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 transition-colors hover:bg-yellow-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {reply}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
 
                     {message.sender === "bot" && message.contactActions ? (
                       <ChatContactActions contactActions={message.contactActions} />

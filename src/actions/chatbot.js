@@ -3,7 +3,6 @@
 import { after } from "next/server";
 import { db } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { serializedCarsData } from "@/lib/helper";
 import { generateContentResilient } from "@/lib/gemini";
 import {
   ensureChatConversation,
@@ -35,26 +34,15 @@ import {
   wantsCompareFlow,
   wantsCancelCompareFlow,
   parseChangeCompareSlot,
-  wantsRankingAmongResults,
   parseCompareEntities,
 } from "@/lib/chat-compare";
+import { searchCarsForChat } from "@/lib/chat-car-search";
 import {
-  searchCarsForChat,
-  fetchEconomicalCarsForChat,
-  fetchLatestOfferCarsForChat,
-  fetchAllAvailableCarsForChat,
-} from "@/lib/chat-car-search";
-import {
-  filterCarsByAffordability,
-  filterCarsByMaxInstallment,
-  parseAffordabilityFromText,
-  parseMaxInstallmentFromText,
   wantsSalaryRecommendation,
   wantsInstallmentBudget,
-  getMaxAffordableMonthlyPayment,
 } from "@/lib/chat-affordability";
-import { parseBudgetFromQuery, normalizeSearchText } from "@/lib/car-search";
 import { getPublicMandebs } from "@/actions/mandeb";
+import { runChatAgent } from "@/lib/chat-agent";
 // قاموس للكتابات البديلة والأخطاء الإملائية الشائعة في اللغة العربية
 const arabicSpellingVariations = {
   // أخطاء شائعة في كلمات السيارات
@@ -75,15 +63,12 @@ const arabicSpellingVariations = {
   "توتا": "تويوتا",  // إضافة جديدة
   "تويت": "تويوتا", // إضافة جديدة
   "توياتا": "تويوتا", // إضافة جديدة
-  "تاتا": "تويوتا", // إضافة جديدة
   
   "هونداي": "هيونداي",
   "هايونداي": "هيونداي",
   "هونداى": "هيونداي",
   "هايوندا": "هيونداي",
   "هايونده": "هيونداي",
-  "هوندا": "هيونداي", // إضافة جديدة
-  "هونده": "هيونداي", // إضافة جديدة
   "هيوندا": "هيونداي", // إضافة جديدة
   
   "نيسان": "نيسان", // القيمة الصحيحة
@@ -508,189 +493,6 @@ async function buildContactActions(store = null) {
   };
 }
 
-// Helper function to calculate average price for a car make
-async function getAveragePriceByMake(make) {
-  try {
-    const cars = await db.car.findMany({
-      where: {
-        make: { contains: make, mode: "insensitive" },
-        status: "AVAILABLE"
-      },
-      select: {
-        price: true
-      }
-    });
-
-    if (cars.length === 0) return null;
-
-    const total = cars.reduce((sum, car) => sum + Number(car.price), 0);
-    const average = total / cars.length;
-
-    return {
-      average: average.toFixed(2),
-      count: cars.length,
-      min: Math.min(...cars.map(c => Number(c.price))),
-      max: Math.max(...cars.map(c => Number(c.price)))
-    };
-  } catch (error) {
-    console.error("Error calculating average price:", error);
-    return null;
-  }
-}
-
-// Helper function to format car data for AI context
-function formatCarsForAI(cars) {
-  if (cars.length === 0) return "لا توجد سيارات متاحة حالياً تطابق البحث.";
-
-  return cars.map((car, index) => {
-    const hasPrice = Number(car.price) > 0;
-    const desc = String(car.description || "").trim();
-    const shortDesc = desc.length > 120 ? `${desc.slice(0, 120)}…` : desc;
-
-    return `
-سيارة ${index + 1}:
-العلامة التجارية: ${car.make}
-الموديل: ${car.model}
-سنة الصنع: ${car.year}
-السعر: ${
-      hasPrice
-        ? `${Number(car.price).toLocaleString("ar-SA")} ر.س`
-        : "غير محدد — يتطلب التواصل مع الإدارة للتسعير (لا تصلح لحساب قسط أو ميزانية)"
-    }
-المسافة المقطوعة: ${Number(car.mileage || 0).toLocaleString()} كم
-اللون: ${car.color}
-نوع الوقود: ${car.fuelType}
-ناقل الحركة: ${car.transmission}
-نوع الهيكل: ${car.bodyType}
-عدد المقاعد: ${car.seats || "غير محدد"}
-${shortDesc ? `الوصف: ${shortDesc}` : ""}
-${car.featured ? "تصنيف: ⭐ سيارة مميزة" : ""}
-${car.isLuxury ? "تصنيف: سيارة فاخرة — وسم «فاخرة» (isLuxury)" : ""}`;
-  }).join("\n\n");
-}
-
-/**
- * Did the reply actually name this car? Used instead of "the reply mentions the
- * word سيارة" so we never staple unrelated inventory onto an unrelated answer.
- */
-function carIsMentionedIn(car, text = "") {
-  const haystack = normalizeSearchText(text);
-  if (!haystack) return false;
-
-  const model = normalizeSearchText(car?.model);
-  const make = normalizeSearchText(car?.make);
-
-  // The model is the distinguishing part; the make alone is too broad.
-  if (model && model.length > 1 && haystack.includes(model)) return true;
-
-  return Boolean(
-    make &&
-      model &&
-      haystack.includes(make) &&
-      model.split(" ").some((part) => part.length > 2 && haystack.includes(part))
-  );
-}
-
-/** Reply that admits it cannot help — those must always offer a human. */
-function looksLikeDeadEndAnswer(text = "") {
-  return /عذرا|عذراً|آسف|اسف|للأسف|للاسف|لا أستطيع|لا استطيع|لا أملك|لا املك|لا تتوفر لدي|لا توجد لدي|لا نوفر|لا نقدم|لست متأكد|لا أعرف|لا اعرف|غير متاح|خارج نطاق/i.test(
-    String(text || "")
-  );
-}
-
-/** Greetings / thanks / short chitchat — not inventory searches. */
-function isGreetingOrChitchat(text = "") {
-  const t = String(text).trim();
-  if (!t) return true;
-
-  if (
-    /^(مرحبا|مرحباً|مرحبه|اهلا|أهلا|أهلاً|اهلاً|السلام\s*عليكم|وعليكم\s*السلام|هلا|هلاو|هاي|hello|hi|hey|صباح\s*الخير|مساء\s*الخير|كيفك|كيف\s*حالك|شلونك|شكرا|شكراً|مشكور|thanks|thank\s*you|ok|تمام|حسنا|طيب|اوكي)[\s!.؟]*$/i.test(
-      t
-    )
-  ) {
-    return true;
-  }
-
-  // Multi-word messages are almost never pure chitchat ("ابي كامري", etc.)
-  const tokens = t.split(/\s+/).filter(Boolean);
-  if (tokens.length >= 2) return false;
-
-  // Very short single-token messages without clear car/search keywords
-  const hasInventoryCue =
-    /سيار|تمويل|تقسيط|سعر|عرض|ماركة|موديل|تويوتا|هيونداي|نيسان|كيا|bmw|مرسيدس|لكزس|فاخر|اقتصاد|راتب|قسط|كامري|كورولا|هايلكس|راف|car|toyota|hyundai|nissan|kia|camry/i.test(
-      t
-    );
-  return t.length <= 8 && !hasInventoryCue && !/\d/.test(t);
-}
-
-function detectChatIntents(text) {
-  const contact =
-    /تواصل|أرقام|ارقام|اتصال|اتصل|رقم|جوال|هاتف|تليفون|موبايل|واتساب|واتس|whatsapp|phone|call|contact|numbers?|مندوب|مناديب|موظف|خدمة\s*عملاء|customer\s*service|كيف\s*أتواصل|كيف\s*اتواصل/i.test(
-      text
-    );
-  const corporate =
-    /شركات|مؤسسات|عروض الشركات|المؤسسات|جهات|أسطول|fleet|قطاع\s*حكومي/i.test(
-      text
-    );
-  const financing =
-    !contact &&
-    /تقسيط|تمويل|بنك|بنكي|قرض|قسط|أقساط|فائدة|شروط.*تمويل|loan|finance|installment|تمويلية/i.test(
-      text
-    );
-  const compare =
-    /مقارنة|قارن|مقارنه|compare|versus|\bvs\b|ضد\b|بين\s*موديل|الفرق\s*بين|مواصفات|موصفات/i.test(
-      text
-    );
-  const ranking = wantsRankingAmongResults(text);
-  const economical =
-    /اقتصاد|توفير|وقود|استهلاك|رخيص|cheap|fuel|اقتصادية|أفضل\s*سيارة\s*اقتصاد/i.test(
-      text
-    );
-  const latestOffers =
-    !corporate &&
-    (/أحدث.*عروض|عروض.*السيارات|أحدث.*متوفرة|المتوفرة حالياً|وصلت\s*حديثا|new arrivals|latest\s*offers/i.test(
-      text
-    ) ||
-      /ابحث عن أحدث عروض|أبحث عن أحدث عروض/i.test(text));
-  const greeting = isGreetingOrChitchat(text);
-
-  return {
-    contact,
-    corporate,
-    financing,
-    compare,
-    ranking,
-    economical,
-    latestOffers,
-    greeting,
-  };
-}
-
-async function fetchLatestOfferCars() {
-  return fetchLatestOfferCarsForChat();
-}
-
-async function fetchEconomicalCars(maxPrice = null) {
-  return fetchEconomicalCarsForChat(maxPrice);
-}
-
-function buildPlatformInfoForAI(storeInfo) {
-  const storeDescription = storeInfo?.description?.trim();
-  const lines = [
-    "- بيع سيارات جديدة متوفرة على الموقع",
-    "- التمويل الإسلامي عبر البنوك الشريكة",
-    "- حجز تجربة قيادة عبر الموقع",
-    "- عروض الشركات والمؤسسات",
-    "- **سيارة فاخرة (luxury)** = أي سيارة عليها وسم «فاخرة» في الموقع (isLuxury)",
-    "- نوفر سيارات كهربائية وهجينة حسب المخزون المتاح",
-    "- دعم العملاء متوفر عبر قنوات التواصل الرسمية",
-  ];
-  if (storeDescription) {
-    lines.unshift(`- نبذة عن المعرض: ${storeDescription}`);
-  }
-  return lines.join("\n");
-}
-
 const META_CACHE_MS = 60 * 1000;
 let banksCache = { data: null, at: 0 };
 let storeCache = { data: undefined, at: 0 };
@@ -735,37 +537,6 @@ async function fetchStoreInfoForChatbot() {
     console.error("fetchStoreInfoForChatbot:", e);
     return storeCache.data ?? null;
   }
-}
-
-function formatBanksForAI(banks) {
-  if (!banks?.length) {
-    return "لا توجد بنوك مسجلة في الجدول حالياً — وجّه العميل لصفحة البنوك على الموقع أو لطلب التمويل من صفحة السيارة.";
-  }
-  return banks
-    .map((b, i) => {
-      const rate = b.interestRate != null ? Number(b.interestRate) : null;
-      const rateStr =
-        rate != null && !Number.isNaN(rate) ? `${rate}%` : "غير محدد";
-      const policy = b.loanPolicy?.trim()
-        ? `\n   سياسة التمويل / الشروط: ${b.loanPolicy}`
-        : "";
-      return `${i + 1}. **${b.name}** — نسبة الفائدة السنوية التقريبية: ${rateStr}${policy}`;
-    })
-    .join("\n\n");
-}
-
-function formatStoreForAI(store) {
-  if (!store) return "لا تتوفر بيانات متجر في قاعدة البيانات.";
-  const parts = [
-    store.name && `اسم المعرض: ${store.name}`,
-    store.phone && `هاتف: ${store.phone}`,
-    store.whatsapp && `واتساب: ${store.whatsapp}`,
-    store.email && `بريد: ${store.email}`,
-    [store.address, store.city, store.country].filter(Boolean).join("، ") &&
-      `عنوان: ${[store.address, store.city, store.country].filter(Boolean).join("، ")}`,
-    store.description && `نبذة: ${store.description}`,
-  ].filter(Boolean);
-  return parts.join("\n");
 }
 
 export async function getChatbotResponse(message, conversationHistory = [], options = {}) {
@@ -867,11 +638,10 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
     const shouldShowCorrection = correctedMessage !== message;
     logger.debug("[chatbot] Spell check result", { corrected: shouldShowCorrection });
 
-    const earlyIntents = detectChatIntents(correctedMessage);
+    // Only the stateful wizards still need a keyword guess up front; every
+    // other intent is now the agent's job.
     const salaryIntentEarly = wantsSalaryRecommendation(correctedMessage);
     const installmentBudgetEarly = wantsInstallmentBudget(correctedMessage);
-    const affordabilityEarly = parseAffordabilityFromText(correctedMessage);
-    const maxInstallmentEarly = parseMaxInstallmentFromText(correctedMessage);
 
     // Leave financing car-select for free chat — but KEEP compare mode active
     if (conversation.mode === LOAN_CHAT_MODES.CAR_SELECT) {
@@ -880,40 +650,6 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
         loanState: emptyLoanState(),
       });
       conversation = await getConversationById(conversation.id);
-    }
-
-    // Contact shortcut (also exits compare if needed)
-    if (earlyIntents.contact) {
-      if (isCompareMode(conversation.mode)) {
-        await updateChatConversationState(conversation.id, {
-          mode: LOAN_CHAT_MODES.IDLE,
-          loanState: emptyLoanState(),
-        });
-        conversation = await getConversationById(conversation.id);
-      }
-      const storeInfoEarly = await fetchStoreInfoForChatbot();
-      const contactActionsEarly = await buildContactActions(storeInfoEarly);
-      const contactMessage = earlyIntents.corporate
-        ? "يسعدنا اهتمامكم بعروض الشركات والمؤسسات! 🏢 نوفر أسطولاً متنوعاً وأسعاراً خاصة للجهات. تواصلوا معنا عبر الأزرار أدناه لنعد لكم عرضاً مخصصاً."
-        : "يسعدنا تواصلك معنا! 😊 اسألني أي شيء عن السيارات أو التمويل، أو تواصل مباشرة عبر الأزرار أدناه.";
-      const contactReply = {
-        success: true,
-        message: contactMessage,
-        cars: [],
-        offers: [],
-        contactActions: contactActionsEarly,
-        conversationId: conversation.id,
-        mode: conversation.mode,
-      };
-      await appendChatMessages(conversation.id, [
-        { role: "user", content: message, payload: null },
-        {
-          role: "assistant",
-          content: contactReply.message,
-          payload: { contactActions: contactActionsEarly },
-        },
-      ]);
-      return contactReply;
     }
 
     // Change first/second car after a finished comparison
@@ -959,356 +695,48 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
       }
     }
 
-    // Build conversation history context first to understand context
-    let previousCarsContext = "";
-    let previousCars = [];
-    let conversationText = "";
-    if (conversationHistory.length > 0) {
-      conversationText = "\n\nسياق المحادثة السابقة:\n";
-      conversationHistory.slice(-8).forEach((msg) => {
-        conversationText += `${msg.sender === "user" ? "العميل" : "المساعد"}: ${msg.text}\n`;
-      });
-
-      // Get cars from the last bot response for context
-      const lastBotMessage = [...conversationHistory]
+    // ── Free conversation: an agent that decides what to look up ─────────────
+    // Everything below used to be a regex router that guessed the intent, ran
+    // one hard-coded query, and handed the model a fixed context blob. The
+    // model now picks its own tools, so it can answer questions nobody wrote a
+    // keyword for and it never answers about inventory from memory.
+    const previousCars = (() => {
+      const lastBot = [...conversationHistory]
         .reverse()
-        .find((msg) => msg.sender === "bot");
-      if (lastBotMessage && lastBotMessage.cars && lastBotMessage.cars.length > 0) {
-        previousCars = lastBotMessage.cars;
-        previousCarsContext = `\n\nالسيارات المعروضة في الرد السابق:\n${formatCarsForAI(lastBotMessage.cars)}`;
-        logger.debug("[chatbot] Using cars from previous context", {
-          count: lastBotMessage.cars.length,
-        });
-      }
-    }
+        .find((msg) => msg.sender === "bot" && msg.cars?.length);
+      return lastBot?.cars || [];
+    })();
 
-    const intents = detectChatIntents(correctedMessage);
-    logger.debug("[chatbot] Detected intents", intents);
-
-    const budget = parseBudgetFromQuery(correctedMessage);
-    let contactActions = null;
-    let salaryContext = "";
-
-    let relevantCars = [];
-    const salaryIntent = salaryIntentEarly;
-    const affordability = affordabilityEarly;
-    const maxInstallment = maxInstallmentEarly;
-    const installmentIntent = installmentBudgetEarly;
-    const needsBanks =
-      intents.financing ||
-      salaryIntent ||
-      installmentIntent;
-
-    // Overlap store/banks fetch with car search whenever possible
-    const storeInfoPromise = fetchStoreInfoForChatbot();
-    const banksPromise = needsBanks
-      ? fetchBanksForChatbot()
-      : Promise.resolve([]);
-
-    try {
-      if (salaryIntent && affordability.netSalary) {
-        const [banksForFilter, allCars] = await Promise.all([
-          banksPromise,
-          fetchAllAvailableCarsForChat(50),
-        ]);
-        relevantCars = await filterCarsByAffordability(
-          allCars,
-          banksForFilter,
-          affordability.netSalary,
-          affordability.totalMonthlyObligations
-        );
-        const maxPayment = getMaxAffordableMonthlyPayment(
-          affordability.netSalary,
-          affordability.totalMonthlyObligations
-        );
-        salaryContext = `\n\n=== ترشيح حسب الراتب (DTI ${35}%) ===
-- صافي الراتب: ${Number(affordability.netSalary).toLocaleString("ar-SA")} ر.س
-- الالتزامات الشهرية: ${Number(affordability.totalMonthlyObligations).toLocaleString("ar-SA")} ر.س
-- أقصى قسط شهري مقبول تقريباً: ${maxPayment.toLocaleString("ar-SA")} ر.س
-- السيارات أدناه مُصفّاة بناءً على عروض تمويل فعلية (افتراضات تقديرية)`;
-        logger.debug("[chatbot] Salary-based filtering applied", {
-          count: relevantCars.length,
-        });
-      } else if (installmentIntent && maxInstallment) {
-        const [banksForFilter, allCars] = await Promise.all([
-          banksPromise,
-          fetchAllAvailableCarsForChat(50),
-        ]);
-        relevantCars = await filterCarsByMaxInstallment(
-          allCars,
-          banksForFilter,
-          maxInstallment
-        );
-        salaryContext = `\n\n=== فلترة حسب أقصى قسط شهري ===
-- أقصى قسط شهري مطلوب: ${Number(maxInstallment).toLocaleString("ar-SA")} ر.س`;
-        logger.debug("[chatbot] Max-installment filtering applied", {
-          count: relevantCars.length,
-          maxInstallment,
-        });
-      } else if (intents.ranking && previousCars.length > 0) {
-        relevantCars = previousCars;
-        logger.debug("[chatbot] Ranking among previously shown cars", {
-          count: relevantCars.length,
-        });
-      } else if (intents.economical) {
-        relevantCars = await fetchEconomicalCars(budget.maxPrice);
-        logger.debug("[chatbot] Using economical car set");
-      } else if (intents.latestOffers) {
-        relevantCars = await fetchLatestOfferCars();
-        if (budget.maxPrice != null) {
-          relevantCars = relevantCars.filter(
-            (car) => Number(car.price) <= budget.maxPrice
-          );
-        }
-        logger.debug("[chatbot] Using latest offers car set");
-      } else if (!intents.greeting) {
-        logger.debug("[chatbot] Searching database with conversation context");
-        relevantCars = await searchCarsInDatabase(
-          correctedMessage,
-          conversationHistory
-        );
-      }
-    } catch (filterError) {
-      logger.error("[chatbot] Car filtering failed", filterError);
-      relevantCars = [];
-    }
-
-    const storeInfo = await storeInfoPromise;
-
-    if (intents.corporate && relevantCars.length === 0) {
-      relevantCars = await fetchLatestOfferCars();
-      logger.debug("[chatbot] Added sample cars for corporate context");
-    }
-
-    const needsContactFallback =
-      relevantCars.length === 0 &&
-      !salaryIntent &&
-      !installmentIntent &&
-      !intents.greeting &&
-      !intents.ranking &&
-      !intents.financing &&
-      !intents.compare;
-
-    // Contacts only for corporate / real dead-end — never on compare Q&A
-    if (needsContactFallback || intents.corporate) {
-      contactActions = await buildContactActions(storeInfo);
-    }
-
-    logger.debug("[chatbot] Relevant cars resolved", { count: relevantCars.length });
-
-    const banks = await banksPromise;
-    const banksContext = needsBanks
-      ? `\n\n=== بيانات البنوك والتمويل ===\n${formatBanksForAI(banks)}`
-      : `\n\n=== بيانات البنوك والتمويل ===\nمتوفرة عند السؤال عن التمويل/القسط — لا تذكر أرقاماً غير موجودة في سياق الرسالة.`;
-    const storeContactContext = `\n\n=== بيانات التواصل الرسمية للمعرض ===\n${formatStoreForAI(storeInfo)}`;
-
-    let intentInstructions = `
-أسلوب المحادثة: **محادثة حرة طبيعية**.
-- تحدّث كمستشار مبيعات ودود، ليس كقائمة أوامر أو معالج خطوات إجباري.
-- أجب على سؤال العميل مباشرة دون إجباره على مسار تمويل أو اختيار مرحلي.
-- اطرح سؤالاً توضيحياً واحداً فقط عند الحاجة ثم أكمل المساعدة.
-`;
-    if (intents.greeting) {
-      intentInstructions += `
-موضوع الرسالة: **تحية**.
-- رحّب باختصار وقدّم نفسك، واسأل كيف تساعد دون سرد قائمة طويلة.
-`;
-    }
-    if (budget.maxPrice != null || budget.minPrice != null) {
-      intentInstructions += `
-موضوع الرسالة: **ميزانية**.
-${budget.maxPrice != null ? `- الحد الأقصى: ${budget.maxPrice.toLocaleString("ar-SA")} ر.س` : ""}
-${budget.minPrice != null ? `- الحد الأدنى: ${budget.minPrice.toLocaleString("ar-SA")} ر.س` : ""}
-`;
-    }
-    if (salaryIntent && !affordability.netSalary && !maxInstallment) {
-      intentInstructions += `
-موضوع الرسالة: **راتب بدون رقم** — اطلب بلطف صافي الراتب والالتزامات في جملة قصيرة طبيعية.
-`;
-    }
-    if (salaryIntent && affordability.netSalary) {
-      intentInstructions += `
-موضوع الرسالة: **ترشيح حسب الراتب** — رشّح من القائمة المؤهلة واذكر أن التقدير أولي.
-`;
-    }
-    if (installmentIntent && maxInstallment) {
-      intentInstructions += `
-موضوع الرسالة: **حد قسط ${Number(maxInstallment).toLocaleString("ar-SA")} ر.س** — رشّح من القائمة.
-`;
-    }
-    if (intents.ranking) {
-      intentInstructions += `
-موضوع الرسالة: **أيهم أفضل** — توصية واضحة مع سبب قصير.
-`;
-    }
-    if (intents.compare && !intents.ranking) {
-      intentInstructions += `
-موضوع الرسالة: **مقارنة** — قارن نصياً (سعر، سنة، هيكل، وقود، مقاعد).
-`;
-    }
-    if (intents.economical) {
-      intentInstructions += `
-موضوع الرسالة: **اقتصادية**.
-`;
-    }
-    if (intents.latestOffers) {
-      intentInstructions += `
-موضوع الرسالة: **أحدث العروض**.
-`;
-    }
-    if (intents.financing) {
-      intentInstructions += `
-موضوع الرسالة: **تمويل / تقسيط**.
-- اشرح من بيانات البنوك. لا تبدأ استبياناً — إن أراد طلباً قل له يضغط «موّل هذه السيارة» على البطاقة.
-`;
-    }
-    if (intents.corporate) {
-      intentInstructions += `
-موضوع الرسالة: **شركات** — وجّه لقنوات التواصل الرسمية.
-`;
-    }
-    if (needsContactFallback) {
-      intentInstructions += `
-لا توجد سيارات مطابقة — أجب بصدق واقترح بدائل أو تواصل دون اختراع بيانات.
-`;
-    }
-    intentInstructions += `
-إذا لم تكن تعرف الإجابة أو كان الطلب خارج نطاق خدماتنا:
-- اعتذر بجملة واحدة قصيرة، ثم **ادعُ العميل صراحةً للتواصل مع فريقنا عبر الأزرار أدناه** ليجيبه موظف مختص.
-- لا تنهِ الرد باعتذار فقط ودون أي طريقة للتواصل.
-`;
-    // Always go through Gemini for free conversation (even with zero cars)
-    // Format car data for the AI
-    const carsContext = formatCarsForAI(relevantCars);
-    logger.debug("[chatbot] Formatted cars context for AI");
-
-    // Enhanced price query detection and handling
-    let priceContext = "";
-    let isPriceQuery = false;
-
-    // Detect various price-related queries
-    const priceQueryPatterns = [
-      /(سعر|اسعار|أسعار|price|prices|cost|costs)/i,
-      /(كم.*سعر|how much|what.*price)/i,
-      /(بكم|for how much|at what price)/i,
-      /(سعر.*سيار|car.*price)/i
-    ];
-
-    isPriceQuery = priceQueryPatterns.some(pattern => pattern.test(correctedMessage));
-
-    if (isPriceQuery && relevantCars.length > 0) {
-      // Cars are already in carsContext — only add average stats when asked
-      const averagePriceMatch = correctedMessage.match(/(متوسط|معدل|average).*(سعر|price)/i);
-      if (averagePriceMatch) {
-        const make = relevantCars[0].make;
-        const priceStats = await getAveragePriceByMake(make);
-
-        if (priceStats) {
-          priceContext = `\n\nإحصائيات الأسعار لسيارات ${make}:
-- متوسط السعر: ${Number(priceStats.average).toLocaleString("ar-SA")} ر.س
-- عدد السيارات المتوفرة: ${priceStats.count}
-- أقل سعر: ${priceStats.min.toLocaleString("ar-SA")} ر.س
-- أعلى سعر: ${priceStats.max.toLocaleString("ar-SA")} ر.س`;
-        }
-      }
-    }
-
-    // Create a free-conversation prompt with dealership context
-    const systemContext = `أنت مساعد محادثة حرة لمنصة ماكس موتورز (معرض سيارات سعودي للبيع والتمويل).
-${intentInstructions}
-معلومات عن المنصة:
-${buildPlatformInfoForAI(storeInfo)}
-
-دورك في المحادثة الحرة:
-- أجب كإنسان خبير ودود — حوار طبيعي متصل بالسياق السابق
-- افهم نية العميل حتى لو صيغت بشكل عام أو بأخطاء إملائية
-- ساعد في: البحث، الأسعار، المواصفات، المقارنة، القسط حسب الراتب، التمويل، التواصل، تجربة القيادة
-- استخدم السيارات المعروضة سابقاً إن سأل عن «أفضل» أو لون أو فرق بينها
-- لا تجبر العميل على معالج تمويل؛ اشرح ثم اقترح زر «موّل هذه السيارة» إن رغب
-
-قواعد الرد:
-- عربية فصحى بسيطة وواضحة
-- أجب على السؤال أولاً ثم اقترح الخطوة التالية باختصار
-- لا تخترع سيارات أو أسعار أو أرقام تواصل غير موجودة في البيانات
-- لا تعرض روابط/URLs — الواجهة تعرض البطاقات
-- استخدم **النص** للأسماء والأسعار المهمة
-- عند ذكر سيارات من القائمة، أضف في النهاية: [CARS_TO_SHOW]1,3 (أرقام السيارات التي ذكرتها)
-- لا تضف [CARS_TO_SHOW] إن لم تذكر سيارات
-- أسماء الماركات/الموديلات يجب أن تطابق القائمة حرفياً
-${banksContext}${storeContactContext}${salaryContext}
-${previousCarsContext}
-
-السيارات ذات الصلة بالطلب الحالي:
-${carsContext || "لا توجد نتائج سيارات مطابقة لهذا الطلب في المخزون حالياً."}
-${priceContext}
-
-الآن، رد على رسالة العميل:`;
-    const prompt = `${systemContext}${conversationText}\n\nرسالة العميل الحالية: ${correctedMessage}${shouldShowCorrection ? ` (تم تصحيح من: ${message})` : ''}`;
-
-    // Generate response with automatic model failover on 503/429
-    logger.debug("[chatbot] Sending prompt to Gemini AI");
-
-    const generated = await generateContentResilient(prompt);
-    const text = generated.text;
-    logger.debug("[chatbot] AI response received", {
-      responseLength: text.length,
-      model: generated.model,
+    const agentReply = await runChatAgent({
+      // Raw text on purpose: the model reads typos and slang better than the
+      // substitution table does, and the table has no idea which of two similar
+      // brands the customer meant.
+      message,
+      conversationHistory,
+      previousCars,
+      fetchStoreInfo: fetchStoreInfoForChatbot,
+      fetchBanks: fetchBanksForChatbot,
+      fetchSalesReps: async () => {
+        const result = await getPublicMandebs().catch(() => null);
+        return result?.success ? result.data || [] : [];
+      },
+      buildContactActions: () => buildContactActions(),
     });
 
-    // Parse the response to extract which cars to show
-    let cleanedText = text.trim();
-    // Don't dump full inventory unless the model picks cars (or salary/installment results)
-    const forceShowFiltered =
-      (salaryIntent && affordability.netSalary) ||
-      (installmentIntent && maxInstallment);
-    let carsToShow = intents.greeting
-      ? []
-      : forceShowFiltered
-        ? relevantCars.slice(0, 8)
-        : [];
-    
-    // Check if AI specified which cars to show
-    const carsMarkerMatch = cleanedText.match(/\[CARS_TO_SHOW\]([\d,\s]+)/);
-    if (carsMarkerMatch) {
-      const carIndices = carsMarkerMatch[1]
-        .split(',')
-        .map(num => parseInt(num.trim()) - 1) // Convert to 0-based index
-        .filter(index => index >= 0 && index < relevantCars.length);
-      
-      if (carIndices.length > 0) {
-        carsToShow = carIndices.map(index => relevantCars[index]);
-        logger.debug("[chatbot] AI selected specific cars to display", {
-          count: carsToShow.length,
-        });
-      }
-      
-      // Remove the marker from the displayed text
-      cleanedText = cleanedText.replace(/\[CARS_TO_SHOW\][\d,\s]+/, '').trim();
-    } else if (!forceShowFiltered && !intents.greeting && relevantCars.length > 0) {
-      // Model may have talked about cars and forgotten the marker. The old test
-      // was "does the reply contain the word سيارة" — true of almost every
-      // reply, which is how unrelated, unpriced cars ended up bolted onto an
-      // answer about spare parts. Only attach cars the reply actually names.
-      carsToShow = relevantCars
-        .filter((car) => carIsMentionedIn(car, cleanedText))
-        .slice(0, 6);
+    const cleanedText =
+      agentReply.text ||
+      "عذراً، لم أستطع تجهيز الرد الآن. تواصل مع فريقنا عبر الأزرار أدناه وسنساعدك مباشرة.";
+    const carsToShow = agentReply.cars;
+    const quickReplies = agentReply.quickReplies;
+    let contactActions = agentReply.contactActions;
+    const relevantCars = agentReply.seenCars;
+
+    // A blank reply is worse than an honest handoff.
+    if (!cleanedText) {
+      contactActions = contactActions || (await buildContactActions().catch(() => null));
     }
 
-    // An answer that says "we can't help with that" must not arrive carrying
-    // car cards it never mentioned — and it must always offer a human instead.
-    if (looksLikeDeadEndAnswer(cleanedText)) {
-      const mentioned = carsToShow.filter((car) => carIsMentionedIn(car, cleanedText));
-      if (mentioned.length !== carsToShow.length) {
-        logger.debug("[chatbot] Dropped unmentioned cars from dead-end answer", {
-          dropped: carsToShow.length - mentioned.length,
-        });
-        carsToShow = mentioned;
-      }
-      if (!contactActions) {
-        contactActions = await buildContactActions(storeInfo);
-        logger.debug("[chatbot] Attached contact actions to dead-end answer");
-      }
-    }
+
     // Persist conversation history before returning (needed for reload/history).
     // Analytics chatLog can wait — don't block the user on Clerk + extra insert.
     try {
@@ -1317,7 +745,7 @@ ${priceContext}
         {
           role: "assistant",
           content: cleanedText,
-          payload: { cars: carsToShow, contactActions },
+          payload: { cars: carsToShow, contactActions, quickReplies },
         },
       ]);
     } catch (logError) {
@@ -1353,6 +781,7 @@ ${priceContext}
       cars: carsToShow,
       offers: [],
       contactActions,
+      quickReplies,
       conversationId: conversation.id,
       mode: conversation.mode,
     };
