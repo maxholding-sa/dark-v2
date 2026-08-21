@@ -142,7 +142,7 @@ export default function ArticleDetailPage() {
               </p>
             )}
 
-            <div className="flex items-center text-sm text-gray-400 space-x-6 rtl:space-x-reverse">
+            <div className="flex items-center text-sm text-gray-400 gap-6">
               <div className="flex items-center ">
                 <User className="h-4 w-4 ml-2 mr-2" />
                 <span>{article.author?.name || 'غير محدد'}</span>

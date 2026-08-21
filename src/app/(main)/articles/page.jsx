@@ -81,7 +81,7 @@ export default function ArticlesPage() {
                     <p className="text-gray-200 mb-4 line-clamp-3">
                       {article.excerpt}
                     </p>
-                    <div className="flex items-center text-sm text-gray-300 mb-4 space-x-4 rtl:space-x-reverse">
+                    <div className="flex items-center text-sm text-gray-300 mb-4 gap-4">
                       <div className="flex items-center">
                         <User className="h-4 w-4 ml-1" />
                         <span>{article.author?.name || 'فريق ماكس موتورز'}</span>
