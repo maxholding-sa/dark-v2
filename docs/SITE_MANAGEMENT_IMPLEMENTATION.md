@@ -26,7 +26,7 @@ Successfully implemented a complete site management system to control social med
 - **Purpose**: Store essential business information
 - **Fields**:
   - `id`: Unique identifier
-  - `name`: Store/business name (default: "Click Car Motors")
+  - `name`: Store/business name (default: "Max Motors")
   - `description`: Store description/bio (Text field)
   - `address`: Physical address
   - `city`: City name

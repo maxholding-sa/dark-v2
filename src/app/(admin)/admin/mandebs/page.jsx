@@ -2,7 +2,7 @@ import React from "react";
 import MandebList from "./_components/MandebList";
 
 export const metadata = {
-    title: "المناديب | Click Car Admin",
+    title: "المناديب | Max Motors Admin",
     description: "إدارة المناديب في السوق الخاص بك",
 };
 

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "إدارة الموقع | Click Car Admin",
+  title: "إدارة الموقع | Max Motors Admin",
   description: "إدارة محتوى وبيانات الموقع الأساسية",
 };
 

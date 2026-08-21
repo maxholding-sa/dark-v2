@@ -4,7 +4,7 @@ import React from "react";
 import PagePermissionsMatrix from "./_components/PagePermissionsMatrix";
 
 export const metadata = {
-    title: "إدارة الصفحات المسموحة والممنوعة | Click Car Admin",
+    title: "إدارة الصفحات المسموحة والممنوعة | Max Motors Admin",
     description: "تحكم في وصول المحررين لصفحات لوحة التحكم",
 };
 

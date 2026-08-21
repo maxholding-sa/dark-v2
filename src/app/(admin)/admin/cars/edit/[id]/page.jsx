@@ -2,7 +2,7 @@ import React from "react";
 import EditCarForm from "../../_components/EditCarForm";
 
 export const metadata = {
-  title: "تعديل السيارة | Click Car Admin",
+  title: "تعديل السيارة | Max Motors Admin",
   description: "تعديل تفاصيل السيارة",
 };
 

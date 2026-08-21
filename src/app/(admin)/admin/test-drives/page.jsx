@@ -2,7 +2,7 @@ import React from "react";
 import TestDriveList from "./_components/TestDriveList";
 
 export const metadata = {
-  title: "اختبارات القيادة | Click Car Admin",
+  title: "اختبارات القيادة | Max Motors Admin",
   description: "إدارة حجوزات اختبار القيادة",
 };
 

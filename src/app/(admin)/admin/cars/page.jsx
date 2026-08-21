@@ -2,7 +2,7 @@ import React from "react";
 import CarList from "./_components/CarList";
 
 export const metadata = {
-  title: "السيارات | Click Car Admin",
+  title: "السيارات | Max Motors Admin",
   description: "إدارة السيارات في السوق الخاص بك",
 };
 

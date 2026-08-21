@@ -130,8 +130,11 @@ const Footer = ({ initialData }) => {
           <div className="pt-4 text-center md:text-right">
             <h3 className="text-lg font-semibold text-white mb-4">تابعنا</h3>
             <div className="flex justify-center md:justify-start space-x-4 flex-wrap gap-2">
-              {!loading && socialLinks.length > 0 ? (
-                socialLinks.map((social) => (
+              {/* Links come from the database only. The old hard-coded fallback
+                  advertised another dealership's accounts on every page load
+                  before the fetch resolved. */}
+              {!loading && socialLinks.length > 0
+                ? socialLinks.map((social) => (
                   <a
                     key={social.id}
                     href={social.url}
@@ -151,30 +154,8 @@ const Footer = ({ initialData }) => {
                       getIconComponent(social.platform)
                     )}
                   </a>
-                ))
-              ) : (
-                // Fallback to default social media
-                <>
-                  <a href="https://www.facebook.com/ClickCar0" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <Facebook size={24} />
-                  </a>
-                  <a href="https://www.snapchat.com/add/clickcar.sa" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <SiSnapchat size={24} />
-                  </a>
-                  <a href="https://www.instagram.com/clickcar_sa/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <Instagram size={24} />
-                  </a>
-                  <a href="https://www.tiktok.com/@clickcars.sa" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <SiTiktok size={24} />
-                  </a>
-                  <a href="https://www.youtube.com/@Clickcar-sa" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <Youtube size={24} />
-                  </a>
-                  <a href="https://wa.me/966123456789" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                    <SiWhatsapp size={24} />
-                  </a>
-                </>
-              )}
+                  ))
+                : null}
             </div>
           </div>
 

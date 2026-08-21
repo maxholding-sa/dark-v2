@@ -2,7 +2,7 @@ import React from "react";
 import FeaturedBrandList from "./_components/FeaturedBrandList";
 
 export const metadata = {
-  title: "العلامات التجارية المميزة | Click Car Admin",
+  title: "العلامات التجارية المميزة | Max Motors Admin",
   description: "إدارة العلامات التجارية المميزة",
 };
 

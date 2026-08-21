@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "الشعار | Click Car Admin",
+  title: "الشعار | Max Motors Admin",
   description: "إدارة شعار الموقع والصور",
 };
 

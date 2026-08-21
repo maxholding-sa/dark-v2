@@ -73,7 +73,7 @@ The chatbot maintains the last 6 messages of conversation history to provide con
 
 ### 3. System Prompt
 The AI is configured with detailed context about:
-- Click Car AI platform features
+- Max Motors AI platform features
 - Available car brands and services
 - Test drive booking process
 - Financing options

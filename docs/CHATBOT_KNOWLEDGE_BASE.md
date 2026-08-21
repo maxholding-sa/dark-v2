@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Click Car AI chatbot now uses **real-time data from the Supabase database** as its knowledge base. This means the chatbot can provide accurate, up-to-date information about actual cars available on the platform, including prices, specifications, images, and direct links.
+The Max Motors AI chatbot now uses **real-time data from the Supabase database** as its knowledge base. This means the chatbot can provide accurate, up-to-date information about actual cars available on the platform, including prices, specifications, images, and direct links.
 
 ## Features
 

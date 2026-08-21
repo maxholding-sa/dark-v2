@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "إدارة الموقع | Click Car Admin",
+  title: "إدارة الموقع | Max Motors Admin",
   description: "إدارة البيانات الأساسية للموقع",
 };
 

@@ -2,7 +2,7 @@ import React from "react";
 import FeaturedModelList from "./_components/FeaturedModelList";
 
 export const metadata = {
-  title: "أنواع الهيكل المميزة | Click Car Admin",
+  title: "أنواع الهيكل المميزة | Max Motors Admin",
   description: "إدارة أنواع الهيكل المميزة",
 };
 
