@@ -721,6 +721,7 @@ export async function getChatbotResponse(message, conversationHistory = [], opti
         return result?.success ? result.data || [] : [];
       },
       buildContactActions: () => buildContactActions(),
+      deadlineMs: options?.deadlineMs,
     });
 
     const cleanedText =

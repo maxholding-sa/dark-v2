@@ -46,12 +46,48 @@ export function getGeminiClient() {
   return new GoogleGenerativeAI(key);
 }
 
-export function getGeminiModel(generationConfig, modelName = GEMINI_MODEL) {
+export function getGeminiModel(
+  generationConfig,
+  modelName = GEMINI_MODEL,
+  requestOptions
+) {
   const client = getGeminiClient();
-  return client.getGenerativeModel({
-    model: modelName,
-    ...(generationConfig ? { generationConfig } : {}),
-  });
+  return client.getGenerativeModel(
+    {
+      model: modelName,
+      ...(generationConfig ? { generationConfig } : {}),
+    },
+    requestOptions
+  );
+}
+
+/**
+ * A chat reply that arrives after the reverse proxy has given up is worse than
+ * no reply: the server action rejects and the widget shows a bare "حدث خطأ".
+ * Every entry point below is bounded so we always return something in time.
+ */
+export const GEMINI_TURN_DEADLINE_MS = Number(
+  process.env.GEMINI_TURN_DEADLINE_MS || 24000
+);
+export const GEMINI_REQUEST_TIMEOUT_MS = Number(
+  process.env.GEMINI_REQUEST_TIMEOUT_MS || 12000
+);
+
+export class GeminiDeadlineError extends Error {
+  constructor(message = "Gemini turn exceeded its deadline") {
+    super(message);
+    this.name = "GeminiDeadlineError";
+    this.isDeadline = true;
+  }
+}
+
+export function isGeminiDeadlineError(error) {
+  return Boolean(error?.isDeadline) || error?.name === "GeminiDeadlineError";
+}
+
+/** Budget for one HTTP call: never more than what is left of the turn. */
+function callTimeout(remainingMs) {
+  return Math.max(2000, Math.min(GEMINI_REQUEST_TIMEOUT_MS, remainingMs));
 }
 
 export function isTransientGeminiError(error) {
@@ -88,8 +124,15 @@ function retryDelayMs(error, attempt) {
  */
 export async function generateContentResilient(
   promptOrParts,
-  { generationConfig, modelChain, rounds = 2 } = {}
+  {
+    generationConfig,
+    modelChain,
+    rounds = 2,
+    deadlineMs = GEMINI_TURN_DEADLINE_MS,
+  } = {}
 ) {
+  const startedAt = Date.now();
+  const remaining = () => deadlineMs - (Date.now() - startedAt);
   const models = (modelChain?.length ? modelChain : getGeminiModelChain()).filter(
     Boolean
   );
@@ -103,8 +146,13 @@ export async function generateContentResilient(
   for (let round = 0; round < rounds; round += 1) {
     for (const modelName of models) {
       attempt += 1;
+      if (remaining() <= 0) {
+        throw lastError || new GeminiDeadlineError();
+      }
       try {
-        const model = getGeminiModel(generationConfig, modelName);
+        const model = getGeminiModel(generationConfig, modelName, {
+          timeout: callTimeout(remaining()),
+        });
         const result = await model.generateContent(promptOrParts);
         const text = result?.response?.text?.() ?? "";
         if (attempt > 1) {
@@ -132,7 +180,8 @@ export async function generateContentResilient(
         // Between rounds: short backoff once the whole chain failed.
         const isLastInRound = modelName === models[models.length - 1];
         if (isLastInRound && round < rounds - 1) {
-          const delayMs = retryDelayMs(error, round);
+          const delayMs = Math.min(retryDelayMs(error, round), Math.max(0, remaining()));
+          if (delayMs <= 0) break;
           await new Promise((r) => setTimeout(r, delayMs));
         }
       }
@@ -173,20 +222,27 @@ export async function runGeminiToolLoop({
   generationConfig,
   modelChain,
   rounds = 2,
+  deadlineMs = GEMINI_TURN_DEADLINE_MS,
 }) {
   const models = (modelChain?.length ? modelChain : getGeminiModelChain()).filter(
     Boolean
   );
   if (!models.length) throw new Error("No Gemini models configured");
 
+  const startedAt = Date.now();
+  const remaining = () => deadlineMs - (Date.now() - startedAt);
+
   const buildModel = (modelName, withTools = true) =>
-    getGeminiClient().getGenerativeModel({
-      model: modelName,
-      systemInstruction,
-      tools:
-        withTools && tools?.length ? [{ functionDeclarations: tools }] : undefined,
-      ...(generationConfig ? { generationConfig } : {}),
-    });
+    getGeminiClient().getGenerativeModel(
+      {
+        model: modelName,
+        systemInstruction,
+        tools:
+          withTools && tools?.length ? [{ functionDeclarations: tools }] : undefined,
+        ...(generationConfig ? { generationConfig } : {}),
+      },
+      { timeout: callTimeout(remaining()) }
+    );
 
   // Failover happens per request, not per loop: an overloaded model mid-turn
   // must not cost us the tool calls we already paid for. Start on whichever
@@ -200,6 +256,9 @@ export async function runGeminiToolLoop({
     let lastError;
     for (let round = 0; round < rounds; round += 1) {
       for (let offset = 0; offset < models.length; offset += 1) {
+        if (remaining() <= 0) {
+          throw lastError || new GeminiDeadlineError();
+        }
         const index = (activeIndex + offset) % models.length;
         const modelName = models[index];
         try {
@@ -224,7 +283,9 @@ export async function runGeminiToolLoop({
         }
       }
       if (round < rounds - 1) {
-        await new Promise((r) => setTimeout(r, retryDelayMs(lastError, round)));
+        const delayMs = Math.min(retryDelayMs(lastError, round), Math.max(0, remaining()));
+        if (delayMs <= 0) break;
+        await new Promise((r) => setTimeout(r, delayMs));
       }
     }
     throw lastError || new Error("Gemini generateContent failed");
@@ -237,9 +298,20 @@ export async function runGeminiToolLoop({
   let result = await generate(contents);
   let steps = 0;
 
+  // Reserve enough of the budget to still write the answer after the last
+  // lookup — a turn that spends everything on tools returns nothing.
+  const ANSWER_RESERVE_MS = 6000;
+
   while (steps < maxSteps) {
     const requested = result?.response?.functionCalls?.() || [];
     if (!requested.length) break;
+    if (remaining() < ANSWER_RESERVE_MS) {
+      console.warn("[gemini] tool loop stopping early to answer in time", {
+        steps,
+        remainingMs: remaining(),
+      });
+      break;
+    }
 
     const modelParts = result?.response?.candidates?.[0]?.content?.parts;
     if (!modelParts?.length) break;
@@ -273,16 +345,27 @@ export async function runGeminiToolLoop({
 
   let text = result?.response?.text?.() ?? "";
 
-  // Ran out of steps while still calling tools, so the turn has no prose yet.
-  // Re-ask with the tools detached — leaving them attached is what produced an
-  // endless chain of lookups and an empty reply. The unanswered functionCall
-  // turn stays out of `contents`: a call without a response is rejected.
+  // Ran out of steps or time while still calling tools, so the turn has no
+  // prose yet. Re-ask with the tools detached — leaving them attached is what
+  // produced an endless chain of lookups and an empty reply. The unanswered
+  // functionCall turn stays out of `contents`: a call without a response is
+  // rejected.
+  //
+  // Only safe once at least one tool has actually returned. With no results in
+  // `contents`, "answer without tools" is an invitation to invent cars and
+  // prices — so an empty-handed turn fails loudly instead and the caller
+  // degrades gracefully.
   if (!text.trim()) {
+    if (!calls.length) {
+      throw new GeminiDeadlineError(
+        "Gemini turn ended before any tool returned data"
+      );
+    }
     contents.push({
       role: "user",
       parts: [
         {
-          text: "اكتب الآن الإجابة النهائية للعميل بالنص فقط، معتمداً على نتائج الأدوات أعلاه. لا تستدعِ أي أداة.",
+          text: "اكتب الآن الإجابة النهائية للعميل بالنص فقط. اعتمد حصراً على نتائج الأدوات الواردة أعلاه، ولا تذكر أي سيارة أو سعر أو رقم لم يرد فيها. لا تستدعِ أي أداة.",
         },
       ],
     });
