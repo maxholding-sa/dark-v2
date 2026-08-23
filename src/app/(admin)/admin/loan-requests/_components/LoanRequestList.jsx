@@ -38,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatSaudiRiyalReact, formatSaudiRiyalText, formatYesNo, formatLoanRequestStatusAr } from "@/lib/helper";
+import { formatSaudiRiyalReact, formatSaudiRiyalText, formatYesNo, formatLoanRequestStatusAr, isPricingPendingRequest } from "@/lib/helper";
 import LoanRequestDetailView from "./LoanRequestDetailView";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -413,7 +413,7 @@ const LoanRequestList = () => {
                               phoneNumber={loanRequest.mobileNumber}
                               fixed={false}
                               className="h-6 w-6"
-                              text={`السلام عليكم،\n\nنحن من معرض ماكس موتورز. لقد اطلعنا على طلبكم.\n\nتفاصيل الطلب:\n- الاسم: ${loanRequest.fullName}\n- رقم الهوية: ${loanRequest.idNumber || "غير محدد"}\n- رقم الجوال: ${loanRequest.mobileNumber}\n- البريد الإلكتروني: ${loanRequest.email}\n- المدينة: ${loanRequest.city}\n- وقت التواصل: ${loanRequest.time || "غير محدد"}\n\nتفاصيل السيارة:\n- الماركة: ${loanRequest.carMake}\n- الموديل: ${loanRequest.carModel}\n- السنة: ${loanRequest.carYear}\n- الفئة: ${loanRequest.carCategory || 'غير محدد'}\n- رابط السيارة: ${typeof window !== 'undefined' ? window.location.origin : ''}/cars/${loanRequest.carId}\n\nتفاصيل القرض:\n- مبلغ القرض: ${formatSaudiRiyalText(loanRequest.loanAmount)}\n- الدفعة الأولى: ${formatSaudiRiyalText(loanRequest.downPayment)}\n- مدة القرض: ${loanRequest.termMonths ? `${loanRequest.termMonths} شهر` : `${loanRequest.loanTerm} سنة`}\n- القسط الشهري: ${loanRequest.monthlyPayment ? formatSaudiRiyalText(loanRequest.monthlyPayment) : 'غير محدد'}\n- صافي الراتب: ${loanRequest.netSalary ? formatSaudiRiyalText(loanRequest.netSalary) : 'غير محدد'}\n- جهة العمل: ${loanRequest.employerSector || 'غير محدد'}\n- اسم جهة العمل: ${loanRequest.employer || 'غير محدد'}\n- جهة تحويل الراتب: ${loanRequest.salaryTransferBank?.name || 'غير محدد'}\n- هل لديك تمويل عقاري: ${formatYesNo(loanRequest.hasRealEstateFinance)}\n- هل لديك تعثر في سمة: ${formatYesNo(loanRequest.hasCreditDefault)}\n- إجمالي الإلتزامات الشهرية: ${loanRequest.totalMonthlyObligations ? formatSaudiRiyalText(loanRequest.totalMonthlyObligations) : 'غير محدد'}\n\nحالة الطلب: ${formatLoanRequestStatusAr(loanRequest.status)}\n\nيرجى التواصل معنا لمتابعة الطلب.`}
+                              text={`السلام عليكم،\n\nنحن من معرض ماكس موتورز. لقد اطلعنا على طلبكم.\n\nتفاصيل الطلب:\n- الاسم: ${loanRequest.fullName}\n- رقم الهوية: ${loanRequest.idNumber || "غير محدد"}\n- رقم الجوال: ${loanRequest.mobileNumber}\n- البريد الإلكتروني: ${loanRequest.email}\n- المدينة: ${loanRequest.city}\n- وقت التواصل: ${loanRequest.time || "غير محدد"}\n\nتفاصيل السيارة:\n- الماركة: ${loanRequest.carMake}\n- الموديل: ${loanRequest.carModel}\n- السنة: ${loanRequest.carYear}\n- الفئة: ${loanRequest.carCategory || 'غير محدد'}\n- رابط السيارة: ${typeof window !== 'undefined' ? window.location.origin : ''}/cars/${loanRequest.carId}\n\nتفاصيل القرض:\n- مبلغ القرض: ${isPricingPendingRequest(loanRequest) ? "بانتظار تحديد سعر السيارة" : formatSaudiRiyalText(loanRequest.loanAmount)}\n- الدفعة الأولى: ${formatSaudiRiyalText(loanRequest.downPayment)}\n- مدة القرض: ${loanRequest.termMonths ? `${loanRequest.termMonths} شهر` : `${loanRequest.loanTerm} سنة`}\n- القسط الشهري: ${loanRequest.monthlyPayment ? formatSaudiRiyalText(loanRequest.monthlyPayment) : 'غير محدد'}\n- صافي الراتب: ${loanRequest.netSalary ? formatSaudiRiyalText(loanRequest.netSalary) : 'غير محدد'}\n- جهة العمل: ${loanRequest.employerSector || 'غير محدد'}\n- اسم جهة العمل: ${loanRequest.employer || 'غير محدد'}\n- جهة تحويل الراتب: ${loanRequest.salaryTransferBank?.name || 'غير محدد'}\n- هل لديك تمويل عقاري: ${formatYesNo(loanRequest.hasRealEstateFinance)}\n- هل لديك تعثر في سمة: ${formatYesNo(loanRequest.hasCreditDefault)}\n- إجمالي الإلتزامات الشهرية: ${loanRequest.totalMonthlyObligations ? formatSaudiRiyalText(loanRequest.totalMonthlyObligations) : 'غير محدد'}\n\nحالة الطلب: ${formatLoanRequestStatusAr(loanRequest.status)}\n\nيرجى التواصل معنا لمتابعة الطلب.`}
                             />
                           </div>
                         </TableCell>
@@ -438,7 +438,13 @@ const LoanRequestList = () => {
                             {loanRequest.carMake} {loanRequest.carModel} ({loanRequest.carYear})
                           </Link>
                         </TableCell>
-                        <TableCell>{formatSaudiRiyalReact(loanRequest.loanAmount)}</TableCell>
+                        <TableCell>
+                          {isPricingPendingRequest(loanRequest) ? (
+                            <span className="text-amber-600">بانتظار التسعير</span>
+                          ) : (
+                            formatSaudiRiyalReact(loanRequest.loanAmount)
+                          )}
+                        </TableCell>
                         <TableCell>{getStatusBadge(loanRequest.status)}</TableCell>
                         <TableCell>
                           {new Date(loanRequest.createdAt).toLocaleDateString("ar-SA")}

@@ -64,6 +64,11 @@ export async function POST(request) {
 
     const offer = selectedOffer && typeof selectedOffer === "object" ? selectedOffer : {};
 
+    // A car priced "on request" is submitted with 0 and no offer, so validate
+    // these numerically instead of by truthiness — 0 is a valid amount here.
+    const loanAmountValue = toFloat(loanAmount);
+    const downPaymentValue = toFloat(downPayment);
+
     if (
       !fullName ||
       !email ||
@@ -77,10 +82,10 @@ export async function POST(request) {
       !birthMonth ||
       !birthYear ||
       !gender ||
-      !loanAmount ||
-      downPayment === undefined ||
-      downPayment === null ||
-      downPayment === "" ||
+      loanAmountValue === null ||
+      loanAmountValue < 0 ||
+      downPaymentValue === null ||
+      downPaymentValue < 0 ||
       !loanTerm ||
       !carId
     ) {
@@ -108,8 +113,8 @@ export async function POST(request) {
         birthMonth,
         birthYear,
         gender,
-        loanAmount: parseFloat(loanAmount),
-        downPayment: parseFloat(downPayment),
+        loanAmount: loanAmountValue,
+        downPayment: downPaymentValue,
         loanTerm: parseInt(loanTerm, 10),
         termMonths: toInt(offer.termMonths ?? termMonths),
         downPaymentPct: toFloat(offer.downPaymentPct ?? downPaymentPct),

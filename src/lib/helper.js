@@ -48,6 +48,24 @@ export const serializeLoanRequests = (requests) => {
   return requests.map(serializeLoanRequest);
 };
 
+/**
+ * A request submitted for a car priced "on request": the offers step was
+ * skipped, so it carries no offer and a loan amount of 0 until an admin prices
+ * the car.
+ */
+export const isPricingPendingRequest = (loanRequest) => {
+  const snapshot = loanRequest?.offerSnapshot;
+  if (snapshot && typeof snapshot === "object" && snapshot.pricingPending === true) {
+    return true;
+  }
+  const raw = loanRequest?.loanAmount;
+  if (raw == null || raw === "") return false;
+  const amount = Number(String(raw));
+  return Number.isFinite(amount) && amount <= 0;
+};
+
+export const PRICING_PENDING_LABEL = "غير محدد — بانتظار التسعير";
+
 /** Normalize filter labels: trim and collapse whitespace */
 export function normalizeFilterLabel(value) {
   return normalizeCarText(value);

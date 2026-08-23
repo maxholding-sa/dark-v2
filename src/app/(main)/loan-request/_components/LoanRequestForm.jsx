@@ -61,6 +61,10 @@ const formatBalloonPolicy = (offer) =>
 
 const DEFAULT_DOWN_PAYMENT_PCT = 0.2;
 
+// Index of the financing-offers step. A car with no price can never produce a
+// quote, so that step is skipped rather than dead-ending the whole request.
+const OFFERS_STEP = 4;
+
 const BANKS_FETCH_ATTEMPTS = 3;
 const BANKS_RETRY_BASE_DELAY_MS = 700;
 
@@ -272,6 +276,9 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
     () => getCarPrice(selectedCar, formData),
     [selectedCar, formData.loanAmount]
   );
+  // Car picked but priced "on request": the customer still completes the
+  // request, we just skip the calculator and leave pricing to the admin.
+  const isPricePending = Boolean(selectedCar?.id) && carPriceValue <= 0;
 
   const [makes, setMakes] = useState([]);
   const [models, setModels] = useState([]);
@@ -596,6 +603,15 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
     { title: "معلومات إضافية", icon: MessageSquare },
   ];
 
+  const visibleSteps = steps
+    .map((step, index) => ({ ...step, index }))
+    .filter(({ index }) => !(isPricePending && index === OFFERS_STEP));
+  const visiblePosition = Math.max(
+    0,
+    visibleSteps.findIndex((step) => step.index === currentStep)
+  );
+  const progressPct = Math.round(((visiblePosition + 1) / visibleSteps.length) * 100);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -764,22 +780,32 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const nextStep = () => {
     if (!validateCurrentStep() || currentStep >= steps.length - 1) return;
 
-    if (currentStep === 3) {
+    if (currentStep === OFFERS_STEP - 1) {
       setFormData((prev) => syncDownPaymentFormData(selectedCar, prev));
+      if (isPricePending) {
+        setCurrentStep(OFFERS_STEP + 1);
+        return;
+      }
     }
 
     setCurrentStep((step) => step + 1);
   };
 
   const prevStep = () => {
-    if (currentStep > 0) {
-      if (currentStep === 4) {
-        // Clear selected offers and comparison analysis when going back from financing offers step
-        setSelectedOffers([]);
-        setComparisonAnalysis(null);
-      }
-      setCurrentStep(currentStep - 1);
+    if (currentStep <= 0) return;
+
+    if (currentStep === OFFERS_STEP) {
+      // Clear selected offers and comparison analysis when going back from financing offers step
+      setSelectedOffers([]);
+      setComparisonAnalysis(null);
     }
+
+    if (currentStep === OFFERS_STEP + 1 && isPricePending) {
+      setCurrentStep(OFFERS_STEP - 1);
+      return;
+    }
+
+    setCurrentStep(currentStep - 1);
   };
 
   const handleSubmit = async (e) => {
@@ -790,6 +816,10 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
       return;
     }
     setIsSubmitting(true);
+
+    // No price means no offer was ever computed. The request is still a real
+    // lead — flag it so the admin knows the pricing is theirs to fill in.
+    const pricingPending = !(Number(selectedCar.price) > 0);
 
     try {
       const response = await fetch('/api/loan-request', {
@@ -806,7 +836,14 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
               : formData.carCategory,
           idNumber: digitsOnly(formData.idNumber),
           mobileNumber: "+966" + digitsOnly(formData.mobileNumber),
+          loanAmount: pricingPending ? "0" : formData.loanAmount,
           selectedOffer,
+          offerSnapshot: pricingPending
+            ? {
+                pricingPending: true,
+                reason: "سعر السيارة غير محدد وقت تقديم الطلب",
+              }
+            : undefined,
           carId: selectedCar.id,
           carDetails: {
             year: selectedCar.year,
@@ -1016,53 +1053,6 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                     </div>
                   )}
 
-                  {/* Say it here, not four steps later on the offers screen: an
-                      unpriced car can never produce a financing quote. */}
-                  {selectedCar?.id && !carLookupLoading && !(Number(selectedCar.price) > 0) && (
-                    <div className="rounded-lg border border-amber-600/60 bg-amber-950/40 p-3 text-sm text-amber-100 space-y-2">
-                      <p className="font-semibold flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        سعر هذه السيارة غير محدد حالياً
-                      </p>
-                      <p className="text-amber-100/90 leading-relaxed">
-                        لا يمكن حساب العروض التمويلية بدون سعر. يمكنك متابعة الخطوات وسنطلب منك
-                        التواصل مع الإدارة لتحديد السعر، أو التواصل معنا الآن مباشرة.
-                      </p>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {storeContact.whatsapp && (
-                          <Button
-                            asChild
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                          >
-                            <a
-                              href={`https://wa.me/${cleanPhoneNumber(storeContact.whatsapp)}?text=${encodeURIComponent(
-                                `السلام عليكم، أحتاج سعر: ${selectedCar.year} ${selectedCar.make} ${selectedCar.model}${selectedCar.category ? ` — ${selectedCar.category}` : ""}`
-                              )}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <MessageSquare className="h-4 w-4 ml-2" />
-                              واتساب
-                            </a>
-                          </Button>
-                        )}
-                        {storeContact.phone && (
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="border-amber-500/50 text-amber-100 hover:bg-amber-900/40"
-                          >
-                            <a href={`tel:${cleanPhoneNumber(storeContact.phone)}`}>
-                              <Phone className="h-4 w-4 ml-2" />
-                              اتصال
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </>
               ) : (
                 <>
@@ -1110,6 +1100,55 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                     />
                   </div>
                 </>
+              )}
+
+              {/* Say it here, not four steps later on the offers screen: an
+                  unpriced car can never produce a financing quote. */}
+              {isPricePending && !carLookupLoading && (
+                <div className="rounded-lg border border-amber-600/60 bg-amber-950/40 p-3 text-sm text-amber-100 space-y-2">
+                  <p className="font-semibold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    سعر هذه السيارة غير محدد حالياً
+                  </p>
+                  <p className="text-amber-100/90 leading-relaxed">
+                    لا يمكن حساب العروض التمويلية بدون سعر، لذلك سيتم تخطي خطوة العروض.
+                    يمكنك إكمال طلب التمويل الآن وسيتواصل معك فريقنا لتحديد السعر والعروض
+                    المناسبة، أو التواصل معنا مباشرة.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {storeContact.whatsapp && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <a
+                          href={`https://wa.me/${cleanPhoneNumber(storeContact.whatsapp)}?text=${encodeURIComponent(
+                            `السلام عليكم، أحتاج سعر: ${selectedCar.year} ${selectedCar.make} ${selectedCar.model}${selectedCar.category ? ` — ${selectedCar.category}` : ""}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageSquare className="h-4 w-4 ml-2" />
+                          واتساب
+                        </a>
+                      </Button>
+                    )}
+                    {storeContact.phone && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-500/50 text-amber-100 hover:bg-amber-900/40"
+                      >
+                        <a href={`tel:${cleanPhoneNumber(storeContact.phone)}`}>
+                          <Phone className="h-4 w-4 ml-2" />
+                          اتصال
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -2077,19 +2116,19 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
           <div className="mb-6">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>التقدم</span>
-              <span>{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
+              <span>{progressPct}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-gold-dark h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                style={{ width: `${progressPct}%` }}
               ></div>
             </div>
           </div>
 
           {/* Progress Indicator */}
           <div className="flex justify-between items-center mb-6">
-            {steps.map((step, index) => {
+            {visibleSteps.map(({ index, ...step }) => {
               const Icon = step.icon;
               return (
                 <div key={index} className="flex flex-col items-center">
