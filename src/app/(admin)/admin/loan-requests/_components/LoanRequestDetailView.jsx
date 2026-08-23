@@ -5,6 +5,8 @@ import {
   formatPercent,
   formatSaudiRiyalReact,
   formatYesNo,
+  isPricingPendingRequest,
+  PRICING_PENDING_LABEL,
 } from "@/lib/helper";
 
 function formatOptionalMoney(value) {
@@ -36,6 +38,8 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
   const offer = loanRequest.offerSnapshot && typeof loanRequest.offerSnapshot === "object"
     ? loanRequest.offerSnapshot
     : null;
+
+  const pricingPending = isPricingPendingRequest(loanRequest);
 
   return (
     <div className="space-y-6">
@@ -102,12 +106,25 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
       </DetailSection>
 
       <DetailSection title="العرض التمويلي المختار">
+        {pricingPending ? (
+          <div className="mb-4 rounded-lg border border-amber-600/60 bg-amber-950/40 p-3 text-sm text-amber-100">
+            سعر هذه السيارة غير محدد وقت تقديم الطلب، لذلك تم تخطي خطوة العروض التمويلية.
+            يلزم تحديد السعر ثم التواصل مع العميل بالعروض المناسبة.
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DetailField
             label="البنك"
             value={offer?.bankName || loanRequest.salaryTransferBank?.name || "غير محدد"}
           />
-          <DetailField label="سعر السيارة (مبلغ التمويل)" value={formatOptionalMoney(loanRequest.loanAmount)} />
+          <DetailField
+            label="سعر السيارة (مبلغ التمويل)"
+            value={
+              pricingPending
+                ? PRICING_PENDING_LABEL
+                : formatOptionalMoney(loanRequest.loanAmount)
+            }
+          />
           <DetailField label="الدفعة الأولى" value={formatOptionalMoney(loanRequest.downPayment)} />
           <DetailField label="نسبة الدفعة الأولى" value={formatPercent(loanRequest.downPaymentPct)} />
           <DetailField
