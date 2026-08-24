@@ -75,7 +75,6 @@ export async function POST(request) {
       !mobileNumber ||
       !city ||
       !time ||
-      !idNumber ||
       !carMake ||
       !carModel ||
       !carYear ||
@@ -103,7 +102,9 @@ export async function POST(request) {
         mobileNumber,
         city,
         time,
-        idNumber,
+        // The national-ID step is hidden in the request form for now, so this
+        // arrives empty; the column stays non-null until the step returns.
+        idNumber: idNumber || "",
         idImage: idImage || null,
         carMake,
         carModel,

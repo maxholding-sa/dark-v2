@@ -45,7 +45,7 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
     <div className="space-y-6">
       <DetailSection title="معلومات الهوية (السعودية)">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <DetailField label="رقم الهوية" value={loanRequest.idNumber} />
+          <DetailField label="رقم الهوية" value={loanRequest.idNumber || null} />
           {loanRequest.idImage ? (
             <div className="md:col-span-2">
               <p className="text-sm text-white/60">صورة الهوية</p>
