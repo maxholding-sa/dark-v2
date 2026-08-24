@@ -65,6 +65,12 @@ const DEFAULT_DOWN_PAYMENT_PCT = 0.2;
 // quote, so that step is skipped rather than dead-ending the whole request.
 const OFFERS_STEP = 4;
 
+// The national-ID step is parked for now: the request opens straight on the car
+// picker. Flip this back to true to bring the step and its validation back.
+const COLLECT_ID_STEP = false;
+const ID_STEP = 0;
+const FIRST_STEP = COLLECT_ID_STEP ? ID_STEP : 1;
+
 const BANKS_FETCH_ATTEMPTS = 3;
 const BANKS_RETRY_BASE_DELAY_MS = 700;
 
@@ -269,7 +275,7 @@ const renderFinancingOfferCard = (offer, { recommended = false, onSelect }) => (
 
 const LoanRequestForm = ({ car: initialCar = null }) => {
   const allowCarSelect = !initialCar;
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(FIRST_STEP);
   const [selectedCar, setSelectedCar] = useState(initialCar);
   const [formData, setFormData] = useState(() => createInitialFormData(initialCar));
   const carPriceValue = useMemo(
@@ -605,7 +611,8 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
 
   const visibleSteps = steps
     .map((step, index) => ({ ...step, index }))
-    .filter(({ index }) => !(isPricePending && index === OFFERS_STEP));
+    .filter(({ index }) => !(isPricePending && index === OFFERS_STEP))
+    .filter(({ index }) => COLLECT_ID_STEP || index !== ID_STEP);
   const visiblePosition = Math.max(
     0,
     visibleSteps.findIndex((step) => step.index === currentStep)
@@ -728,6 +735,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 0:
+        if (!COLLECT_ID_STEP) break;
         if (!/^\d{10}$/.test(digitsOnly(formData.idNumber))) {
           toast.error("يرجى ملء جميع الحقول المطلوبة: رقم الهوية الوطنية السعودية (10 أرقام)");
           return false;
@@ -792,7 +800,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   };
 
   const prevStep = () => {
-    if (currentStep <= 0) return;
+    if (currentStep <= FIRST_STEP) return;
 
     if (currentStep === OFFERS_STEP) {
       // Clear selected offers and comparison analysis when going back from financing offers step
@@ -874,12 +882,13 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
     setSelectedCar(initialCar);
     setFormData(createInitialFormData(initialCar));
     setCarLookupError("");
-    setCurrentStep(0);
+    setCurrentStep(FIRST_STEP);
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
+        if (!COLLECT_ID_STEP) return null;
         return (
           <div className="space-y-6">
             <div className="space-y-4">
@@ -1648,7 +1657,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  disabled={currentStep === 0}
+                  disabled={currentStep <= FIRST_STEP}
                   className="flex items-center gap-2"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -1951,7 +1960,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 0}
+                disabled={currentStep <= FIRST_STEP}
                 className="flex items-center gap-2"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -2056,11 +2065,13 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
             <h3 className="text-lg font-semibold">مراجعة البيانات</h3>
 
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">معلومات الهوية</h4>
-                <p>رقم الهوية: {formData.idNumber}</p>
-                <p>صورة الهوية: {formData.idImage ? formData.idImage.name : "لم يتم تحميل الصورة"}</p>
-              </div>
+              {COLLECT_ID_STEP && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">معلومات الهوية</h4>
+                  <p>رقم الهوية: {formData.idNumber}</p>
+                  <p>صورة الهوية: {formData.idImage ? formData.idImage.name : "لم يتم تحميل الصورة"}</p>
+                </div>
+              )}
 
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">البيانات الشخصية</h4>
@@ -2158,7 +2169,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  disabled={currentStep === 0}
+                  disabled={currentStep <= FIRST_STEP}
                   className="flex items-center gap-2"
                 >
                   <ChevronRight className="h-4 w-4" />
