@@ -103,6 +103,7 @@ export default async function RootLayout({ children }) {
   const storeInfo = footerDbRes?.storeInfo || null;
 
   const pixels = pixelSettingsRes?.data || {};
+  const clarityId = pixels.microsoftClarity || "y7xj5lptrr";
 
   const navLogo = navLogoRes?.data;
   const aboutNavLabel = aboutPageRes?.data?.title || "من نحن";
@@ -122,6 +123,19 @@ export default async function RootLayout({ children }) {
         <head>
           <meta name="theme-color" content="#000000" />
           <link rel="preconnect" href="https://zafndavpzgpcbqgvosbt.supabase.co" />
+          {/* Microsoft Clarity — in <head> so the session recording starts on first paint. */}
+          <script
+            type="text/javascript"
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function(c,l,a,r,i,t,y){
+                    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                })(window, document, "clarity", "script", "${clarityId}");
+              `,
+            }}
+          />
           {/*
             Plain <script> tags, not next/script. `strategy="beforeInteractive"`
             defers injection to the client loader, so crawlers never saw these
@@ -272,23 +286,6 @@ export default async function RootLayout({ children }) {
                   s.parentNode.insertBefore(r,s)})(window,document,"script");
                   snaptr('init', '${pixels.snapchatPixel}');
                   snaptr('track', 'PAGE_VIEW');
-                `,
-              }}
-            />
-          )}
-
-          {/* Microsoft Clarity */}
-          {pixels.microsoftClarity && (
-            <Script
-              id="microsoft-clarity"
-              strategy="afterInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  (function(c,l,a,r,i,t,y){
-                      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                  })(window, document, "clarity", "script", "${pixels.microsoftClarity}");
                 `,
               }}
             />
