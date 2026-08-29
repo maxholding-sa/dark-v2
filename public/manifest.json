@@ -13,13 +13,13 @@
   "categories": ["automotive", "shopping"],
   "screenshots": [
     {
-      "src": "/logo.jpg",
+      "src": "/LOGO_NEW.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/logo.jpg",
+      "src": "/LOGO_NEW.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any"
@@ -27,19 +27,19 @@
   ],
   "icons": [
     {
-      "src": "/logo.jpg",
+      "src": "/LOGO_NEW.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/logo.jpg",
+      "src": "/LOGO_NEW.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/logo.jpg",
+      "src": "/LOGO_NEW.jpg",
       "sizes": "any",
       "type": "image/jpeg",
       "purpose": "any"
@@ -51,14 +51,14 @@
       "short_name": "السيارات",
       "description": "تصفح جميع السيارات المتاحة",
       "url": "/cars",
-      "icons": [{ "src": "/logo.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "/LOGO_NEW.jpg", "sizes": "192x192" }]
     },
     {
       "name": "طلب اختبار القيادة",
       "short_name": "اختبار القيادة",
       "description": "اطلب اختبار قيادة لسيارة",
       "url": "/test-drive",
-      "icons": [{ "src": "/logo.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "/LOGO_NEW.jpg", "sizes": "192x192" }]
     }
   ],
   "prefer_related_applications": false

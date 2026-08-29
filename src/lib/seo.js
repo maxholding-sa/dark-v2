@@ -19,9 +19,13 @@ export const SITE_CONFIG = {
   url: resolveSiteUrl(),
   locale: "ar-SA",
   lang: "ar",
-  defaultOgImage: "/og-image.jpg",
-  ogImageWidth: 1200,
-  ogImageHeight: 630,
+  // One logo for every piece of metadata: share previews, JSON-LD, and icons.
+  logo: "/LOGO_NEW.jpg",
+  logoWidth: 1024,
+  logoHeight: 1024,
+  defaultOgImage: "/LOGO_NEW.jpg",
+  ogImageWidth: 1024,
+  ogImageHeight: 1024,
   twitterHandle: "@maxmotors_sa",
 };
 
@@ -174,11 +178,9 @@ export const generateMetadata = ({
   description,
   keywords = [],
   ogImage = SITE_CONFIG.defaultOgImage,
-  // Overridable because not every share image is a 1200x630 banner: pass null for
-  // both dimensions when the image is a logo, so scrapers measure it themselves.
-  ogImageWidth = SITE_CONFIG.ogImageWidth,
-  ogImageHeight = SITE_CONFIG.ogImageHeight,
-  twitterCard = "summary_large_image",
+  ogImageWidth,
+  ogImageHeight,
+  twitterCard,
   ogType = "website",
   canonicalUrl = SITE_CONFIG.url,
   author = SITE_CONFIG.name,
@@ -187,6 +189,14 @@ export const generateMetadata = ({
   other = {},
 } = {}) => {
   const canonical = absoluteUrl(canonicalUrl);
+  // Declare dimensions only for the site logo, the one image whose size we know.
+  // A car photo passed by a caller varies, and a wrong width/height makes
+  // scrapers letterbox or stretch it; omitted, they measure the file themselves.
+  const isSiteLogo = ogImage === SITE_CONFIG.defaultOgImage;
+  const shareWidth = ogImageWidth ?? (isSiteLogo ? SITE_CONFIG.ogImageWidth : null);
+  const shareHeight = ogImageHeight ?? (isSiteLogo ? SITE_CONFIG.ogImageHeight : null);
+  // The logo is square: "summary" shows it whole, "summary_large_image" crops to 2:1.
+  const shareCard = twitterCard ?? (isSiteLogo ? "summary" : "summary_large_image");
   const allKeywords = [
     ...SAUDI_MARKET_KEYWORDS.primary,
     ...keywords,
@@ -229,14 +239,14 @@ export const generateMetadata = ({
       images: [
         {
           url: absoluteUrl(ogImage),
-          width: ogImageWidth,
-          height: ogImageHeight,
+          width: shareWidth,
+          height: shareHeight,
           alt: title || SITE_CONFIG.name,
         },
       ],
     },
     twitter: {
-      card: twitterCard,
+      card: shareCard,
       site: SITE_CONFIG.twitterHandle,
       creator: SITE_CONFIG.twitterHandle,
       title: title || SITE_CONFIG.name,
@@ -270,9 +280,9 @@ export const generateJsonLd = (type, data = {}) => {
       url: SITE_CONFIG.url,
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_CONFIG.url}/logo.jpg`,
-        width: 854,
-        height: 678,
+        url: absoluteUrl(SITE_CONFIG.logo),
+        width: SITE_CONFIG.logoWidth,
+        height: SITE_CONFIG.logoHeight,
       },
       description: SITE_CONFIG.description,
       sameAs: SOCIAL_PROFILES.length ? SOCIAL_PROFILES : undefined,
@@ -292,7 +302,7 @@ export const generateJsonLd = (type, data = {}) => {
       "@type": "AutoDealer",
       "@id": `${SITE_CONFIG.url}/#dealer`,
       name: SITE_CONFIG.name,
-      image: `${SITE_CONFIG.url}/logo.jpg`,
+      image: absoluteUrl(SITE_CONFIG.logo),
       description: SITE_CONFIG.description,
       url: SITE_CONFIG.url,
       parentOrganization: { "@id": `${SITE_CONFIG.url}/#organization` },
@@ -371,7 +381,7 @@ export const generateJsonLd = (type, data = {}) => {
         name: SITE_CONFIG.name,
         logo: {
           "@type": "ImageObject",
-          url: `${SITE_CONFIG.url}/logo.jpg`,
+          url: absoluteUrl(SITE_CONFIG.logo),
         },
       },
       mainEntityOfPage: data.url,

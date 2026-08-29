@@ -20,31 +20,15 @@ import ScrollAnimate from "@/components/ScrollAnimate";
 import SectionBackgroundVideo from "@/components/SectionBackgroundVideo";
 import HeroVideo from "@/components/HeroVideo";
 import SbcVerifySeal from "@/components/SbcVerifySeal";
-import { generateJsonLd, generateMetadata as buildMetadata } from "@/lib/seo";
+import { generateJsonLd, generateMetadata } from "@/lib/seo";
 import { logger } from "@/lib/logger";
 
-// Async because the share image comes from the DB: pasting the bare domain into
-// WhatsApp/X/Facebook should preview the same logo the site header shows.
-export async function generateMetadata() {
-  const navLogoRes = await getLogoByType("navbar");
-  const headerLogo = navLogoRes?.data?.imageUrl;
-
-  return buildMetadata({
-    title: "ماكس موتورز | سيارات للبيع وتمويل في السعودية",
-    description: "تصفح سيارات ماكس موتورز الجديدة والمستعملة في السعودية، قارن العروض، احجز تجربة قيادة، واطلب التمويل المناسب لسيارتك.",
-    keywords: ["maxmotors", "ماكس موترز", "ماكس موتورز", "سيارات للبيع", "سيارات مستعملة", "سيارات جديدة", "تجربة قيادة"],
-    canonicalUrl: "/",
-    ...(headerLogo
-      ? {
-          ogImage: headerLogo,
-          ogImageWidth: null,
-          ogImageHeight: null,
-          // "summary" shows a logo whole; "summary_large_image" would crop it to 2:1.
-          twitterCard: "summary",
-        }
-      : {}),
-  });
-}
+export const metadata = generateMetadata({
+  title: "ماكس موتورز | سيارات للبيع وتمويل في السعودية",
+  description: "تصفح سيارات ماكس موتورز الجديدة والمستعملة في السعودية، قارن العروض، احجز تجربة قيادة، واطلب التمويل المناسب لسيارتك.",
+  keywords: ["maxmotors", "ماكس موترز", "ماكس موتورز", "سيارات للبيع", "سيارات مستعملة", "سيارات جديدة", "تجربة قيادة"],
+  canonicalUrl: "/",
+});
 
 async function homeSafe(promiseFn, fallback) {
   try {
