@@ -62,6 +62,8 @@ const connectSources = [
   "https://analytics.google.com",
   "https://www.facebook.com",
   "https://analytics.tiktok.com",
+  "https://tr.snapchat.com",
+  "https://tr6.snapchat.com",
   "https://*.clarity.ms",
   "https://eauthenticate.saudibusiness.gov.sa",
 ];
