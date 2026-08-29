@@ -3,7 +3,7 @@ import "./globals.css";
 import { Cairo } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { arSA } from "@clerk/localizations";
-import { generateJsonLd, SITE_CONFIG } from "@/lib/seo";
+import { generateJsonLd, SITE_CONFIG, absoluteUrl } from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
@@ -19,74 +19,90 @@ const cairo = Cairo({
 const isValidTikTokPixelId = (id) =>
   typeof id === "string" && /^[A-Z0-9]{10,}$/i.test(id.trim());
 
-export const metadata = {
-  title: {
-    default: SITE_CONFIG.name,
-    template: `%s | ${SITE_CONFIG.name}`,
-  },
-  description: SITE_CONFIG.description,
-  metadataBase: new URL(SITE_CONFIG.url),
-  keywords: [
-    "ماكس موتورز",
-    "maxmotors",
-    "سيارات للبيع السعودية",
-    "شراء سيارة",
-    "تمويل سيارات",
-    "حجز تجربة قيادة",
-  ],
-  alternates: {
-    canonical: "/",
-    languages: {
-      "ar-SA": "/",
-      "x-default": "/",
+export async function generateMetadata() {
+  // Share previews use the same logo the site header shows, so pasting the domain
+  // into WhatsApp/X/Facebook renders the brand mark instead of a stock banner.
+  const navLogoRes = await getLogoByType("navbar");
+  const headerLogo = navLogoRes?.data?.imageUrl;
+  const shareImage = headerLogo
+    ? {
+        // No width/height: the header logo is not a fixed 1200x630 banner, and
+        // declaring dimensions that don't match makes scrapers letterbox it badly.
+        url: absoluteUrl(headerLogo),
+        alt: navLogoRes.data.altText || SITE_CONFIG.name,
+      }
+    : {
+        url: absoluteUrl(SITE_CONFIG.defaultOgImage),
+        width: SITE_CONFIG.ogImageWidth,
+        height: SITE_CONFIG.ogImageHeight,
+        alt: SITE_CONFIG.name,
+      };
+
+  return {
+    title: {
+      default: SITE_CONFIG.name,
+      template: `%s | ${SITE_CONFIG.name}`,
     },
-  },
-  openGraph: {
-    type: "website",
-    locale: SITE_CONFIG.locale,
-    url: SITE_CONFIG.url,
-    title: SITE_CONFIG.name,
     description: SITE_CONFIG.description,
-    siteName: SITE_CONFIG.name,
-    images: [{
-      url: SITE_CONFIG.defaultOgImage,
-      width: 1200,
-      height: 630,
-      alt: SITE_CONFIG.name,
-    }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: SITE_CONFIG.name,
-    description: SITE_CONFIG.description,
-    images: [SITE_CONFIG.defaultOgImage],
-    creator: SITE_CONFIG.twitterHandle,
-  },
-  verification: {
-    google: "JGLgXvJvi4W4A8NgMdI99dGfG3XbDHc9ZBEJsqjF8bY",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    metadataBase: new URL(SITE_CONFIG.url),
+    keywords: [
+      "ماكس موتورز",
+      "maxmotors",
+      "سيارات للبيع السعودية",
+      "شراء سيارة",
+      "تمويل سيارات",
+      "حجز تجربة قيادة",
+    ],
+    alternates: {
+      canonical: "/",
+      languages: {
+        "ar-SA": "/",
+        "x-default": "/",
+      },
+    },
+    openGraph: {
+      type: "website",
+      locale: SITE_CONFIG.locale,
+      url: SITE_CONFIG.url,
+      title: SITE_CONFIG.name,
+      description: SITE_CONFIG.description,
+      siteName: SITE_CONFIG.name,
+      images: [shareImage],
+    },
+    twitter: {
+      // A logo is square-ish; "summary" shows it whole, "summary_large_image" crops it.
+      card: headerLogo ? "summary" : "summary_large_image",
+      title: SITE_CONFIG.name,
+      description: SITE_CONFIG.description,
+      images: [shareImage.url],
+      creator: SITE_CONFIG.twitterHandle,
+    },
+    verification: {
+      google: "JGLgXvJvi4W4A8NgMdI99dGfG3XbDHc9ZBEJsqjF8bY",
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black",
-  },
-  icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
-    apple: "/logo.jpg",
-  },
-  manifest: "/manifest.json",
-};
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black",
+    },
+    icons: {
+      icon: "/logo.jpg",
+      shortcut: "/logo.jpg",
+      apple: "/logo.jpg",
+    },
+    manifest: "/manifest.json",
+  };
+}
 
 export default async function RootLayout({ children }) {
   // Fetch all layout data on server in parallel. Logos/pixels use actions that catch DB errors;

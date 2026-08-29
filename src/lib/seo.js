@@ -174,6 +174,11 @@ export const generateMetadata = ({
   description,
   keywords = [],
   ogImage = SITE_CONFIG.defaultOgImage,
+  // Overridable because not every share image is a 1200x630 banner: pass null for
+  // both dimensions when the image is a logo, so scrapers measure it themselves.
+  ogImageWidth = SITE_CONFIG.ogImageWidth,
+  ogImageHeight = SITE_CONFIG.ogImageHeight,
+  twitterCard = "summary_large_image",
   ogType = "website",
   canonicalUrl = SITE_CONFIG.url,
   author = SITE_CONFIG.name,
@@ -224,14 +229,14 @@ export const generateMetadata = ({
       images: [
         {
           url: absoluteUrl(ogImage),
-          width: SITE_CONFIG.ogImageWidth,
-          height: SITE_CONFIG.ogImageHeight,
+          width: ogImageWidth,
+          height: ogImageHeight,
           alt: title || SITE_CONFIG.name,
         },
       ],
     },
     twitter: {
-      card: "summary_large_image",
+      card: twitterCard,
       site: SITE_CONFIG.twitterHandle,
       creator: SITE_CONFIG.twitterHandle,
       title: title || SITE_CONFIG.name,
