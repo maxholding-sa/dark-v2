@@ -164,6 +164,24 @@ export default async function RootLayout({ children }) {
               `,
             }}
           />
+          {/* Snap Pixel — hardcoded base pixel, loaded from the document head. */}
+          <script
+            type="text/javascript"
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
+                {a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
+                a.queue=[];var s='script';r=t.createElement(s);r.async=!0;
+                r.src=n;var u=t.getElementsByTagName(s)[0];
+                u.parentNode.insertBefore(r,u);})(window,document,
+                'https://sc-static.net/scevent.min.js');
+
+                snaptr('init', 'f9520470-8396-4492-9d23-d1b1cf75898d', {});
+
+                snaptr('track', 'PAGE_VIEW');
+              `,
+            }}
+          />
           {/*
             Plain <script> tags, not next/script. `strategy="beforeInteractive"`
             defers injection to the client loader, so crawlers never saw these
