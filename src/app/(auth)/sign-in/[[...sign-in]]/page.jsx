@@ -1,8 +1,20 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { SignIn } from "@clerk/nextjs";
 import styles from "./page.module.css";
 
 const SignInPage = () => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className={styles.customSigninWrapper} />;
+  }
+
   return (
     <div className={styles.customSigninWrapper}>
       <SignIn
@@ -66,6 +78,3 @@ const SignInPage = () => {
 };
 
 export default SignInPage;
-
-// [[...sign-in]] --> sets the optional catch all segments in next js
-// so it allows sign-in/sadasd/asd/asdasd etc types of routes

@@ -69,6 +69,12 @@ export async function POST(request) {
     const loanAmountValue = toFloat(loanAmount);
     const downPaymentValue = toFloat(downPayment);
 
+    let finalCarId = carId;
+    if (!finalCarId || finalCarId === "custom" || String(finalCarId).startsWith("custom")) {
+      const defaultCar = await db.car.findFirst({ select: { id: true } });
+      finalCarId = defaultCar?.id || null;
+    }
+
     if (
       !fullName ||
       !email ||
@@ -86,7 +92,7 @@ export async function POST(request) {
       downPaymentValue === null ||
       downPaymentValue < 0 ||
       !loanTerm ||
-      !carId
+      !finalCarId
     ) {
       return NextResponse.json(
         { success: false, message: "جميع الحقول المطلوبة يجب ملؤها" },
@@ -142,7 +148,7 @@ export async function POST(request) {
           ? parseFloat(totalMonthlyObligations)
           : null,
         additionalInfo: additionalInfo || null,
-        carId,
+        carId: finalCarId,
         status: "PENDING",
       },
     }));

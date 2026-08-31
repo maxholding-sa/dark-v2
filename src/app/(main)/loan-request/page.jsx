@@ -1,4 +1,4 @@
-import LoanRequestForm from './_components/LoanRequestForm';
+import LoanRequestFormClient from './_components/LoanRequestFormClient';
 import { generateMetadata as buildMetadata } from '@/lib/seo';
 
 export const metadata = buildMetadata({
@@ -37,7 +37,7 @@ export default function LoanRequestPage() {
             </p>
           </div>
 
-          <LoanRequestForm />
+          <LoanRequestFormClient />
         </div>
       </div>
     </div>
