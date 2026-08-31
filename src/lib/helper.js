@@ -64,6 +64,35 @@ export const isPricingPendingRequest = (loanRequest) => {
   return Number.isFinite(amount) && amount <= 0;
 };
 
+/**
+ * Detects if a loan request is for a custom/unlisted/unknown car.
+ */
+export const isUnknownOrCustomCarRequest = (loanRequest) => {
+  if (!loanRequest) return false;
+
+  const snapshot = loanRequest.offerSnapshot;
+  if (snapshot && typeof snapshot === "object") {
+    if (snapshot.isCustom || snapshot.isCustomCar) return true;
+  }
+
+  const carId = String(loanRequest.carId || "");
+  if (!carId || carId === "custom" || carId.startsWith("custom")) {
+    return true;
+  }
+
+  if (loanRequest.car) {
+    const dbMake = String(loanRequest.car.make || "").trim().toLowerCase();
+    const reqMake = String(loanRequest.carMake || "").trim().toLowerCase();
+    const dbModel = String(loanRequest.car.model || "").trim().toLowerCase();
+    const reqModel = String(loanRequest.carModel || "").trim().toLowerCase();
+
+    if (dbMake && reqMake && dbMake !== reqMake) return true;
+    if (dbModel && reqModel && dbModel !== reqModel) return true;
+  }
+
+  return false;
+};
+
 export const PRICING_PENDING_LABEL = "غير محدد — بانتظار التسعير";
 
 /** Normalize filter labels: trim and collapse whitespace */

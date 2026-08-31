@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -293,11 +294,46 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [carLookupLoading, setCarLookupLoading] = useState(false);
   const [carLookupError, setCarLookupError] = useState("");
+  const [isCustomCarMode, setIsCustomCarMode] = useState(false);
+
+  const handleCustomCarInputChange = (field, value) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (next.carMake?.trim() && next.carModel?.trim() && next.carYear?.trim()) {
+        setSelectedCar({
+          id: "custom",
+          make: next.carMake.trim(),
+          model: next.carModel.trim(),
+          year: next.carYear.trim(),
+          category: next.carCategory?.trim() || "",
+          price: 0,
+          isCustom: true,
+        });
+      } else {
+        setSelectedCar(null);
+      }
+      return next;
+    });
+  };
+
+  const toggleCustomCarMode = (enable) => {
+    setIsCustomCarMode(enable);
+    setSelectedCar(null);
+    setCarLookupError("");
+    setFormData((prev) => ({
+      ...prev,
+      carMake: "",
+      carModel: "",
+      carYear: "",
+      carCategory: "",
+    }));
+  };
 
   useLayoutEffect(() => {
     setFormData((prev) => syncDownPaymentFormData(selectedCar, prev));
   }, [selectedCar, selectedCar?.id, selectedCar?.price, currentStep]);
 
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [banks, setBanks] = useState([]);
   const [banksLoading, setBanksLoading] = useState(true);
@@ -307,7 +343,6 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   const [selectedOffers, setSelectedOffers] = useState([]);
   const [comparisonAnalysis, setComparisonAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
 
   const offerResult = useMemo(() => {
@@ -426,7 +461,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
   }, [allowCarSelect, categories, formData.carCategory]);
 
   useEffect(() => {
-    if (!allowCarSelect) return;
+    if (!allowCarSelect || isCustomCarMode) return;
     if (!formData.carMake || !formData.carModel || !formData.carYear) {
       setSelectedCar(null);
       setCarLookupError("");
@@ -742,17 +777,24 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         }
         break;
       case 1:
-        if (!formData.carMake || !formData.carModel || !formData.carYear) {
-          toast.error("يرجى اختيار ماركة وموديل وسنة السيارة");
-          return false;
-        }
-        if (allowCarSelect && categories.length > 1 && !formData.carCategory) {
-          toast.error("يرجى اختيار فئة السيارة");
-          return false;
-        }
-        if (!selectedCar?.id) {
-          toast.error(carLookupError || "يرجى اختيار سيارة متوفرة من القائمة");
-          return false;
+        if (isCustomCarMode) {
+          if (!formData.carMake || !formData.carModel || !formData.carYear) {
+            toast.error("يرجى إدخال ماركة وموديل وسنة السيارة");
+            return false;
+          }
+        } else {
+          if (!formData.carMake || !formData.carModel || !formData.carYear) {
+            toast.error("يرجى اختيار ماركة وموديل وسنة السيارة");
+            return false;
+          }
+          if (allowCarSelect && categories.length > 1 && !formData.carCategory) {
+            toast.error("يرجى اختيار فئة السيارة");
+            return false;
+          }
+          if (!selectedCar?.id) {
+            toast.error(carLookupError || "يرجى اختيار سيارة متوفرة من القائمة");
+            return false;
+          }
         }
         break;
       case 2:
@@ -862,27 +904,15 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         }),
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        setShowSuccessModal(true);
-      } else {
-        setShowSuccessModal(true);
-      }
+      const isCustomRequest = isCustomCarMode || selectedCar?.isCustom;
+      router.push(isCustomRequest ? "/loan-request/thankyou?custom=true" : "/loan-request/thankyou");
     } catch (error) {
       console.error('Error submitting loan request:', error);
-      setShowSuccessModal(true);
+      const isCustomRequest = isCustomCarMode || selectedCar?.isCustom;
+      router.push(isCustomRequest ? "/loan-request/thankyou?custom=true" : "/loan-request/thankyou");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCloseModal = () => {
-    setShowSuccessModal(false);
-    setSelectedCar(initialCar);
-    setFormData(createInitialFormData(initialCar));
-    setCarLookupError("");
-    setCurrentStep(FIRST_STEP);
   };
 
   const renderStepContent = () => {
@@ -948,121 +978,213 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
 
             <div className="space-y-4">
               {allowCarSelect ? (
-                <>
-                  {/* Each Select must stay controlled with "" when cleared. Passing
-                      undefined makes Radix fall back to uncontrolled mode: it keeps
-                      showing the old selection while state is empty, so changing the
-                      make/model leaves a stale year on screen that can no longer be
-                      re-picked — the form dead-ends on the previous car. */}
-                  <div>
-                    <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
-                    <Select
-                      value={formData.carMake ?? ""}
-                      onValueChange={(value) => handleCarFieldChange("carMake", value)}
-                    >
-                      <SelectTrigger id="carMake" className="w-full">
-                        <SelectValue placeholder="اختر الماركة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {makes.map((make) => (
-                          <SelectItem key={make} value={make}>
-                            {make}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
-                    <Select
-                      value={formData.carModel ?? ""}
-                      onValueChange={(value) => handleCarFieldChange("carModel", value)}
-                      disabled={!formData.carMake}
-                    >
-                      <SelectTrigger id="carModel" className="w-full">
-                        <SelectValue placeholder={formData.carMake ? "اختر الموديل" : "اختر الماركة أولاً"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {models.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
-                    <Select
-                      value={formData.carYear ?? ""}
-                      onValueChange={(value) => handleCarFieldChange("carYear", value)}
-                      disabled={!formData.carModel}
-                    >
-                      <SelectTrigger id="carYear" className="w-full">
-                        <SelectValue placeholder={formData.carModel ? "اختر السنة" : "اختر الموديل أولاً"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="carCategory" className="mb-2">
-                      فئة السيارة{categories.length > 1 ? " *" : ""}
-                    </Label>
-                    <Select
-                      value={formData.carCategory ?? ""}
-                      onValueChange={(value) => handleCarFieldChange("carCategory", value)}
-                      disabled={!formData.carYear || categories.length === 0}
-                    >
-                      <SelectTrigger id="carCategory" className="w-full">
-                        <SelectValue
-                          placeholder={
-                            !formData.carYear
-                              ? "اختر السنة أولاً"
-                              : categories.length === 0
-                                ? "لا توجد فئات"
-                                : "اختر الفئة"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category === NO_CATEGORY_VALUE ? NO_CATEGORY_LABEL : category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {(optionsLoading || carLookupLoading) && (
-                    <p className="text-sm text-white/70">جاري تحميل بيانات السيارة...</p>
-                  )}
-                  {carLookupError && !carLookupLoading && (
-                    <p className="text-sm text-red-400">{carLookupError}</p>
-                  )}
-                  {selectedCar?.id && !carLookupLoading && (
-                    <div className="rounded-lg border border-gold-dark/50 bg-gold-dark/30 p-3 text-sm text-white/90">
-                      <p className="font-semibold text-gold mb-1">السيارة المختارة</p>
-                      <p>
-                        {selectedCar.year} {selectedCar.make} {selectedCar.model}
-                        {selectedCar.category ? ` — ${selectedCar.category}` : ""}
-                      </p>
-                      {Number(selectedCar.price) > 0 && (
-                        <p className="mt-1">السعر: {formatSaudiRiyalReact(selectedCar.price)}</p>
-                      )}
+                isCustomCarMode ? (
+                  <>
+                    <div className="flex items-center justify-between rounded-lg border border-gold-dark/40 bg-gold-dark/20 p-3 text-xs sm:text-sm text-gold-light mb-2">
+                      <span>طلب سيارة غير متوفرة بالقائمة</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleCustomCarMode(false)}
+                        className="text-xs text-white/70 hover:text-white underline p-0 h-auto"
+                      >
+                        العودة للقائمة
+                      </Button>
                     </div>
-                  )}
 
-                </>
+                    <div>
+                      <Label htmlFor="customMake" className="mb-2">ماركة السيارة *</Label>
+                      <Input
+                        id="customMake"
+                        type="text"
+                        value={formData.carMake}
+                        onChange={(e) => handleCustomCarInputChange("carMake", e.target.value)}
+                        placeholder="مثال: تويوتا، جي أم سي..."
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="customModel" className="mb-2">موديل السيارة *</Label>
+                      <Input
+                        id="customModel"
+                        type="text"
+                        value={formData.carModel}
+                        onChange={(e) => handleCustomCarInputChange("carModel", e.target.value)}
+                        placeholder="مثال: كامري، يوكن..."
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="customYear" className="mb-2">سنة صنع السيارة *</Label>
+                      <Input
+                        id="customYear"
+                        type="number"
+                        value={formData.carYear}
+                        onChange={(e) => handleCustomCarInputChange("carYear", e.target.value)}
+                        placeholder="مثال: 2026"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="customCategory" className="mb-2">فئة السيارة (اختياري)</Label>
+                      <Input
+                        id="customCategory"
+                        type="text"
+                        value={formData.carCategory}
+                        onChange={(e) => handleCustomCarInputChange("carCategory", e.target.value)}
+                        placeholder="مثال: اليفيشن، فل كامل..."
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Each Select must stay controlled with "" when cleared. Passing
+                        undefined makes Radix fall back to uncontrolled mode: it keeps
+                        showing the old selection while state is empty, so changing the
+                        make/model leaves a stale year on screen that can no longer be
+                        re-picked — the form dead-ends on the previous car. */}
+                    <div>
+                      <Label htmlFor="carMake" className="mb-2">ماركة السيارة *</Label>
+                      <Select
+                        value={formData.carMake ?? ""}
+                        onValueChange={(value) => handleCarFieldChange("carMake", value)}
+                      >
+                        <SelectTrigger id="carMake" className="w-full">
+                          <SelectValue placeholder="اختر الماركة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {makes.map((make) => (
+                            <SelectItem key={make} value={make}>
+                              {make}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="carModel" className="mb-2">موديل السيارة *</Label>
+                      <Select
+                        value={formData.carModel ?? ""}
+                        onValueChange={(value) => handleCarFieldChange("carModel", value)}
+                        disabled={!formData.carMake}
+                      >
+                        <SelectTrigger id="carModel" className="w-full">
+                          <SelectValue placeholder={formData.carMake ? "اختر الموديل" : "اختر الماركة أولاً"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {models.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="carYear" className="mb-2">سنة صنع السيارة *</Label>
+                      <Select
+                        value={formData.carYear ?? ""}
+                        onValueChange={(value) => handleCarFieldChange("carYear", value)}
+                        disabled={!formData.carModel}
+                      >
+                        <SelectTrigger id="carYear" className="w-full">
+                          <SelectValue placeholder={formData.carModel ? "اختر السنة" : "اختر الموديل أولاً"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="carCategory" className="mb-2">
+                        فئة السيارة{categories.length > 1 ? " *" : ""}
+                      </Label>
+                      <Select
+                        value={formData.carCategory ?? ""}
+                        onValueChange={(value) => handleCarFieldChange("carCategory", value)}
+                        disabled={!formData.carYear || categories.length === 0}
+                      >
+                        <SelectTrigger id="carCategory" className="w-full">
+                          <SelectValue
+                            placeholder={
+                              !formData.carYear
+                                ? "اختر السنة أولاً"
+                                : categories.length === 0
+                                  ? "لا توجد فئات"
+                                  : "اختر الفئة"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category === NO_CATEGORY_VALUE ? NO_CATEGORY_LABEL : category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {(optionsLoading || carLookupLoading) && (
+                      <p className="text-sm text-white/70">جاري تحميل بيانات السيارة...</p>
+                    )}
+                    {carLookupError && !carLookupLoading && (
+                      <p className="text-sm text-red-400">{carLookupError}</p>
+                    )}
+                    {selectedCar?.id && !carLookupLoading && (
+                      <div className="rounded-lg border border-gold-dark/50 bg-gold-dark/30 p-3 text-sm text-white/90">
+                        <p className="font-semibold text-gold mb-2">السيارة المختارة</p>
+                        <div className="flex items-center gap-3">
+                          {selectedCar.images && selectedCar.images.length > 0 && (
+                            <div className="shrink-0 w-20 h-14 rounded-md overflow-hidden border border-gold-dark/30">
+                              <img
+                                src={selectedCar.images[0]}
+                                alt={`${selectedCar.year} ${selectedCar.make} ${selectedCar.model}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <p className="font-medium leading-tight">
+                              {selectedCar.year} {selectedCar.make} {selectedCar.model}
+                              {selectedCar.category ? ` — ${selectedCar.category}` : ""}
+                            </p>
+                            <Link
+                              href={`/cars/${selectedCar.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-gold hover:text-gold-light underline underline-offset-2 transition-colors w-fit"
+                            >
+                              عرض السيارة ←
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleCustomCarMode(true)}
+                        className="w-full rounded-lg border border-dashed border-gold/40 bg-gold/5 p-3 text-center text-xs sm:text-sm text-gold hover:bg-gold/10 transition-colors font-medium flex items-center justify-center gap-2"
+                      >
+                        <span>لم تجد سيارتك في القائمة؟</span>
+                        <span className="underline">اضغط هنا لإدخال مواصفات سيارتك يدوياً ←</span>
+                      </button>
+                    </div>
+                  </>
+                )
               ) : (
                 <>
                   <div>
@@ -1113,7 +1235,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
 
               {/* Say it here, not four steps later on the offers screen: an
                   unpriced car can never produce a financing quote. */}
-              {isPricePending && !carLookupLoading && (
+              {isPricePending && !isCustomCarMode && !selectedCar?.isCustom && !carLookupLoading && (
                 <div className="rounded-lg border border-amber-600/60 bg-amber-950/40 p-3 text-sm text-amber-100 space-y-2">
                   <p className="font-semibold flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -2201,29 +2323,7 @@ const LoanRequestForm = ({ car: initialCar = null }) => {
         </CardContent>
       </Card>
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-40" onClick={handleCloseModal}></div>
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4 shadow-lg">
-              <div className="text-center">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">تم إرسال الطلب بنجاح!</h3>
-                <p className="text-gray-600 mb-6">سيتم التواصل معك قريباً من قبل فريقنا.</p>
-                <Link href="/">
-                  <Button
-                    onClick={handleCloseModal}
-                    className="bg-gold-dark hover:bg-gold-dark text-white px-6 py-2"
-                  >
-                    موافق
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Success is handled by redirect to /loan-request/thankyou */}
     </>
   );
 };

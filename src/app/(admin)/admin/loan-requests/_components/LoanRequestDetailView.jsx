@@ -7,6 +7,7 @@ import {
   formatYesNo,
   isPricingPendingRequest,
   PRICING_PENDING_LABEL,
+  isUnknownOrCustomCarRequest,
 } from "@/lib/helper";
 
 function formatOptionalMoney(value) {
@@ -88,11 +89,15 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
           <DetailField label="فئة السيارة" value={loanRequest.carCategory || "غير محدد"} />
           <DetailField label="فئة التأمين" value={loanRequest.insuranceSegment || "غير محدد"} />
           <DetailField label="رابط السيارة">
-            <Link href={`/cars/${loanRequest.carId}`} className="text-blue-400 hover:underline">
-              عرض السيارة
-            </Link>
+            {!isUnknownOrCustomCarRequest(loanRequest) ? (
+              <Link href={`/cars/${loanRequest.carId}`} className="text-blue-400 hover:underline">
+                عرض السيارة
+              </Link>
+            ) : (
+              <span className="text-amber-400 font-medium">غير متوفر (سيارة غير مسجلة)</span>
+            )}
           </DetailField>
-          {loanRequest.car?.images?.[0] ? (
+          {!isUnknownOrCustomCarRequest(loanRequest) && loanRequest.car?.images?.[0] ? (
             <div className="md:col-span-2">
               <p className="text-sm text-white/60">صورة السيارة</p>
               <img
@@ -101,7 +106,9 @@ export default function LoanRequestDetailView({ loanRequest, statusBadge = null 
                 className="mt-2 h-32 w-auto rounded-lg border border-white/10 object-cover"
               />
             </div>
-          ) : null}
+          ) : (
+            <DetailField label="صورة السيارة" value="غير متوفرة (طلب سيارة غير مسجلة)" />
+          )}
         </div>
       </DetailSection>
 

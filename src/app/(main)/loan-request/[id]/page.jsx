@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import LoanRequestForm from '../_components/LoanRequestForm';
+import LoanRequestFormClient from '../_components/LoanRequestFormClient';
 import { getCarById } from '@/actions/car-details';
 import { generateMetadata as buildMetadata } from '@/lib/seo';
 
@@ -40,7 +40,7 @@ export default async function LoanRequestPage({ params }) {
               </p>
             </div>
 
-            <LoanRequestForm car={car} />
+            <LoanRequestFormClient car={car} />
           </div>
         </div>
       </div>

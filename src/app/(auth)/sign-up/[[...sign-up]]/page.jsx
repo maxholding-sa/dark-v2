@@ -1,8 +1,20 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { SignUp } from "@clerk/nextjs";
 import styles from "./page.module.css";
 
 const SignUpPage = () => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className={styles.customSigninWrapper} />;
+  }
+
   return (
     <div className={styles.customSigninWrapper}>
       <SignUp
