@@ -409,6 +409,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .scroll-animate,
   .scroll-animate-header,
   .animate-fade-in-up,
@@ -431,6 +432,7 @@
 }
 
 @keyframes bot-nudge {
+
   0%,
   100% {
     transform: rotate(0deg);
@@ -477,6 +479,7 @@
 }
 
 @keyframes robot-v5-bounce {
+
   0%,
   100% {
     transform: translateY(0);
@@ -488,6 +491,7 @@
 }
 
 @keyframes robot-v5-look {
+
   0%,
   20%,
   100% {
@@ -504,6 +508,7 @@
 }
 
 @keyframes robot-v5-heart {
+
   0%,
   100% {
     opacity: 0.35;
@@ -517,6 +522,7 @@
 }
 
 @keyframes robot-v5-antenna {
+
   0%,
   100% {
     transform: rotate(0deg);
@@ -536,12 +542,26 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
   display: none !important;
   -webkit-appearance: none;
 }
+
 video:not([controls]) {
   -webkit-appearance: none;
 }
 
 /* SBC verified-store seal */
 .sbc-verify-seal,
-.sbc-verify-seal iframe {
+.sbc-verify-seal iframe,
+.sbc-seal-frame {
   z-index: 9999 !important;
+}
+
+/* Hide SBC verified seal on mobile when chatbot is open */
+@media (max-width: 767px) {
+  body.chatbot-open .sbc-verify-seal,
+  body.chatbot-open .sbc-verify-seal iframe,
+  body.chatbot-open .sbc-seal-frame {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
 }
