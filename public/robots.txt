@@ -5,6 +5,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Allow: /api/sitemap.xml
+Allow: /api/sitemap_index.xml
 Disallow: /admin/
 Disallow: /sign-in/
 Disallow: /sign-up/
@@ -16,6 +17,7 @@ User-agent: Googlebot
 Allow: /
 Disallow: /api/
 Allow: /api/sitemap.xml
+Allow: /api/sitemap_index.xml
 Disallow: /admin/
 Disallow: /sign-in/
 Disallow: /sign-up/
@@ -26,6 +28,7 @@ User-agent: Bingbot
 Allow: /
 Disallow: /api/
 Allow: /api/sitemap.xml
+Allow: /api/sitemap_index.xml
 Disallow: /admin/
 Disallow: /sign-in/
 Disallow: /sign-up/
@@ -42,6 +45,10 @@ Disallow: /
 User-agent: SemrushBot
 Disallow: /
 
-# Sitemaps
+# Sitemaps for Google Search Console & Web Crawlers
+Sitemap: https://maxmotors.sa/sitemap_index.xml
 Sitemap: https://maxmotors.sa/sitemap.xml
-Sitemap: https://maxmotors.sa/api/sitemap.xml
+Sitemap: https://maxmotors.sa/sitemaps/pages.xml
+Sitemap: https://maxmotors.sa/sitemaps/cars.xml
+Sitemap: https://maxmotors.sa/sitemaps/articles.xml
+Sitemap: https://maxmotors.sa/sitemaps/brands.xml
