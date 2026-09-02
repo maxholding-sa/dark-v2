@@ -44,7 +44,6 @@ export const buildXmlResponse = (
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
-      "X-Robots-Tag": "noindex, follow",
     },
   });
 };
