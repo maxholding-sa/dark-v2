@@ -136,27 +136,7 @@ const nextConfig = {
       bodySizeLimit: "1gb",
       allowedOrigins: uniqueServerActionAllowedOrigins,
     },
-    // Next.js 15.5+ internal proxy for server actions (defaults to 1MB)
-    proxyClientMaxBodySize: "1gb",
   },
-
-  serverActions: {
-    bodySizeLimit: "1gb",
-    allowedOrigins: uniqueServerActionAllowedOrigins,
-  },
-
-  // Increase payload size limits (Pages Router API routes)
-  api: {
-    bodyParser: {
-      sizeLimit: "1gb",
-    },
-    responseLimit: "1gb",
-  },
-
-  // Middleware body buffering limit
-  middlewareClientMaxBodySize: "1gb",
-
-  httpMaxRequestSize: "1gb",
 
   // Allow streaming uploads
   onDemandEntries: {

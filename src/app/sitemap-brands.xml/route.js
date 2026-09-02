@@ -1,1 +1,8 @@
-export { GET, dynamic, revalidate } from "./sitemaps/brands.xml/route";
+import { generateBrandsSitemapResponse } from "@/lib/sitemap-helpers";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function GET() {
+  return generateBrandsSitemapResponse();
+}

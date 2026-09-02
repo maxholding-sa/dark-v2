@@ -1,1 +1,8 @@
-export { GET, dynamic, revalidate } from "../sitemap_index.xml/route";
+import { generateSitemapIndexResponse } from "@/lib/sitemap-helpers";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function GET() {
+  return generateSitemapIndexResponse();
+}
