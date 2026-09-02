@@ -139,9 +139,8 @@ function CompareResult({ comparison }) {
               {comparison.rows.map((row) => (
                 <tr
                   key={row.key || row.label}
-                  className={`border-t border-gray-100 ${
-                    row.differs ? "bg-amber-50/80" : "bg-white"
-                  } ${row.highlight ? "font-semibold" : ""}`}
+                  className={`border-t border-gray-100 ${row.differs ? "bg-amber-50/80" : "bg-white"
+                    } ${row.highlight ? "font-semibold" : ""}`}
                 >
                   <td className="px-2 py-1.5 text-gray-700 whitespace-nowrap">{row.label}</td>
                   <td className="px-2 py-1.5 text-gray-900 [overflow-wrap:anywhere]">{row.a}</td>
@@ -317,6 +316,18 @@ export default function ChatBot({ onOpenChange }) {
 
   useEffect(() => {
     if (onOpenChange) onOpenChange(isOpen);
+    if (typeof document !== "undefined") {
+      if (isOpen) {
+        document.body.classList.add("chatbot-open");
+      } else {
+        document.body.classList.remove("chatbot-open");
+      }
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.body.classList.remove("chatbot-open");
+      }
+    };
   }, [isOpen, onOpenChange]);
 
   useEffect(() => {
@@ -696,11 +707,10 @@ export default function ChatBot({ onOpenChange }) {
                     key={item.id}
                     type="button"
                     onClick={() => handleLoadConversation(item.id)}
-                    className={`w-full text-right rounded-xl border p-3 transition ${
-                      item.id === conversationId
+                    className={`w-full text-right rounded-xl border p-3 transition ${item.id === conversationId
                         ? "border-gold bg-gold-dark/40"
                         : "border-white/10 bg-zinc-950 hover:border-gold-dark/60"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium truncate">{item.title}</p>
@@ -720,16 +730,14 @@ export default function ChatBot({ onOpenChange }) {
                 {messages.map((message, messageIndex) => (
                   <div
                     key={message.id}
-                    className={`flex flex-col ${
-                      message.sender === "user" ? "items-end" : "items-start"
-                    }`}
+                    className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"
+                      }`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl p-2.5 md:p-3 ${
-                        message.sender === "user"
+                      className={`max-w-[85%] rounded-2xl p-2.5 md:p-3 ${message.sender === "user"
                           ? "bg-gold text-white rounded-bl-none"
                           : "bg-white text-gray-900 rounded-br-none shadow-md border border-gray-200"
-                      }`}
+                        }`}
                     >
                       <div className="text-sm leading-relaxed whitespace-pre-line break-words">
                         {formatMessageText(message.text)}
@@ -750,9 +758,8 @@ export default function ChatBot({ onOpenChange }) {
                         </div>
                       ) : null}
                       <p
-                        className={`text-xs mt-1 ${
-                          message.sender === "user" ? "text-gold-light" : "text-gray-400"
-                        }`}
+                        className={`text-xs mt-1 ${message.sender === "user" ? "text-gold-light" : "text-gray-400"
+                          }`}
                       >
                         {message.timestamp.toLocaleTimeString("ar-SA", {
                           hour: "2-digit",
@@ -803,32 +810,32 @@ export default function ChatBot({ onOpenChange }) {
                               </div>
                             </Link>
                             {message.carSelectAction !== "none" && (
-                            <div className="px-2 pb-2">
-                              {message.carSelectAction === "compare" ? (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  disabled={isTyping}
-                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                                  onClick={() => handleSelectCar(car.id, "compare")}
-                                >
-                                  اختر للمقارنة
-                                </Button>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  disabled={isTyping}
-                                  className="w-full bg-gold hover:bg-gold-dark text-white text-xs"
-                                  onClick={() => handleSelectCar(car.id, "loan")}
-                                >
-                                  <Banknote className="h-3.5 w-3.5 ml-1" />
-                                  {Number(car.price) > 0
-                                    ? "موّل هذه السيارة"
-                                    : "تواصل مع الإدارة للتسعير"}
-                                </Button>
-                              )}
-                            </div>
+                              <div className="px-2 pb-2">
+                                {message.carSelectAction === "compare" ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={isTyping}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                                    onClick={() => handleSelectCar(car.id, "compare")}
+                                  >
+                                    اختر للمقارنة
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={isTyping}
+                                    className="w-full bg-gold hover:bg-gold-dark text-white text-xs"
+                                    onClick={() => handleSelectCar(car.id, "loan")}
+                                  >
+                                    <Banknote className="h-3.5 w-3.5 ml-1" />
+                                    {Number(car.price) > 0
+                                      ? "موّل هذه السيارة"
+                                      : "تواصل مع الإدارة للتسعير"}
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </div>
                         ))}
@@ -891,8 +898,8 @@ export default function ChatBot({ onOpenChange }) {
                     )}
 
                     {message.sender === "bot" &&
-                    message.quickReplies?.length &&
-                    messageIndex === messages.length - 1 ? (
+                      message.quickReplies?.length &&
+                      messageIndex === messages.length - 1 ? (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {message.quickReplies.map((reply) => (
                           <button
