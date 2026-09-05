@@ -8,19 +8,14 @@ import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
 import ChatBotGate from "@/components/ChatBotGate";
 
-// Routes that show the chat widget, matched exactly: the home page and the
-// bare listing, not car detail pages. usePathname() drops the query string, so
-// ChatBotGate does the second half of the check and excludes paginated and
-// filtered listings (/cars?page=2).
-const CHATBOT_ROUTES = ["/", "/cars"];
-
+// Render chat widget on all public pages (excluding admin and auth routes)
 export default function ClientWrapper({ children, navLogo, aboutNavLabel, footerData }) {
     const [theme, setTheme] = useState("dark");
     const [isLoading, setIsLoading] = useState(false);
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith("/admin");
     const isAuthPage = pathname?.includes("/sign-in") || pathname?.includes("/sign-up");
-    const showChatBot = !isAuthPage && !isAdminPage && CHATBOT_ROUTES.includes(pathname);
+    const showChatBot = !isAuthPage && !isAdminPage;
 
     useEffect(() => {
         // Remove previously applied theme classes
