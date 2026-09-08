@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { Calendar, Car, Cog, Heart, LayoutDashboard, MessageSquare, Award, Home, FileText, Mail, DollarSign, Settings2, Users } from "lucide-react";
+import { Calendar, Car, Cog, Heart, LayoutDashboard, MessageSquare, Award, Home, FileText, Mail, DollarSign, Settings2, Users, Building2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -20,6 +20,7 @@ const routes = [
   { id: "reviews", label: "التقييمات", icon: MessageSquare, href: "/admin/reviews" },
   { id: "contacts", label: "الرسائل", icon: Mail, href: "/admin/contacts" },
   { id: "mandebs", label: "المناديب", icon: Users, href: "/admin/mandebs" },
+  { id: "company-requests", label: "طلبات الشركات", icon: Building2, href: "/admin/company-requests" },
 ];
 
 const Sidebar = ({ user }) => {

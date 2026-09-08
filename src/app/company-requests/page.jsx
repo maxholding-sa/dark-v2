@@ -1,37 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Car, Users, CheckCircle2, MessageCircle } from "lucide-react";
-import { getStoreInfo } from "@/actions/site-management";
+import { Car, Users, CheckCircle2, Phone } from "lucide-react";
+import { createCompanyRequest } from "@/actions/company-requests";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function CompanyRequests() {
+    const router = useRouter();
     const [formData, setFormData] = useState({
         companyName: "",
         contactPerson: "",
+        phone: "",
         notes: "",
     });
 
-    const [storeWhatsapp, setStoreWhatsapp] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Fetch store WhatsApp number
-    useEffect(() => {
-        const fetchStoreInfo = async () => {
-            try {
-                const result = await getStoreInfo();
-                if (result.success && result.data?.whatsapp) {
-                    const cleanNumber = result.data.whatsapp.replace(/[^0-9]/g, "");
-                    setStoreWhatsapp(cleanNumber);
-                }
-            } catch (error) {
-                console.error("Error fetching store info:", error);
-            }
-        };
-        fetchStoreInfo();
-    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -41,34 +28,27 @@ export default function CompanyRequests() {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.companyName.trim()) return;
 
         setIsSubmitting(true);
 
-        const message = `🏢 طلب شراكة شركات جديد
+        try {
+            // Save to database
+            const result = await createCompanyRequest(formData);
 
-📋 اسم الشركة: ${formData.companyName}
-👤 اسم المسؤول: ${formData.contactPerson || "غير محدد"}
-${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
+            if (!result.success) {
+                toast.error("حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى");
+                setIsSubmitting(false);
+                return;
+            }
 
-نرجو التواصل معنا لمزيد من التفاصيل حول عروض الشركات.`;
-
-        const whatsappNumber = storeWhatsapp || "966550000000";
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-
-        window.open(whatsappUrl, "_blank");
-
-        // Reset form after short delay
-        setTimeout(() => {
-            setFormData({
-                companyName: "",
-                contactPerson: "",
-                notes: "",
-            });
+            router.push("/company-requests/thank-you");
+        } catch (error) {
+            toast.error("حدث خطأ ما، يرجى المحاولة مرة أخرى");
             setIsSubmitting(false);
-        }, 1000);
+        }
     };
 
     const features = [
@@ -91,7 +71,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
 
     return (
         <div className="pt-30 min-h-screen flex flex-col bg-black">
-            {/* Header Section - Matching /companies style */}
+            {/* Header Section */}
             <section className="py-12 px-6 md:px-12">
                 <div className="container mx-auto text-center">
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
@@ -103,7 +83,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                 </div>
             </section>
 
-            {/* Features Grid - Content section matching general page structure */}
+            {/* Features Grid */}
             <section className="py-8 px-6 md:px-12">
                 <div className="container mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -134,7 +114,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir="rtl">
                         {[
                             { step: "1", title: "أرسل طلبك", text: "قم بتعبئة النموذج مع بيانات شركتك الأساسية" },
-                            { step: "2", title: "تواصل مباشر", text: "سيتم تحويلك للواتساب للتواصل المباشر" },
+                            { step: "2", title: "تواصل مباشر", text: "يمكنك متابعة طلبك عبر واتساب أو انتظار تواصل فريقنا" },
                             { step: "3", title: "عرض مخصص", text: "نقوم بإعداد عرض خاص يناسب احتياجاتكم" }
                         ].map((item, idx) => (
                             <div key={idx} className="flex flex-col items-center text-center p-6 rounded-3xl bg-black border border-white/5">
@@ -153,7 +133,7 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                     <div className="bg-zinc-950 border border-white/5 rounded-3xl p-8 shadow-2xl">
                         <div className="text-center mb-8">
                             <h2 className="text-2xl font-bold mb-2 text-white">أرسل طلبك الآن</h2>
-                            <p className="text-gray-400 text-sm">سنتواصل معك خلال دقائق عبر الواتساب</p>
+                            <p className="text-gray-400 text-sm">سيتم حفظ طلبك، ويمكنك المتابعة عبر واتساب إذا رغبت</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5" dir="rtl" noValidate>
@@ -189,6 +169,21 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                             </div>
 
                             <div>
+                                <label htmlFor="phone" className="block mb-2 font-semibold text-white">
+                                    رقم الجوال
+                                </label>
+                                <Input
+                                    id="phone"
+                                    name="phone"
+                                    type="tel"
+                                    placeholder="مثال: 0500000000"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="bg-black/40 border-white/10 text-white placeholder:text-gray-500"
+                                />
+                            </div>
+
+                            <div>
                                 <label htmlFor="notes" className="block mb-2 font-semibold text-white">
                                     تفاصيل الطلب
                                 </label>
@@ -209,13 +204,13 @@ ${formData.notes ? `\n📝 تفاصيل الطلب:\n${formData.notes}` : ""}
                                 size="lg"
                                 className="w-full bg-gold text-black hover:bg-gold-dark font-bold py-6 text-lg rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                             >
-                                <MessageCircle size={22} />
-                                {isSubmitting ? "جاري الإرسال..." : "إرسال عبر الواتساب"}
+                                <Phone size={22} />
+                                {isSubmitting ? "جاري الإرسال..." : "إرسال الطلب"}
                             </Button>
                         </form>
 
                         <p className="text-center text-gray-500 text-xs mt-6">
-                            بالضغط على الزر سيتم فتح نافذة واتساب جديدة مع بيانات طلبك
+                            سيتم حفظ طلبك، ويمكنك المتابعة عبر واتساب من صفحة التأكيد
                         </p>
                     </div>
                 </div>

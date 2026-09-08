@@ -527,3 +527,23 @@ model Mandeb {
   @@index([name])
   @@index([city])
 }
+
+model CompanyRequest {
+  id            String               @id @default(uuid())
+  companyName   String
+  contactPerson String?
+  phone         String?
+  notes         String?              @db.Text
+  status        CompanyRequestStatus @default(PENDING)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum CompanyRequestStatus {
+  PENDING
+  REVIEWED
+  COMPLETED
+}
