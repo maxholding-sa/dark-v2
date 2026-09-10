@@ -106,6 +106,8 @@ export const NOINDEX_FOLLOW_ROBOTS = {
 export const SAUDI_MARKET_KEYWORDS = {
   primary: [
     "ماكس موتورز",
+    "maxmotors",
+    "ماكس موترز",
     "شراء سيارات السعودية",
     "سيارات السعودية",
     "بيع سيارات السعودية",
@@ -116,9 +118,44 @@ export const SAUDI_MARKET_KEYWORDS = {
     "أسعار السيارات في السعودية",
     "معارض سيارات السعودية",
     "تمويل السيارات السعودية",
-    "رخص قيادة السعودية",
     "تأمين السيارات السعودية",
     "صيانة السيارات السعودية",
+    "عروض السيارات في السعودية",
+    "أفضل أسعار السيارات",
+    "سيارات بالتقسيط",
+    "تقسيط سيارات بدون دفعة أولى",
+    "حاسبة تمويل السيارات",
+    "مقارنة أسعار السيارات",
+    "سيارات جاهزة للتسليم",
+    "سيارات بضمان الوكيل",
+  ],
+  services: [
+    "حجز تجربة قيادة",
+    "طلب تمويل سيارة",
+    "تمويل سيارات جديدة",
+    "تمويل سيارات مستعملة",
+    "عروض تمويل السيارات",
+    "شراء سيارة أونلاين",
+    "البحث عن سيارة",
+    "مقارنة السيارات",
+    "حجز سيارة",
+    "استشارة شراء سيارة",
+    "سيارات للأفراد",
+    "سيارات للشركات",
+    "أسطول سيارات للشركات",
+  ],
+  bodyTypes: [
+    "سيارات سيدان",
+    "سيارات SUV",
+    "سيارات عائلية",
+    "سيارات اقتصادية",
+    "سيارات فاخرة",
+    "سيارات رياضية",
+    "سيارات تجارية",
+    "سيارات دفع رباعي",
+    "سيارات كهربائية",
+    "سيارات هجينة",
+    "سيارات بنزين",
   ],
   brands: [
     "تويوتا",
@@ -129,7 +166,14 @@ export const SAUDI_MARKET_KEYWORDS = {
     "بي ام دبليو",
     "مرسيدس",
     "فورد",
-    "جنرال موتورز",
+    "شيفروليه",
+    "هوندا",
+    "مازدا",
+    "لكزس",
+    "جيلي",
+    "شانجان",
+    "هافال",
+    "ام جي",
   ],
   locations: [
     "الرياض",
@@ -144,6 +188,16 @@ export const SAUDI_MARKET_KEYWORDS = {
     "القصيم",
   ],
 };
+
+/**
+ * A concise default set is more useful than hundreds of generic phrases.
+ * Page-level metadata adds only the terms relevant to that page.
+ */
+export const DEFAULT_SEO_KEYWORDS = [
+  ...SAUDI_MARKET_KEYWORDS.primary,
+  ...SAUDI_MARKET_KEYWORDS.secondary,
+  ...SAUDI_MARKET_KEYWORDS.services,
+];
 
 export const absoluteUrl = (path = "/") => {
   if (!path) return SITE_CONFIG.url;
@@ -197,10 +251,10 @@ export const generateMetadata = ({
   const shareHeight = ogImageHeight ?? (isSiteLogo ? SITE_CONFIG.ogImageHeight : null);
   // The logo is square: "summary" shows it whole, "summary_large_image" crops to 2:1.
   const shareCard = twitterCard ?? (isSiteLogo ? "summary" : "summary_large_image");
-  const allKeywords = [
+  const allKeywords = [...new Set([
     ...SAUDI_MARKET_KEYWORDS.primary,
     ...keywords,
-  ].join(", ");
+  ].map((keyword) => String(keyword).trim()).filter(Boolean))];
 
   return compact({
     title: title || SITE_CONFIG.name,

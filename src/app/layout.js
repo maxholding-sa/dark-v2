@@ -3,7 +3,12 @@ import "./globals.css";
 import { Cairo } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { arSA } from "@clerk/localizations";
-import { generateJsonLd, SITE_CONFIG, absoluteUrl } from "@/lib/seo";
+import {
+  absoluteUrl,
+  DEFAULT_SEO_KEYWORDS,
+  generateJsonLd,
+  SITE_CONFIG,
+} from "@/lib/seo";
 import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 import { getLogoByType, getPixelSettings, getFooterData, getAboutPage } from "@/actions/site-management";
@@ -26,14 +31,7 @@ export const metadata = {
   },
   description: SITE_CONFIG.description,
   metadataBase: new URL(SITE_CONFIG.url),
-  keywords: [
-    "ماكس موتورز",
-    "maxmotors",
-    "سيارات للبيع السعودية",
-    "شراء سيارة",
-    "تمويل سيارات",
-    "حجز تجربة قيادة",
-  ],
+  keywords: DEFAULT_SEO_KEYWORDS,
   alternates: {
     canonical: "/",
     languages: {

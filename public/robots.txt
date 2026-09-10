@@ -45,10 +45,7 @@ Disallow: /
 User-agent: SemrushBot
 Disallow: /
 
-# Sitemaps for Google Search Console & Web Crawlers
+# One sitemap index is enough — child sitemaps are linked from the index.
+# Listing every child (and the unified sitemap.xml) again causes duplicate
+# submissions and noisy "Couldn't fetch" / processing errors in GSC.
 Sitemap: https://maxmotors.sa/sitemap_index.xml
-Sitemap: https://maxmotors.sa/sitemap.xml
-Sitemap: https://maxmotors.sa/sitemaps/pages.xml
-Sitemap: https://maxmotors.sa/sitemaps/cars.xml
-Sitemap: https://maxmotors.sa/sitemaps/articles.xml
-Sitemap: https://maxmotors.sa/sitemaps/brands.xml

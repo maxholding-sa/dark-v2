@@ -160,10 +160,11 @@ export async function generatePagesSitemapResponse() {
   const baseUrl = getBaseUrl();
   const now = new Date();
 
+  // Only indexable URLs belong here. /loan-request is intentionally noindex
+  // (form page) — submitting it in a sitemap produces a persistent GSC error.
   const staticPages = [
     { loc: `${baseUrl}/`, lastmod: now, changefreq: "daily", priority: "1.0" },
     { loc: `${baseUrl}/cars`, lastmod: now, changefreq: "daily", priority: "0.95" },
-    { loc: `${baseUrl}/loan-request`, lastmod: now, changefreq: "daily", priority: "0.9" },
     { loc: `${baseUrl}/banks`, lastmod: now, changefreq: "weekly", priority: "0.8" },
     { loc: `${baseUrl}/companies`, lastmod: now, changefreq: "weekly", priority: "0.8" },
     { loc: `${baseUrl}/featured-models`, lastmod: now, changefreq: "weekly", priority: "0.8" },
@@ -322,8 +323,11 @@ export async function generateBrandsSitemapResponse() {
       { loc: `${baseUrl}/companies`, lastmod: brands[0]?.updatedAt || new Date(), changefreq: "weekly", priority: "0.8" },
       { loc: `${baseUrl}/featured-models`, lastmod: models[0]?.updatedAt || new Date(), changefreq: "weekly", priority: "0.8" },
       { loc: `${baseUrl}/banks`, lastmod: banks[0]?.updatedAt || new Date(), changefreq: "weekly", priority: "0.8" },
+      // Listing pages only treat `make` (and `bodyType`) as indexable facets.
+      // `?brand=` is ignored by the filter and gets noindex — which GSC flags
+      // as "Submitted URL marked 'noindex'".
       ...brands.map((brand) => ({
-        loc: `${baseUrl}/cars?brand=${encodeURIComponent(brand.name)}`,
+        loc: `${baseUrl}/cars?make=${encodeURIComponent(brand.name)}`,
         lastmod: brand.updatedAt,
         changefreq: "weekly",
         priority: "0.75",
