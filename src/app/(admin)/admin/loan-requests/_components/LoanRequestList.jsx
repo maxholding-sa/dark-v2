@@ -75,8 +75,10 @@ const LoanRequestList = () => {
   const [deletedLoanRequestData, setDeletedLoanRequestData] = useState(null);
   const [deleteLoanRequestError, setDeleteLoanRequestError] = useState(null);
 
-  const getLoanRequestFn = async (search = "") => {
-    setGetLoanRequestsLoading(true);
+  const getLoanRequestFn = async (search = "", { silent = false } = {}) => {
+    if (!silent) {
+      setGetLoanRequestsLoading(true);
+    }
     setGetLoanRequestsError(null);
     try {
       const result = await getLoanRequests(search);
@@ -84,7 +86,9 @@ const LoanRequestList = () => {
     } catch (error) {
       setGetLoanRequestsError(error);
     } finally {
-      setGetLoanRequestsLoading(false);
+      if (!silent) {
+        setGetLoanRequestsLoading(false);
+      }
     }
   };
 
@@ -173,6 +177,19 @@ const LoanRequestList = () => {
   useEffect(() => {
     getLoanRequestFn(searchTerm);
   }, [searchTerm]);
+
+  // Auto-refresh this page only every 5 seconds (silent, no spinner)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Skip while dialogs/modals are open so UI state isn't interrupted
+      if (deleteDialogOpen || bulkDeleteDialogOpen || selectedLoanRequest) {
+        return;
+      }
+      getLoanRequestFn(searchTerm, { silent: true });
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [searchTerm, deleteDialogOpen, bulkDeleteDialogOpen, selectedLoanRequest]);
 
   // handling successful operations
   useEffect(() => {

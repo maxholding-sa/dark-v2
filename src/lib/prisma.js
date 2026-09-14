@@ -99,8 +99,7 @@ export function isDbConnectionError(error) {
  * The engine process is alive but has no live connection yet. Seen on cold
  * start and after HMR, when the root layout's parallel queries reach the client
  * before the handshake finishes — and whenever a reconnect tears the shared
- * engine down while sibling queries are still in flight. Recovering only needs
- * `$connect()`; disconnecting first is what causes this in the first place.
+ * engine down while sibling queries are still in flight.
  */
 export function isEngineNotConnectedError(error) {
   const haystack = `${error?.message || String(error || "")}\n${
@@ -125,8 +124,10 @@ function runRecovery(task) {
   if (recoveryPromise) return recoveryPromise;
 
   recoveryPromise = task()
-    .catch(() => {
-      // next query attempt will surface the error if still broken
+    .catch((error) => {
+      // Keep the rejection for awaiters, but clear the slot so a later burst
+      // can try again instead of latching onto a dead promise forever.
+      throw error;
     })
     .finally(() => {
       lastRecoveryAt = Date.now();
@@ -136,18 +137,51 @@ function runRecovery(task) {
   return recoveryPromise;
 }
 
-/** Re-establish the connection, tearing the pool down only when necessary. */
-async function softReconnect(base, error) {
-  // A half-connected engine just needs the handshake to finish. Calling
-  // $disconnect() here would abort the in-flight queries that are waiting on it.
+/** Wait until this client has a live engine (safe to call when already connected). */
+async function ensureConnected(base) {
+  await base.$connect();
+}
+
+/** Tear down the stuck engine and build a fresh client (must run inside runRecovery). */
+async function recreatePrismaClient() {
+  try {
+    await globalForPrisma.prismaBase?.$disconnect();
+  } catch {
+    // ignore
+  }
+  globalForPrisma.prisma = undefined;
+  globalForPrisma.prismaBase = undefined;
+  globalForPrisma.prisma = createPrismaClient();
+  await ensureConnected(globalForPrisma.prismaBase);
+}
+
+/**
+ * Re-establish the connection. Prefer $connect()-only for half-ready engines;
+ * fall back to a disconnect cycle for dead pooler sockets; recreate the client
+ * when the engine is stuck after HMR.
+ */
+async function softReconnect(base, error, { allowHardReset = false } = {}) {
   if (isEngineNotConnectedError(error)) {
-    return runRecovery(() => base.$connect());
+    return runRecovery(async () => {
+      try {
+        await ensureConnected(base);
+      } catch (connectError) {
+        if (!allowHardReset) throw connectError;
+        // Recreate inline — nested runRecovery would deadlock on recoveryPromise.
+        await recreatePrismaClient();
+      }
+    });
   }
 
-  // A genuinely dead pooler connection does need a full cycle, but only one
-  // query in a burst should perform it.
   if (Date.now() - lastRecoveryAt < RECOVERY_COOLDOWN_MS) {
-    return recoveryPromise ?? undefined;
+    if (recoveryPromise) {
+      try {
+        await recoveryPromise;
+      } catch {
+        // next query attempt will surface the error if still broken
+      }
+    }
+    return;
   }
 
   return runRecovery(async () => {
@@ -156,8 +190,16 @@ async function softReconnect(base, error) {
     } catch {
       // ignore — reconnecting is what matters
     }
-    await base.$connect();
+    await ensureConnected(base);
   });
+}
+
+async function runOnCurrentClient(model, operation, args) {
+  const client = getPrismaClient();
+  if (model) {
+    return client[model][operation](args);
+  }
+  return client[operation](args);
 }
 
 function createPrismaClient() {
@@ -173,32 +215,49 @@ function createPrismaClient() {
 
   globalForPrisma.prismaBase = base;
 
-  // Start the handshake now rather than letting the first query trigger it.
-  // Every query below awaits this, so a cold start's parallel queries queue on
-  // one connect instead of racing a half-initialised engine.
-  const ready = base.$connect().catch(() => {
-    // Swallowed so awaiting it never rejects; a real outage surfaces per query,
-    // where the retry logic can act on it.
-  });
+  // Kick off the handshake immediately. Queries also await $connect() so a
+  // failed/slow first attempt is not swallowed into a parallel race.
+  const ready = ensureConnected(base);
 
   // Auto-retry transient pooler drops on every query so callers don't each need withDbRetry.
   return base.$extends({
     query: {
-      async $allOperations({ args, query }) {
-        await ready;
+      async $allOperations({ model, operation, args, query }) {
+        try {
+          await ready;
+        } catch {
+          // Initial connect may still be waking Supabase; ensureConnected below retries.
+        }
+        await ensureConnected(base);
 
         let lastError;
+        const maxAttempts = 5;
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           try {
             return await query(args);
           } catch (error) {
             lastError = error;
-            if (!isDbConnectionError(error) || attempt === 3) {
+            if (!isDbConnectionError(error) || attempt === maxAttempts) {
               throw error;
             }
-            await softReconnect(base, error);
-            await sleep(400 * attempt);
+
+            const allowHardReset =
+              isEngineNotConnectedError(error) && attempt >= 3;
+
+            try {
+              await softReconnect(base, error, { allowHardReset });
+            } catch {
+              // Retry the query anyway — softReconnect already did its best.
+            }
+
+            // After a hard reset the closed-over `query` is dead; re-dispatch
+            // through the fresh singleton (re-enters this extension once).
+            if (allowHardReset && globalForPrisma.prismaBase !== base) {
+              return runOnCurrentClient(model, operation, args);
+            }
+
+            await sleep(500 * attempt);
           }
         }
 
@@ -208,8 +267,8 @@ function createPrismaClient() {
   });
 }
 
-// Bump when Prisma schema changes so HMR does not keep an outdated client.
-const PRISMA_CLIENT_VERSION = "20260816-eager-connect";
+// Bump when Prisma client wiring changes so HMR does not keep a stuck engine.
+const PRISMA_CLIENT_VERSION = "20260914-engine-ready";
 const globalForPrisma = globalThis;
 
 function getPrismaClient() {
@@ -245,7 +304,13 @@ export async function withDbRetry(operation, { retries = 3, delayMs = 500 } = {}
 
       const base = globalForPrisma.prismaBase;
       if (base) {
-        await softReconnect(base, error);
+        try {
+          await softReconnect(base, error, {
+            allowHardReset: isEngineNotConnectedError(error) && attempt >= 2,
+          });
+        } catch {
+          // next attempt will surface the error if still broken
+        }
       }
 
       await sleep(delayMs * attempt);
@@ -255,7 +320,20 @@ export async function withDbRetry(operation, { retries = 3, delayMs = 500 } = {}
   throw lastError;
 }
 
-export const db = getPrismaClient();
+// Proxy so hard resets / HMR always resolve to the current client instance.
+export const db = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if (prop === "then" || prop === "catch" || prop === "finally") {
+        return undefined;
+      }
+      const client = getPrismaClient();
+      const value = client[prop];
+      return typeof value === "function" ? value.bind(client) : value;
+    },
+  }
+);
 
 // globalThis.prisma: This global variable ensures that the Prisma client instance is
 // reused across hot reloads during development. Without this, each time your application
