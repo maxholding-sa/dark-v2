@@ -13,9 +13,10 @@ import {
     FileText,
     Clock,
     CheckCircle2,
-    XCircle,
+    Download,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 
 import {
     Dialog,
@@ -29,7 +30,10 @@ import {
 import {
     getCompanyRequests,
     deleteCompanyRequest,
+    deleteCompanyRequests,
     updateCompanyRequestStatus,
+    updateCompanyRequestsStatus,
+    exportCompanyRequests,
 } from "@/actions/company-requests";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -49,14 +53,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const statusConfig = {
     PENDING: {
@@ -87,6 +84,11 @@ const CompanyRequestList = () => {
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [updatingId, setUpdatingId] = useState(null);
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectAll, setSelectAll] = useState(false);
+    const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+    const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -118,6 +120,29 @@ const CompanyRequestList = () => {
         return matchesSearch && matchesStatus;
     });
 
+    useEffect(() => {
+        const allSelected =
+            filteredRequests.length > 0 &&
+            filteredRequests.every((req) => selectedIds.includes(req.id));
+        setSelectAll(allSelected);
+    }, [filteredRequests, selectedIds]);
+
+    const handleSelectRequest = (id) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((requestId) => requestId !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedIds([]);
+            setSelectAll(false);
+        } else {
+            setSelectedIds(filteredRequests.map((req) => req.id));
+            setSelectAll(true);
+        }
+    };
+
     const handleDelete = async () => {
         if (!requestToDelete) return;
         setDeleteLoading(true);
@@ -125,6 +150,7 @@ const CompanyRequestList = () => {
             const result = await deleteCompanyRequest(requestToDelete.id);
             if (result.success) {
                 toast.success("تم حذف الطلب بنجاح");
+                setSelectedIds((prev) => prev.filter((id) => id !== requestToDelete.id));
                 fetchRequests();
                 setDeleteDialogOpen(false);
                 setRequestToDelete(null);
@@ -157,6 +183,108 @@ const CompanyRequestList = () => {
             toast.error("حدث خطأ ما");
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const handleBulkStatusChange = async (newStatus) => {
+        if (selectedIds.length === 0) {
+            toast.error("يرجى اختيار طلبات للتحديث");
+            return;
+        }
+
+        setBulkStatusLoading(true);
+        try {
+            const result = await updateCompanyRequestsStatus(selectedIds, newStatus);
+            if (!result?.success) {
+                toast.error(result?.error || "فشل في تحديث الطلبات المختارة");
+                return;
+            }
+
+            toast.success(`تم تحديث حالة ${result.count} طلب بنجاح`);
+            setRequests((prev) =>
+                prev.map((r) =>
+                    selectedIds.includes(r.id) ? { ...r, status: newStatus } : r
+                )
+            );
+            setSelectedIds([]);
+            setSelectAll(false);
+        } catch (error) {
+            toast.error("حدث خطأ أثناء تحديث الطلبات المختارة");
+        } finally {
+            setBulkStatusLoading(false);
+        }
+    };
+
+    const handleExportAll = async () => {
+        try {
+            const result = await exportCompanyRequests(null);
+            if (result.success) {
+                const ws = XLSX.utils.json_to_sheet(result.data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "طلبات الشركات");
+                XLSX.writeFile(
+                    wb,
+                    `طلبات_الشركات_الكل_${new Date().toISOString().split("T")[0]}.xlsx`
+                );
+                toast.success("تم تصدير جميع طلبات الشركات بنجاح");
+            } else {
+                toast.error(result.error || "فشل في تصدير طلبات الشركات");
+            }
+        } catch (error) {
+            toast.error("حدث خطأ أثناء التصدير");
+        }
+    };
+
+    const handleExportSelected = async () => {
+        if (selectedIds.length === 0) {
+            toast.error("يرجى اختيار طلبات للتصدير");
+            return;
+        }
+        try {
+            const result = await exportCompanyRequests(selectedIds);
+            if (result.success) {
+                const ws = XLSX.utils.json_to_sheet(result.data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "طلبات الشركات المختارة");
+                XLSX.writeFile(
+                    wb,
+                    `طلبات_الشركات_المختارة_${new Date().toISOString().split("T")[0]}.xlsx`
+                );
+                toast.success("تم تصدير الطلبات المختارة بنجاح");
+            } else {
+                toast.error(result.error || "فشل في تصدير الطلبات المختارة");
+            }
+        } catch (error) {
+            toast.error("حدث خطأ أثناء التصدير");
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return;
+
+        setBulkDeleteLoading(true);
+        try {
+            const result = await deleteCompanyRequests(selectedIds);
+            if (!result?.success) {
+                toast.error(result?.error || "فشل في حذف الطلبات المختارة");
+                return;
+            }
+
+            const missing = (result.requested ?? selectedIds.length) - result.count;
+            toast.success(
+                missing > 0
+                    ? `تم حذف ${result.count} طلب (${missing} لم تعد موجودة)`
+                    : `تم حذف ${result.count} طلب بنجاح`
+            );
+
+            setSelectedIds([]);
+            setSelectAll(false);
+            setBulkDeleteDialogOpen(false);
+            await fetchRequests();
+        } catch (error) {
+            toast.error("حدث خطأ أثناء حذف الطلبات المختارة");
+        } finally {
+            setBulkDeleteLoading(false);
         }
     };
 
@@ -205,7 +333,7 @@ const CompanyRequestList = () => {
                 ))}
             </div>
 
-            {/* Search */}
+            {/* Search + bulk actions */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 <form onSubmit={(e) => e.preventDefault()} className="flex w-full sm:w-auto">
                     <div className="relative flex-1">
@@ -219,6 +347,68 @@ const CompanyRequestList = () => {
                         />
                     </div>
                 </form>
+
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        onClick={handleExportAll}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                    >
+                        <Download className="h-4 w-4" />
+                        تصدير الكل
+                    </Button>
+                    <Button
+                        onClick={handleExportSelected}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        disabled={selectedIds.length === 0}
+                    >
+                        <Download className="h-4 w-4" />
+                        تصدير المختار ({selectedIds.length})
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                disabled={selectedIds.length === 0 || bulkStatusLoading}
+                            >
+                                {bulkStatusLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                )}
+                                تغيير الحالة ({selectedIds.length})
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" dir="rtl">
+                            <DropdownMenuLabel>تحديث الحالة للمختار</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleBulkStatusChange("PENDING")}>
+                                <Clock className="ml-2 h-4 w-4 text-yellow-400" /> قيد الانتظار
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleBulkStatusChange("REVIEWED")}>
+                                <Eye className="ml-2 h-4 w-4 text-blue-400" /> تمت المراجعة
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleBulkStatusChange("COMPLETED")}>
+                                <CheckCircle2 className="ml-2 h-4 w-4 text-green-400" /> مكتمل
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                        onClick={() => setBulkDeleteDialogOpen(true)}
+                        variant="destructive"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        disabled={selectedIds.length === 0 || bulkDeleteLoading}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        حذف المختار ({selectedIds.length})
+                    </Button>
+                </div>
             </div>
 
             <Card className="overflow-visible">
@@ -232,6 +422,12 @@ const CompanyRequestList = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="text-right w-12">
+                                            <Checkbox
+                                                checked={selectAll}
+                                                onCheckedChange={handleSelectAll}
+                                            />
+                                        </TableHead>
                                         <TableHead className="text-right">اسم الشركة</TableHead>
                                         <TableHead className="text-right">المسؤول</TableHead>
                                         <TableHead className="text-right">رقم الجوال</TableHead>
@@ -243,6 +439,12 @@ const CompanyRequestList = () => {
                                 <TableBody>
                                     {filteredRequests.map((req) => (
                                         <TableRow key={req.id}>
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedIds.includes(req.id)}
+                                                    onCheckedChange={() => handleSelectRequest(req.id)}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <Building2 className="h-4 w-4 text-yellow-400 flex-shrink-0" />
@@ -497,6 +699,44 @@ const CompanyRequestList = () => {
                             variant="ghost"
                             onClick={() => setDeleteDialogOpen(false)}
                             disabled={deleteLoading}
+                            className="text-zinc-400 hover:text-white hover:bg-zinc-900"
+                        >
+                            إلغاء
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Delete Dialog */}
+            <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+                <DialogContent className="bg-[#0a0a0a] text-white border-zinc-800" dir="rtl">
+                    <DialogHeader className="text-right sm:text-right">
+                        <DialogTitle className="text-xl font-bold text-white">
+                            تأكيد حذف الطلبات المختارة
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-400 text-right">
+                            هل أنت متأكد من حذف{" "}
+                            <strong className="text-white">{selectedIds.length}</strong> من طلبات
+                            الشركات؟ هذا الإجراء لا يمكن التراجع عنه.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0 sm:justify-start flex-row mt-4">
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteSelected}
+                            disabled={bulkDeleteLoading}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {bulkDeleteLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                            ) : (
+                                `حذف ${selectedIds.length} طلب`
+                            )}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setBulkDeleteDialogOpen(false)}
+                            disabled={bulkDeleteLoading}
                             className="text-zinc-400 hover:text-white hover:bg-zinc-900"
                         >
                             إلغاء

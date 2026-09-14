@@ -121,3 +121,141 @@ export async function deleteCompanyRequest(id) {
         };
     }
 }
+
+const MAX_BULK_DELETE = 200;
+
+const STATUS_LABELS = {
+    PENDING: "قيد الانتظار",
+    REVIEWED: "تمت المراجعة",
+    COMPLETED: "مكتمل",
+};
+
+async function requireCompanyRequestAccess() {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const hasPermission = await checkPermission(userId, "company-requests");
+    if (!hasPermission) throw new Error("Unauthorized access");
+
+    return userId;
+}
+
+// ─── Admin: Bulk delete company requests ──────────────────────────────────────
+export async function deleteCompanyRequests(ids = []) {
+    try {
+        await requireCompanyRequestAccess();
+
+        const uniqueIds = [
+            ...new Set(
+                (Array.isArray(ids) ? ids : [])
+                    .map((id) => String(id || "").trim())
+                    .filter(Boolean)
+            ),
+        ];
+
+        if (uniqueIds.length === 0) {
+            return { success: false, error: "لم يتم اختيار أي طلب للحذف" };
+        }
+        if (uniqueIds.length > MAX_BULK_DELETE) {
+            return {
+                success: false,
+                error: `لا يمكن حذف أكثر من ${MAX_BULK_DELETE} طلب في المرة الواحدة`,
+            };
+        }
+
+        const { count } = await db.companyRequest.deleteMany({
+            where: { id: { in: uniqueIds } },
+        });
+
+        revalidatePath("/admin/company-requests");
+        return {
+            success: true,
+            count,
+            requested: uniqueIds.length,
+        };
+    } catch (error) {
+        console.error("Error in deleteCompanyRequests:", error.message);
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+}
+
+// ─── Admin: Bulk update company request status ────────────────────────────────
+export async function updateCompanyRequestsStatus(ids = [], status) {
+    try {
+        await requireCompanyRequestAccess();
+
+        if (!["PENDING", "REVIEWED", "COMPLETED"].includes(status)) {
+            return { success: false, error: "حالة غير صالحة" };
+        }
+
+        const uniqueIds = [
+            ...new Set(
+                (Array.isArray(ids) ? ids : [])
+                    .map((id) => String(id || "").trim())
+                    .filter(Boolean)
+            ),
+        ];
+
+        if (uniqueIds.length === 0) {
+            return { success: false, error: "لم يتم اختيار أي طلب للتحديث" };
+        }
+
+        const { count } = await db.companyRequest.updateMany({
+            where: { id: { in: uniqueIds } },
+            data: { status },
+        });
+
+        revalidatePath("/admin/company-requests");
+        return {
+            success: true,
+            count,
+            requested: uniqueIds.length,
+        };
+    } catch (error) {
+        console.error("Error in updateCompanyRequestsStatus:", error.message);
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+}
+
+// ─── Admin: Export company requests to Excel ──────────────────────────────────
+export async function exportCompanyRequests(ids = null) {
+    try {
+        await requireCompanyRequestAccess();
+
+        const where =
+            ids && ids.length > 0
+                ? { id: { in: ids } }
+                : {};
+
+        const requests = await db.companyRequest.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+        });
+
+        const excelData = requests.map((request) => ({
+            "اسم الشركة": request.companyName,
+            "اسم المسؤول": request.contactPerson || "",
+            "رقم الجوال": request.phone || "",
+            "تفاصيل الطلب": request.notes || "",
+            "الحالة": STATUS_LABELS[request.status] || request.status,
+            "تاريخ الطلب": new Date(request.createdAt).toLocaleString("ar-SA"),
+        }));
+
+        return {
+            success: true,
+            data: excelData,
+        };
+    } catch (error) {
+        console.error("Error in exportCompanyRequests:", error.message);
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+}
