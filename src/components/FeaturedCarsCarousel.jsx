@@ -191,10 +191,10 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
       </div>
 
       {/* ── DESKTOP 3-D carousel (≥ md) ───────────────────────────────────── */}
-      <div className="hidden md:block w-full overflow-hidden h-[460px] md:h-[500px]">
+      <div className="hidden md:block w-full overflow-hidden h-[460px] md:h-[500px] xl:h-[560px] 2xl:h-[620px]">
         <div
           dir="ltr"
-          className="relative w-full h-full"
+          className="relative mx-auto h-full w-full max-w-[1600px]"
           style={{ perspective: "1500px", perspectiveOrigin: "center center" }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -215,7 +215,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
             if (abs > 4) return null;
 
             const inView = abs <= 3;
-            const translateX = offset * 62;
+            const translateX = offset * 68;
             const rotateY = -Math.sign(offset) * Math.min(abs * 40, 55);
 
             return (
@@ -225,7 +225,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
                 style={{ zIndex: 10 + (total - abs), pointerEvents: "none" }}
               >
                 <div
-                  className="w-[300px] lg:w-[340px] pointer-events-none transition-all duration-700 ease-out"
+                  className="w-[300px] lg:w-[340px] xl:w-[380px] 2xl:w-[420px] pointer-events-none transition-all duration-700 ease-out"
                   style={{
                     transform: `translateX(${translateX}%) rotateY(${rotateY}deg)`,
                     opacity: inView ? (isActive ? 1 : 0.78) : 0,
@@ -244,7 +244,7 @@ export default function FeaturedCarsCarousel({ cars = [] }) {
             href={`/cars/${cars[logicalActive].id}`}
             onClick={() => window.dispatchEvent(new CustomEvent("startLoading"))}
             aria-label="عرض تفاصيل السيارة"
-            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[300px] lg:w-[340px] h-[360px] lg:h-[390px] cursor-pointer rounded-xl"
+            className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[300px] lg:w-[340px] xl:w-[380px] 2xl:w-[420px] h-[360px] lg:h-[390px] xl:h-[430px] 2xl:h-[470px] cursor-pointer rounded-xl"
           />
         </div>
       </div>

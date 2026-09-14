@@ -74,14 +74,14 @@ const CarCard = ({ car, isFeatured }) => {
       }`}
     >
       {/* Car image */}
-      <div className={`relative ${isFeatured ? "h-44 sm:h-44 md:h-52" : "h-48 sm:h-48 md:h-56"}`}>
+      <div className={`relative ${isFeatured ? "h-44 sm:h-44 md:h-52 xl:h-56 2xl:h-60" : "h-48 sm:h-48 md:h-56"}`}>
         {car.images && car.images.length > 0 ? (
           <div className="relative w-full h-full">
             <Image
               src={car.images[0]}
               alt={`${car.make} ${car.model} `}
               fill
-              sizes="(max-width: 640px) 340px, (max-width: 768px) 340px, (max-width: 1024px) 390px, 440px"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 25vw, 20vw"
               className="object-cover group-hover:scale-105 trasition duration-300 "
             />
           </div>

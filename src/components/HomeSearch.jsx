@@ -263,7 +263,7 @@ const HomeSearch = () => {
             onKeyDown={handleKeyDown}
             type="text"
             placeholder="أدخل الماركة، الموديل، أو استخدم البحث بالصورة"
-            className={`pr-8 pl-8 py-6 w-full rounded-full border border-white/30 bg-black/40 backdrop-blur-xl text-white placeholder:text-white/60 shadow-2xl shadow-black/40 ${isInputFocused ? "focus-visible:border-white/60 focus-visible:ring-white/20" : ""
+            className={`pr-8 pl-32 py-6 w-full rounded-full border border-white/30 bg-black/40 backdrop-blur-xl text-white placeholder:text-white/60 shadow-2xl shadow-black/40 ${isInputFocused ? "focus-visible:border-white/60 focus-visible:ring-white/20" : ""
               }`}
             suppressHydrationWarning
           />
@@ -298,7 +298,7 @@ const HomeSearch = () => {
             </div>
           )}
 
-          <div className="absolute left-[70px]">
+          <div className="absolute left-2 flex items-center gap-1">
             <button
               type="button"
               onClick={() => setIsImageSearchActive(!isImageSearchActive)}
@@ -311,11 +311,10 @@ const HomeSearch = () => {
             >
               <Camera size={30} />
             </button>
+            <Button type="submit" className="rounded-full" suppressHydrationWarning>
+              بحث
+            </Button>
           </div>
-
-          <Button type="submit" className="absolute left-2 rounded-full" suppressHydrationWarning>
-            بحث
-          </Button>
         </div>
 
         {/* Mobile Search */}

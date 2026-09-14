@@ -55,7 +55,9 @@ export default function SectionBackgroundVideo({
                     }
                 });
             },
-            { rootMargin: "900px", threshold: 0 }
+            // Keep preload margin modest so large/ultrawide screens don't decode
+            // several full-bleed MP4s at once (feels like a UI freeze).
+            { rootMargin: "200px 0px", threshold: 0.15 }
         );
 
         observer.observe(section);

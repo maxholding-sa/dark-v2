@@ -128,7 +128,7 @@ const CarsPage = async ({ searchParams }) => {
 
   return (
     <>
-      <div className="w-full px-4 md:px-8">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8">
         <h1 className="text-2xl md:text-4xl mb-4 gradient-title-gold">تصفح السيارات</h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -137,7 +137,7 @@ const CarsPage = async ({ searchParams }) => {
             <CarFilters filters={filtersData} />
           </div>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {/* Listings MUST be wrapped in Suspense */}
             <Suspense key={listingsKey} fallback={<LoadingBar />}>
               <CarListings

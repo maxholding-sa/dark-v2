@@ -122,9 +122,9 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
 
   return (
     <header className="fixed top-0 w-full bg-[#000000] backdrop-blur-none z-50 border-b">
-      <nav className="mx-auto px-4 md:px-12 py-4 flex items-center justify-between">
+      <nav className="mx-auto max-w-[1600px] px-4 md:px-8 xl:px-12 py-4 flex items-center justify-between gap-4">
         {/* NavBar Logo */}
-        <Link href={isAdminPage ? "/admin" : "/"} className="flex items-center gap-2 md:mr-12">
+        <Link href={isAdminPage ? "/admin" : "/"} className="flex shrink-0 items-center gap-2">
           <Image
             src={navLogo?.imageUrl || "/logo.jpg"}
             alt={navLogo?.altText || "maxmotors_logo"}
@@ -137,8 +137,8 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
           )}
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
+        {/* Desktop Navigation — lg+ so mid-size screens don't crush ~10 Arabic links */}
+        <nav className="hidden lg:flex flex-1 items-center justify-center gap-3 xl:gap-5 2xl:gap-8 min-w-0">
           {navItems.filter(item => item.name).map((item) => (
             <Link
               key={item.href}
@@ -146,17 +146,16 @@ const Header = ({ isAdminPage = false, navLogo: initialNavLogo, aboutNavLabel = 
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('startLoading'));
               }}
-              className={`text-white hover:text-gold transition-colors text-sm font-medium ${item.name === "تواصل معنا" ? "mr-6" : ""
-                }`}
+              className="shrink-0 text-white hover:text-gold transition-colors text-xs xl:text-sm font-medium whitespace-nowrap"
             >
               {item.name}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile Menu */}
-          <div className="md:hidden">
+        <div className="flex shrink-0 items-center gap-2 md:gap-4">
+          {/* Mobile / tablet Menu */}
+          <div className="lg:hidden">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button 

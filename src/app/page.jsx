@@ -340,7 +340,7 @@ export default async function Home() {
         </div>
 
         {/* FAQs */}
-        <section className="relative z-10 py-20 px-6 md:px-40 text-white">
+        <section className="relative z-10 py-20 px-6 md:px-16 xl:px-24 2xl:px-40 text-white">
           <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/30 via-zinc-950/70 to-zinc-950/85 pointer-events-none"></div>
           <div className="container mx-auto text-right relative z-10">
             <ScrollAnimate variant="up">
