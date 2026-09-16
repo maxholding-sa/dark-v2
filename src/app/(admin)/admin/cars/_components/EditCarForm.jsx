@@ -175,12 +175,15 @@ const EditCarForm = ({ carId }) => {
     }
   }, [getCarResult, reset]);
 
-  // Handle update success
+  // Handle update success / soft failure (server action returns { success, error })
   useEffect(() => {
-    if (updateCarResult?.success) {
+    if (!updateCarResult) return;
+    if (updateCarResult.success) {
       toast.success("تم تحديث السيارة بنجاح");
       router.push("/admin/cars");
+      return;
     }
+    toast.error(updateCarResult.error || "فشل تحديث السيارة");
   }, [updateCarResult, router]);
 
   // Handle errors

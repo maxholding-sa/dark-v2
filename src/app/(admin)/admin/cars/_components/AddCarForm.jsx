@@ -130,11 +130,14 @@ const AddCarForm = () => {
 
   // check if the car is added or not
   useEffect(() => {
-    if (addCarResult?.success) {
+    if (!addCarResult) return;
+    if (addCarResult.success) {
       toast.success("تمت إضافة السيارة بنجاح");
       router.push("/admin/cars");
+      return;
     }
-  }, [addCarResult]);
+    toast.error(addCarResult.error || "فشل إضافة السيارة");
+  }, [addCarResult, router]);
 
   // handle form submit
   const onSubmitForm = async (data) => {

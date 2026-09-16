@@ -158,6 +158,16 @@ export async function processCarImageWithAI(formData) {
   }
 }
 
+function isBrandSegmentNotFound(error) {
+  return (
+    error instanceof BrandSegmentNotFoundError ||
+    error?.name === "BrandSegmentNotFoundError"
+  );
+}
+
+const brandSegmentMissingMessage = (error) =>
+  `لا يمكن حفظ السيارة: ${error.message} أضف الماركة إلى جدول فئات التأمين أو صحّح اسم الشركة المصنعة.`;
+
 // adding the cars data to the db
 export async function addCarToDB({ carData, images }) {
   try {
@@ -170,6 +180,28 @@ export async function addCarToDB({ carData, images }) {
     // stray spaces here become duplicate entries in the make/model dropdowns
     const make = normalizeCarText(carData.make);
     const model = normalizeCarText(carData.model);
+
+    // Resolve insurance category before uploads so unknown brands fail cleanly
+    // without orphaning files in storage.
+    let insuranceSegment;
+    try {
+      insuranceSegment = resolveInsuranceSegmentForCar(make, DEFAULT_BRAND_SEGMENT_MAP);
+    } catch (error) {
+      if (isBrandSegmentNotFound(error)) {
+        return {
+          success: false,
+          error: brandSegmentMissingMessage(error),
+        };
+      }
+      throw error;
+    }
+
+    if (!Array.isArray(images) || images.length === 0) {
+      return {
+        success: false,
+        error: "يرجى رفع صورة واحدة على الأقل",
+      };
+    }
 
     const carId = uuidv4(); //unique id for cars
     const folderPath = `cars/${carId}`; //intialize a carfolder path in superbase storage
@@ -211,28 +243,25 @@ export async function addCarToDB({ carData, images }) {
 
       if (error) {
         console.error("Error while uploading the image : ", error);
-        throw new Error(`Failed to upload the image : ${error.message}`);
+        return {
+          success: false,
+          error: `فشل رفع الصورة: ${error.message}`,
+        };
       }
 
       const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${filePath}`;
       imageUrls.push(publicUrl);
     }
 
-    // Resolve insurance category once from canonical brand table (no silent fallback).
-    let insuranceSegment;
-    try {
-      insuranceSegment = resolveInsuranceSegmentForCar(make, DEFAULT_BRAND_SEGMENT_MAP);
-    } catch (error) {
-      if (error instanceof BrandSegmentNotFoundError) {
-        throw new Error(
-          `لا يمكن حفظ السيارة: ${error.message} أضف الماركة إلى جدول فئات التأمين أو صحّح اسم الشركة المصنعة.`
-        );
-      }
-      throw error;
+    if (imageUrls.length === 0) {
+      return {
+        success: false,
+        error: "لم يتم رفع أي صورة صالحة. يرجى إعادة رفع الصور والمحاولة مرة أخرى.",
+      };
     }
 
     // Add the car to the database
-    const car = await db.car.create({
+    await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
         make,
@@ -246,8 +275,8 @@ export async function addCarToDB({ carData, images }) {
         bodyType: carData.bodyType,
         seats: carData.seats,
         description: carData.description,
-        category: normalizeCarText(carData.category),
-        videoUrl: carData.videoUrl,
+        category: normalizeCarText(carData.category) || null,
+        videoUrl: carData.videoUrl || null,
         status: carData.status,
         featured: carData.featured,
         isLuxury: carData.isLuxury,
@@ -269,7 +298,11 @@ export async function addCarToDB({ carData, images }) {
       success: true,
     };
   } catch (error) {
-    throw new Error(`Error : ${error.message}`);
+    console.error("Error while adding car to DB:", error);
+    return {
+      success: false,
+      error: error.message || "فشل إضافة السيارة",
+    };
   }
 }
 
@@ -499,10 +532,10 @@ export async function updateCar(id, carData, newImages = []) {
       try {
         insuranceSegment = resolveInsuranceSegmentForCar(make, DEFAULT_BRAND_SEGMENT_MAP);
       } catch (error) {
-        if (error instanceof BrandSegmentNotFoundError) {
+        if (isBrandSegmentNotFound(error)) {
           return {
             success: false,
-            error: `لا يمكن حفظ السيارة: ${error.message} أضف الماركة إلى جدول فئات التأمين أو صحّح اسم الشركة المصنعة.`,
+            error: brandSegmentMissingMessage(error),
           };
         }
         throw error;
